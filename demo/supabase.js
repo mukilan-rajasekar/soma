@@ -21,11 +21,14 @@
 
   // Insert one early-access signup. A repeat email hits the UNIQUE constraint and
   // returns 409 — we treat that as success (already on the list), not an error.
+  // NB: we deliberately do NOT use resolution=ignore-duplicates — that upsert path
+  // needs to READ the conflicting row, which anon can't do (waitlist is write-only),
+  // so it'd fail RLS. A plain insert + catching 409 is the correct write-only pattern.
   async function joinWaitlist(rec) {
     if (!enabled) throw new Error("supabase-not-configured");
     var res = await fetch(BASE + "/rest/v1/waitlist", {
       method: "POST",
-      headers: headers({ Prefer: "return=minimal,resolution=ignore-duplicates" }),
+      headers: headers({ Prefer: "return=minimal" }),
       body: JSON.stringify(rec)
     });
     if (!res.ok && res.status !== 409) throw new Error("waitlist insert failed: " + res.status);
