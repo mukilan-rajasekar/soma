@@ -21,10 +21,12 @@ sin we are trying NOT to commit, at higher resolution. So this tool:
   2. Uses a CIRCULAR-SHIFT permutation  -> the null preserves each series'
      null                                  autocorrelation while destroying the
                                            cross-alignment. This is the honest p.
-  3. Reports a LEAVE-ONE-ANNOTATOR-OUT  -> the 20-annotator agreement is how well
-     noise ceiling                         humans predict each other. The model
-                                           cannot beat that ceiling; report r
-                                           relative to it, not in a vacuum.
+  3. Reports a LEAVE-ONE-ANNOTATOR-OUT  -> how well one annotator predicts the mean of
+     noise ceiling                         the others: a REFERENCE scale for r, not a
+                                           hard upper bound. The model is scored against
+                                           the 20-annotator MEAN (an easier, lower-noise
+                                           target), so r/ceiling CAN exceed 1 — interpret
+                                           it, don't treat it as a cap the model can't beat.
   4. Reports EVERY video (forest table  -> no best-of-N. A combined p across all
      + Stouffer/Fisher combined p)         videos, not the single prettiest one.
   5. Runs BOTH pre-registered features  -> `global` (whole-cortex magnitude; the
@@ -446,7 +448,7 @@ def main():
         med_ceil = np.nanmedian([r["ceiling"] for r in fr])
         print(f"  -> {feat.upper()}: {len(fr)} videos | median r = {_fmt(med_r)} | "
               f"median ceiling = {_fmt(med_ceil)} | Stouffer p = {_fmt(pc,4)} | "
-              f"Fisher p = {_fmt(pf,4)}")
+              f"Fisher p (omnibus, direction-agnostic) = {_fmt(pf,4)}")
         print()
 
     _write_results(args.out, rows, feats)

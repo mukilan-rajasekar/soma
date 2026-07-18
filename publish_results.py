@@ -139,8 +139,19 @@ def main():
     if args.incremental:
         beats = _beats_from_incremental(args.incremental, args.alpha)
 
-    is_null = (p is None) or (p >= args.alpha) or (abs(s["median_r"]) < 0.05) \
-        or (beats is False)
+    # null_result reflects ONLY the attention test (does the arc track human interest?).
+    # Whether it ALSO beats the dumb ffmpeg baseline is a SEPARATE pre-registered question
+    # (beats_baseline, its own field below) and must never overwrite the attention verdict:
+    # a genuine correlation that merely fails to beat the baseline is NOT a "null result".
+    is_null = (p is None) or (p >= args.alpha) or (abs(s["median_r"]) < 0.05)
+    if is_null:
+        verdict = "null result — as pre-registered"
+    elif beats is False:
+        verdict = "tracks interest · does not beat baseline"
+    elif beats is True:
+        verdict = "tracks interest · beats baseline"
+    else:
+        verdict = "measured"
 
     payload = {
         "n": s["n_videos"],
@@ -149,9 +160,7 @@ def main():
         "beats_baseline": beats,
         "feature": args.feature,
         "null_result": bool(is_null),
-        "tag": (f"n={s['n_videos']} · "
-                + ("null result — as pre-registered" if is_null else "measured")
-                + f" ({args.feature})"),
+        "tag": f"n={s['n_videos']} · {verdict} ({args.feature})",
         "_provenance": {
             "source": os.path.basename(args.results),
             "combined_p_signed_stouffer": p,

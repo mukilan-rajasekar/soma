@@ -220,7 +220,7 @@ def main():
                 events = build_events(vp)
                 preds, _segments = model.predict(events=events)
                 preds = np.asarray(preds, float)
-                np.save(npy, preds)
+                np.save(npy, preds.astype(np.float32))  # float32 halves disk/IO; z-scored BOLD needs no more (matches Colab Cell 4)
             if not printed_scale:
                 describe_preds(preds, tag=vid)   # confirm z-scored/signed scale ONCE
                 printed_scale = True

@@ -152,6 +152,33 @@ def main():
             check("affect valence signal > null (sig2)", abs(r2) > abs(rn),
                   f"sig2={r2:.2f} null={rn:.2f}")
 
+    print("\n8. train_head (learned read-out head: recovers signal, control must collapse)")
+    import re
+    hdout = os.path.join(SYN, "head")
+    r = run([PY, "train_head.py", "--preds-dir", SYN, "--arc-dir", ARCS,
+             "--human-dir", HUMAN, "--masks-dir", SYN, "--n-perm", "2000", "--out", hdout])
+    print(r.stdout[-700:])
+    hcsv = hdout + ".csv"
+    check("train_head.csv written", os.path.exists(hcsv))
+    if os.path.exists(hcsv):
+        # cols: video,n,alpha,r_head,perm_p,r_roi,delta_r,ceiling,frac_of_ceiling
+        H = {rr.split(",")[0]: rr.split(",") for rr in open(hcsv).read().splitlines()[1:]}
+        def hget(vid, idx):
+            try: return float(H[vid][idx])
+            except Exception: return None
+        p_sig1, p_null = hget("synth_sig1", 4), hget("synth_null", 4)
+        check("head RECOVERS planted signal (sig1 perm_p<0.05)",
+              p_sig1 is not None and p_sig1 < 0.05, f"perm_p={p_sig1}")
+        check("head QUIET on null control (null perm_p>=0.05)",
+              p_null is not None and p_null >= 0.05, f"perm_p={p_null}")
+    # negative control: shuffled training targets must collapse the across-video aggregate
+    rc = run([PY, "train_head.py", "--preds-dir", SYN, "--arc-dir", ARCS,
+              "--human-dir", HUMAN, "--masks-dir", SYN, "--n-perm", "2000", "--shuffle-target"])
+    m = re.search(r"Stouffer p = ([0-9.]+)", rc.stdout)
+    sp = float(m.group(1)) if m else None
+    check("head negative control does NOT leak (shuffled Stouffer p>=0.05)",
+          sp is not None and sp >= 0.05, f"Stouffer p={sp}")
+
     print("\n" + "=" * 60)
     if FAILS:
         print(f"DRY RUN: {len(FAILS)} FAIL(S): {FAILS}")

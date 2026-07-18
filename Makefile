@@ -7,7 +7,7 @@ PY   := /Users/mukilan/projects/Brain\ Project/.venv/bin/python
 ROOT := /Users/mukilan/projects/Brain\ Project
 
 .DEFAULT_GOAL := help
-.PHONY: help synth dryrun test demo baseline publish pipeline pipeline-demo report ingest trim
+.PHONY: help synth dryrun test demo baseline publish pipeline pipeline-demo report ingest trim head head-demo
 
 help:  ## show this help
 	@echo "Soma make targets:"
@@ -18,6 +18,8 @@ help:  ## show this help
 	@echo "  make trim       laptop prep: download+trim TVSum to small clips for the light Colab path (N=3 SEC=120)"
 	@echo "  make pipeline-demo  run the whole analysis chain on synthetic fixtures"
 	@echo "  make pipeline   run the CPU analysis chain on ./data (DEMO=1 to publish)"
+	@echo "  make head       train the read-out head on ./data (needs real preds + roi_*.npy masks)"
+	@echo "  make head-demo  smoke-test train_head.py on the synthetic fixtures (no GPU)"
 	@echo "  make report     rebuild validation/report.html from validation CSVs"
 	@echo "  make publish    publish a REAL run into demo/results.json (never synthetic)"
 	@echo "  make demo       serve the static demo player at http://localhost:8000"
@@ -64,6 +66,15 @@ ingest:  ## stage a Colab results zip + run everything: make ingest ZIP=~/Downlo
 	@echo ""
 	@echo ">>> Open validation/report.html for the verdict. If it's a real signal (not null),"
 	@echo ">>> re-run with DEMO=1 to light up the demo:  make ingest ZIP=$(ZIP) DEMO=1"
+
+head:  ## train the read-out head on ./data (needs preds_*.npy + arc_*.csv + human_* + roi_*.npy masks)
+	$(PY) $(ROOT)/train_head.py --preds-dir $(ROOT)/data/arcs --arc-dir $(ROOT)/data/arcs \
+		--human-dir $(ROOT)/data/tvsum --masks-dir $(ROOT)/data --out $(ROOT)/validation/head
+
+head-demo:  ## smoke-test train_head.py on synthetic fixtures (recovers signal; shuffle control collapses)
+	$(PY) $(ROOT)/tests/make_synthetic_data.py >/dev/null
+	$(PY) $(ROOT)/train_head.py --preds-dir $(ROOT)/tests/synth --arc-dir $(ROOT)/tests/synth/arcs \
+		--human-dir $(ROOT)/tests/synth/human --masks-dir $(ROOT)/tests/synth --out $(ROOT)/tests/synth/head
 
 pipeline:  ## run the full CPU analysis chain on ./data (corr->incr->affect->report). Add DEMO=1 to publish.
 	$(PY) $(ROOT)/run_pipeline.py --arc-dir $(ROOT)/data/arcs --human-dir $(ROOT)/data/tvsum \
