@@ -1,15 +1,19 @@
 # Soma
 
-Neuroscience-grounded video-ad pre-testing. Predict whether a video ad will hold a
-viewer's attention — **from the video file alone, no human panel** — by predicting
-the brain's response with a public brain-encoding model (Meta **TRIBE v2**, an
-Algonauts-2025 winner) and checking that prediction against real human viewing
-behavior.
+**Predict how a video ad performs — from the file alone, no human panel.**
+
+Upload a video; Soma runs it through a *simulated brain* (Meta's public **TRIBE v2**
+encoder, an Algonauts-2025 winner) and reads out a second-by-second **attention arc**,
+a coarse **emotion arc** (valence / arousal), and **weak-spot callouts** ("you lose
+them at 0:12") — then lets you compare cuts and variants across runs. Faster and
+cheaper than panel-based pre-testing.
+
+**🔗 Live demo → https://soma-jet-tau.vercel.app**  ·  Product vision & roadmap → [`VISION.md`](VISION.md)
 
 > **The one honesty rule that governs this whole repo:** the model predicts
 > **brain activation**, not "interest" or "engagement." The attention arc is a
 > **pre-registered, running test that MAY RETURN NULL** — never label it
-> "validated." The affect (valence/arousal) layer is an explicit
+> "validated." The affect (valence / arousal) layer is an explicit
 > **hypothesis / unvalidated proxy**. All outputs are **group-average, cortex-only**.
 > We never fabricate numbers or named-emotion percentages.
 
@@ -25,12 +29,22 @@ There is a three-step chain and **only step 1 is externally validated**:
    video, with an autocorrelation-aware permutation null. A null is a legitimate,
    pre-registered outcome and we report it as such.
 
-The wedge is the **signal source**, not the arc's shape: competitors read attention
-from black-box human panels (Realeyes, Neurons) or simulate self-report by prompting
-an LLM persona (Aaru, Simile). Soma predicts the actual cortical response with a
-public, reproducible model — with an explicit validated-vs-hypothesis boundary
-neither camp offers. The brain model is **not** a moat (anyone can download the same
-weights); the moat is validation + product + customers.
+**Meta built the eye; Soma builds the lens.** The encoder is public — anyone can
+download the same weights, so it is **not** a moat. The moat is (1) honest
+validation nobody else does, (2) the product, and (3) the proprietary *ad ×
+real-outcome* data flywheel our design partners generate. See [`VISION.md`](VISION.md)
+for the full "what's Meta's vs ours" and the evidence ladder.
+
+## Live demo & deployment
+
+- **`demo/`** is a self-contained static site — no build step, no runtime CDN. A 3D
+  translucent cortex hero (decorative, watermarked) scrolls into a **data console**
+  that renders real precomputed arcs: attention / valence / arousal lanes, weak-spot
+  callouts, an A/B variant compare, and green/amber/red evidence badges.
+- **Deployed on Vercel**, auto-deploys on push to `main`; every PR gets a preview URL.
+- **Early-access waitlist** writes to **Supabase** (`supabase/schema.sql`,
+  `supabase/README.md`) with row-level security; falls back to `localStorage` if
+  unconfigured. A shared `arcs` table backs cross-team results.
 
 ## File map
 
@@ -38,86 +52,72 @@ weights); the moat is validation + product + customers.
 
 | File | Role |
 | --- | --- |
-| `batch_extract.py` | **GPU-box runbook.** Runs TRIBE v2 on a folder of clips → caches `preds_<id>.npy` (raw `(T, 20484)` predicted activation) + `arc_<id>.csv` (`t_sec, global_mag, roi_mag`) + `arc_<id>.json` (demo-ready). Prints the preds distribution to confirm the z-scored signed BOLD scale. |
-| `build_roi_mask.py` | Builds the a-priori ROI masks (DMN / DAN / valence / arousal) on the fsaverage5 surface via nilearn's Destrieux atlas. Asserts length 20484. |
-| `tvsum_prep.py` | Turns TVSum (`ydata-tvsum50.mat`, 20-annotator per-frame importance) into per-video human interest arcs + per-annotator matrices on a real seconds timebase. The public replacement for private retention curves. |
-| `honest_corr_timeseries.py` | **PRIMARY within-video test.** Predicted arc vs human arc, first-differenced, circular-shift permutation null, leave-one-annotator-out noise ceiling, all-videos forest report. Runs both pre-registered features (`global` baseline + `roi` open test). Exposes reusable stats helpers (`spearman`, `pearson`, `first_diff`, `circular_shift_p`, `resample_to_grid`, ...). |
-| `honest_corr.py` | SECONDARY between-video test (outcome = retention_pct). Underpowered at small n; reported transparently. |
-| `baseline_extract.py` | Dumb-baseline extractor: per-second loudness / cuts / luminance / motion from the video file (no brain model). |
-| `incremental_validity.py` | Partial-correlation test — does the brain arc predict human interest **over and above** the dumb baseline features? |
-| `affect_extract.py` | CPU proxy: `preds` + valence/arousal masks → a `valence[] / arousal[]` block (with lo/hi bands) written into `arc_<id>.json`. Status is always `proxy-hypothesis`. |
+| `batch_extract.py` | **GPU runbook.** Runs TRIBE v2 on a folder of clips → caches `preds_<id>.npy` (raw `(T, 20484)` predicted activation) + `arc_<id>.csv` (`t_sec, global_mag, roi_mag`) + `arc_<id>.json` (demo-ready). Prints the preds distribution to confirm the z-scored signed-BOLD scale. |
+| `tvsum_trim.py` / `make trim` | Downloads TVSum + trims/downscales each clip to its first N seconds on your laptop, so Colab spends GPU minutes only on the brain-math. |
+| `build_roi_mask.py` | Builds the a-priori ROI masks (DMN / DAN / valence / arousal) on the fsaverage5 surface via nilearn. Asserts length 20484. |
+| `tvsum_prep.py` | Turns TVSum (20-annotator per-frame importance) into per-video human-interest arcs — the public replacement for private retention curves. |
+| `honest_corr_timeseries.py` | **PRIMARY within-video test.** Predicted arc vs human arc, first-differenced, circular-shift permutation null, leave-one-annotator-out ceiling, all-videos forest report. Runs `global` (baseline) + `roi` (open test). |
+| `train_head.py` | Our first *trained* read-out head — a small ridge over frozen TRIBE features → attention, validated leave-one-**video**-out with a nested baseline it must beat. Weights are ours; encoder is Meta's. **Not validated until the real GPU run lands.** |
+| `honest_corr.py` | SECONDARY between-video test (retention_pct); underpowered at small n, reported transparently. |
+| `baseline_extract.py` + `incremental_validity.py` | The "why not just ffmpeg?" guard — does the brain arc beat dumb audiovisual features (loudness/cuts/luminance/motion)? |
+| `affect_extract.py` | CPU proxy: `preds` + valence/arousal masks → a `valence[] / arousal[]` block in `arc_<id>.json`, always badged `proxy-hypothesis`. |
+| `publish_results.py` | Turns a **real** `results.csv` into `demo/results.json`. Honest by construction: stamps `null_result` when p ≥ α. |
 
 ### Test harness (`tests/`)
 
 | File | Role |
 | --- | --- |
-| `tests/make_synthetic_data.py` | Generates the synthetic fixtures in `tests/synth/` (preds with a planted signal + a null control, fake TVSum `.mat`, LIRIS-style affect CSVs, ROI masks, a tiny mp4). No GPU, no real data. |
-| `tests/dry_run.py` | Runs the **whole** analysis pipeline end-to-end on the synthetic data and asserts it behaves: detects the planted signal, stays quiet on the null control, and every stage produces well-formed output. |
-| `tests/synth/` | The generated fixtures + a `MANIFEST.json` (`synth_sig1` / `synth_sig2` carry signal; `synth_null` is a control). |
+| `tests/make_synthetic_data.py` | Generates fixtures (`synth_sig*` carry a planted signal, `synth_null` is a control). No GPU, no real data. |
+| `tests/dry_run.py` | Runs the **whole** pipeline on the fixtures and asserts it behaves: detects the planted signal, stays quiet on the null, and every stage produces well-formed output. |
 
-### Demo (`demo/`)
-
-Self-contained static player — no GPU, no backend, no build step. `index.html` +
-`app.js` + `styles.css` load a precomputed `arc_<id>.json` and draw three synced
-lanes (attention / valence / arousal) with evidence badges (green validated /
-amber weakly / red hypothesis) and a "Vision" roadmap panel. `pitch.html` is the
-deck. See `demo/README.md` for the honesty rules baked into the UI (the
-"precomputed" chip, the two-tier claim banner, the marked upload stub).
-
-### Docs
+### Docs (in this repo)
 
 | File | Role |
 | --- | --- |
-| `PIPELINE.md` | End-to-end Day-2 runbook tying every script together (GPU track + demo track). |
-| `ROADMAP.md` | Where this goes past the sprint. |
-| `WEEK-PLAN.md` | The day-by-day sprint plan. |
-| `YC-APPLICATION.md` | The YC application draft + the four interview-killer answers. |
-| `PREREGISTRATION.md` | The **locked** attention analysis plan. Read before running the test; do not change after seeing results. |
-| `PREREGISTRATION-affect.md` | The locked (hypothesis-level) affect analysis plan. |
-| `CLAUDE.md` | Project rules that load every coding session (build half + YC half). |
+| [`VISION.md`](VISION.md) | Product vision, the pitch, the honest evidence ladder, and the R0→R4 roadmap. |
+| `ROADMAP.md` | The rung-by-rung staircase past the sprint. |
+| `PIPELINE.md` | End-to-end runbook tying every script together (GPU track + demo track). |
+| `colab_README.md` | Copy-paste free-T4 Colab runbook (mirrors `batch_extract.py`). |
+| `PREREGISTRATION.md` / `PREREGISTRATION-affect.md` | The **locked** analysis plans. Read before running; do not change after seeing results. |
+
+> Some strategy/application docs (e.g. the YC draft, session notes) are kept **out of
+> this repo by design** — see `.gitignore`. Nothing here fabricates a result.
 
 ## Quickstart
 
-There are two independent steps. The **GPU step generates the arcs** (slow, needs a
-rented A100). Everything downstream — stats, demo, tests — is **CPU / browser only**.
+Two independent steps. The **GPU step generates the arcs** (slow, needs a big GPU);
+everything downstream — stats, demo, tests — is **CPU / browser only**.
 
-### 1. GPU / inference step (Colab or a rented box)
+### 1. GPU / inference step (free Colab T4, recommended)
 
-Full trimodal TRIBE needs ~28–32 GB VRAM (A100-40GB or L40S; ~$1–2/hr on
-RunPod / Lambda / Vast). The audio+video config is the verified default and the
-fastest path to a result.
+The audio+video TRIBE config runs on a free Colab **T4**. Open `colab_run.ipynb` and
+follow `colab_README.md`:
 
 ```bash
-# on the GPU box, once:
-pip install -U "numpy>=1.26,<2.1" scipy pandas nilearn torch   # neuralset needs numpy<2.1
-export HF_HUB_DOWNLOAD_TIMEOUT=300
-
-# build the a-priori ROI mask, then batch TRIBE over your clips:
-python build_roi_mask.py --network dmn --out ./data/roi_mask_dmn.npy
-python batch_extract.py --video-dir ./clips --out ./data/arcs --roi-mask ./data/roi_mask_dmn.npy
+# on your laptop, once — trim clips so Colab only spends GPU on the brain-math:
+brew install ffmpeg
+make trim N=15 SEC=120        # download TVSum + trim each clip to its first 2 min
+# → upload data/clips_trimmed/ to Google Drive (MyDrive/soma/clips), then run Colab Cell 2B
 ```
 
-`preds` are **z-scored, signed BOLD (~[-1, +1]), NOT 0–1 probabilities** — confirm
-the printed distribution has a real fraction < 0. The `.npy` caches are
-deterministic; never re-run them at analysis time. TRIBE load API is documented in
-`batch_extract.py` and `PIPELINE.md`.
+Per clip Colab writes `preds_<id>.npy` + `arc_<id>.csv` + `arc_<id>.json` to Drive
+(runs **resume** across disconnects). `preds` are **z-scored, signed BOLD (~[-1,+1]),
+NOT 0–1 probabilities** — Cell 4 prints the real distribution so you never assume it.
 
-### 2. CPU / analysis step (the local venv, no GPU)
+### 2. CPU / analysis step (local venv, no GPU)
 
 ```bash
-# one-time:
-python -m venv .venv && ./.venv/bin/pip install -r requirements.txt   # (install the CPU group)
+python -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 
-# fetch + prep the public human arcs, then run the pre-registered test:
-python tvsum_prep.py --mat ./tvsum/ydata-tvsum50.mat --out ./data/tvsum --shot-sec 2.0
+python tvsum_prep.py --mat ./data/ydata-tvsum50.mat --out ./data/tvsum --shot-sec 2.0
 python honest_corr_timeseries.py \
     --model-glob "./data/arcs/arc_*.csv" --human-dir ./data/tvsum \
     --feature both --n-perm 5000 --out ./validation/tvsum_run
 ```
 
-Read the forest table + combined p **per feature**. The honest result: does `roi`
-survive the circular-shift null across videos while `global` is null? Report all
-rows, including a null.
+Read the forest table + combined p **per feature**: does `roi` survive the
+circular-shift null across videos while `global` is null? Report every row, including
+a null.
 
 ### Verify the plumbing without a GPU
 
@@ -132,5 +132,5 @@ make dryrun     # run the full pipeline on them; asserts signal detected + null 
   `preds_<id>.npy`; once cached, the arcs are static assets.
 - The pinned `numpy>=1.26,<2.1` constraint is a hard requirement of the TRIBE /
   neuralset stack — do not bump it.
-- See `requirements.txt` for the two dependency groups (GPU/inference vs
-  CPU/analysis) and `PIPELINE.md` for the full runbook.
+- See `requirements.txt` for the two dependency groups (GPU/inference vs CPU/analysis)
+  and `PIPELINE.md` for the full runbook.
