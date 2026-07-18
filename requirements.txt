@@ -1,0 +1,33 @@
+# Soma dependencies — TWO groups.
+#
+# The two steps are independent: the GPU group only generates the cached
+# preds_<id>.npy arcs; everything downstream (stats, demo, tests) runs on the
+# CPU group alone. Most contributors only need the CPU/analysis group.
+#
+# Install one group at a time in its own environment to avoid resolver fights
+# (the GPU stack pins numpy hard). e.g.:
+#   ./.venv/bin/pip install -r requirements.txt        # CPU/analysis (this venv)
+#   pip install torch neuralset ...                    # GPU/inference (rented box)
+
+# ---------------------------------------------------------------------------
+# GROUP A — GPU / INFERENCE  (rented A100 / Colab only; generates the arcs)
+# ---------------------------------------------------------------------------
+# numpy is pinned HARD: the TRIBE / neuralset compiled stack breaks on numpy>=2.1.
+numpy>=1.26,<2.1
+torch                    # CUDA build; installed per the box's CUDA version
+# --- TRIBE v2 + its event-building stack (installed from their sources) ---
+# tribev2               # model.from_pretrained("facebook/tribev2"); TribeModel.predict
+# neuralset             # standardize_events + ExtractAudioFromVideo + ChunkEvents
+# huggingface_hub       # pulls the gated facebook/tribev2 weights (~1 GB, cached ./cache)
+# transformers          # trimodal (text/LLaMA) branch — needs gated LLaMA-3.2 access
+
+# ---------------------------------------------------------------------------
+# GROUP B — CPU / ANALYSIS  (this .venv; no GPU; the whole downstream pipeline)
+# ---------------------------------------------------------------------------
+# numpy already declared above (>=1.26,<2.1) and is compatible with this group.
+scipy                   # stats: ranks, norm cdf/ppf, .mat loading
+pandas                  # arc/annotation tables
+matplotlib              # the forest plot in honest_corr_timeseries.py
+nilearn                 # Destrieux fsaverage5 atlas -> ROI masks (build_roi_mask.py)
+opencv-python-headless  # per-second luminance/cuts/motion in baseline_extract.py
+imageio-ffmpeg          # audio loudness + synthetic mp4 muxing (baseline/tests)

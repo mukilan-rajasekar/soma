@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Soma — neural ad pre-testing (demo)</title>
+  <!-- Apple system type: SF Pro on Apple devices via -apple-system (no webfont fetch) -->
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="./vendor/lenis/lenis.css" />
+  <!-- three.js r185 vendored locally as ES modules (no build step, no CDN at runtime) -->
+  <script type="importmap">
+  {"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}
+  </script>
+</head>
+<body>
+  <canvas id="scrollBrain" aria-hidden="true"></canvas>
+  <div id="brainVeil" aria-hidden="true"></div>
+  <nav>
+    <div class="brand"><span class="orb"></span>Soma<small>working name</small></div>
+    <div class="navright">
+      <span class="chip" title="The on-stage playback is a frozen offline result, not live GPU inference.">precomputed · cached result</span>
+      <a class="navcta" href="waitlist.html">Request early access →</a>
+    </div>
+  </nav>
+
+  <!-- ============ 3D CORTEX TOUR · marketing hero (DECORATION, not prediction data) ============ -->
+  <section id="brain-tour" class="hud-minimal">
+    <div id="brainStage">
+      <canvas id="brainCanvas" aria-hidden="true"></canvas>
+      <div class="hud" aria-hidden="true">
+        <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
+        <span class="hud-corner bl"></span><span class="hud-corner br"></span>
+        <div class="hud-telemetry">
+          <div>SOMA · CORTICAL PREVIEW</div>
+          <div class="dim">fsaverage5 · 20,484 vtx · pial</div>
+          <div class="dim">acq: <b>decorative</b> · not prediction data</div>
+        </div>
+        <div id="brainReticle" class="reticle"><span class="r-ring"></span><span class="r-h"></span><span class="r-v"></span></div>
+        <div class="hud-rail"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="hud-watermark">decorative model — marketing, not prediction data</div>
+      </div>
+      <button id="hudToggle" class="hud-toggle" type="button">HUD · <b>Moderate</b></button>
+    </div>
+
+    <div class="chapters">
+      <article class="chapter is-active" data-ch="0"><div class="panel panel-hero">
+        <div class="kick"><i></i>Neural pre-testing for video ads</div>
+        <h1>See where an ad <span class="grad">holds attention</span> and how it <span class="grad">feels</span> — predicted from the file, before you spend a dollar.</h1>
+        <p class="sub">We predict the average viewer's second-by-second brain response with Meta's public TRIBE&nbsp;v2, then read an attention arc and a coarse affect arc off it — each carrying an honest evidence badge.</p>
+        <div class="evidence">
+          <span><span class="dot g"></span><b>Validated</b> · video → brain</span>
+          <span><span class="dot a"></span><b>Weakly validated</b> · attention</span>
+          <span><span class="dot r"></span><b>Hypothesis</b> · affect</span>
+        </div>
+        <div class="scrollcue">scroll to fly in <span>↓</span></div>
+      </div></article>
+
+      <article class="chapter" data-ch="1"><div class="panel">
+        <div class="ch-tag">01 · occipital lobe · V1</div>
+        <h2>The ad enters the brain here.</h2>
+        <p>Primary visual cortex. This is the one link we have <b>validated</b>: Meta's TRIBE&nbsp;v2 predicts second-by-second cortical activation straight from the video file — no panel, no survey.</p>
+        <span class="badge g">validated · video → brain</span>
+      </div></article>
+
+      <article class="chapter" data-ch="2"><div class="panel">
+        <div class="ch-tag">02 · superior temporal · fusiform</div>
+        <h2>It responds to faces and voices — not just cuts.</h2>
+        <p>The face- and voice-sensitive cortex. This is our wedge: signal from <b>biology</b>, not an edit-heuristic or an LLM role-playing a viewer. A loudness-and-cuts detector stays dark right here.</p>
+        <span class="badge a">weakly validated · the wedge</span>
+      </div></article>
+
+      <article class="chapter" data-ch="3"><div class="panel">
+        <div class="ch-tag">03 · default-mode network</div>
+        <h2>Where the ad holds — and where it loses them.</h2>
+        <p>We read a moment-to-moment <b>attention arc</b>: bright where the ad holds, dimming at the seconds attention leaks — checked against a real human interest curve (TVSum), permutation-tested.</p>
+        <span class="badge a">weakly validated · vs TVSum</span>
+      </div></article>
+
+      <article class="chapter" data-ch="4"><div class="panel">
+        <div class="ch-tag">04 · OFC · insula</div>
+        <h2>How the moment feels — our openest guess.</h2>
+        <p>Orbitofrontal cortex and insula stand in for valence and arousal. This is an explicit, <b>unvalidated hypothesis</b> — a cortical proxy, not a decoder. The amygdala (dark here) is out of cortical reach, and we say so.</p>
+        <span class="badge r">hypothesis · not validated</span>
+      </div></article>
+
+      <article class="chapter" data-ch="5"><div class="panel">
+        <div class="ch-tag">05 · whole cortex · ground truth</div>
+        <h2>We check it against real humans.</h2>
+        <p>A prediction is only worth its test. We permutation-test against real human data and <b>report the nulls</b>. Every claim on this page wears its evidence tier — <span class="ev g">green</span>, <span class="ev a">amber</span>, or <span class="ev r">red</span> — nothing dressed up as more than it is.</p>
+        <span class="badge">n=validating · honest by construction</span>
+      </div></article>
+
+      <article class="chapter" data-ch="6"><div class="panel">
+        <div class="ch-tag">06 · ventrolateral PFC · roadmap</div>
+        <h2>Named emotions — the goal, not the claim.</h2>
+        <p>"Amusement", "tension", "warmth" — a staircase, each rung <b>earned by a held-out test</b>, never asserted today. That's the roadmap.</p>
+        <a class="panel-cta" href="#console">See the real, data-backed read-out <span>↓</span></a>
+      </div></article>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="console" id="console">
+      <div class="cbar">
+        <span class="d"></span><span class="d"></span><span class="d"></span>
+        <span>soma · analyze</span><span class="lbl">demo</span>
+      </div>
+
+      <div class="pick">
+        <div class="eye">1 · Pick a sample ad</div>
+        <div class="vids" id="vids"></div>
+      </div>
+
+      <div class="analysis">
+        <div class="eye">2 · Neural read-out (one shared timeline)</div>
+        <div class="stage">
+          <div class="brainbox">
+            <!-- real footage: shown + synced only when arc.video_src is non-empty (else stays hidden, timer drives playback) -->
+            <video id="adVideo" class="advideo hidden" playsinline muted preload="metadata"></video>
+            <div class="bx-h"><span>Predicted cortical activation</span><b id="brainT">0.0s</b></div>
+            <svg id="brainSvg" viewBox="0 0 300 230"></svg>
+            <div class="cortexchip"><span class="dot g"></span><b style="color:var(--ok)">Validated step.</b> Predicted average-subject, z-scored cortical activity on fsaverage5.
+              <br><b style="color:var(--amber)">Cortex only</b> — no amygdala / reward centre. Affect is inferred from cortical proxies (vmPFC, insula, ACC, STS).</div>
+          </div>
+
+          <div class="right">
+            <!-- lane 1: attention -->
+            <div class="lane">
+              <div class="lane-h"><span class="name">Attention arc<small>where the ad holds vs loses people</small></span>
+                <span class="badge a" id="badgeAtt">weakly validated · vs TVSum</span></div>
+              <canvas class="lanec" id="cAtt" width="720" height="150"></canvas>
+            </div>
+            <div class="callout hidden" id="callout"></div>
+
+            <!-- lane 2: valence -->
+            <div class="lane">
+              <div class="lane-h"><span class="name">Valence · feels good ↔ bad<small>pleasant (up) / unpleasant (down), relative</small></span>
+                <span class="badge r" id="badgeVal">hypothesis · not validated</span></div>
+              <canvas class="lanec" id="cVal" width="720" height="120"></canvas>
+            </div>
+
+            <!-- lane 3: arousal -->
+            <div class="lane">
+              <div class="lane-h"><span class="name">Arousal · calm ↔ excited<small>how worked-up the moment is, relative</small></span>
+                <span class="badge r" id="badgeAro">hypothesis · not validated</span></div>
+              <canvas class="lanec" id="cAro" width="720" height="120"></canvas>
+            </div>
+
+            <!-- coarse discrete-state distribution: rendered by app.js ONLY when arc.affect.coarse_states exists -->
+            <div class="lane coarse hidden" id="coarseWrap">
+              <div class="lane-h"><span class="name">Coarse affective states<small>experimental — a probability spread, not a single verdict</small></span>
+                <span class="badge r">hypothesis · experimental</span></div>
+              <canvas class="lanec" id="cCoarse" width="720" height="96"></canvas>
+              <div class="coarse-legend" id="coarseLegend"></div>
+              <div class="coarse-note">Stacked probabilities over coarse states (each column sums to 1). A research preview only — the model does <b>not</b> assert any single named emotion, and this is <b>not validated</b>.</div>
+            </div>
+
+            <div class="transport">
+              <button class="pbtn" id="playBtn" aria-label="Play"><svg viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11"/></svg></button>
+              <input class="scrub" id="scrub" type="range" min="0" max="100" value="0" step="0.1">
+              <span class="tstamp"><span id="clock">0:00 / 0:00</span></span>
+            </div>
+
+            <div class="warnbox"><b>Read this as a group average, not a person's feeling.</b> A cortical spike is not a specific emotion — it is consistent with higher/lower arousal or valence, not proof anyone felt a named emotion. Weak-spot callouts are model predictions, not measured eye-tracking.</div>
+            <button class="uploadbtn" id="uploadBtn" title="Hook for the real async scoring path (Modal/Replicate). Not wired in this demo.">⤴ Upload your own ad <span class="soon">soon</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- A/B compare -->
+    <section class="compare">
+      <div class="cmp-h">
+        <div>
+          <div class="eye">Compare · A / B</div>
+          <h3>Which ad holds attention better, moment to moment?</h3>
+          <p class="s">Overlay two predicted attention arcs on one timeline — the read most performance teams actually want. Illustrative sample data; the shape is what a real run fills in.</p>
+        </div>
+        <div class="cmp-sel">
+          <label>A<select id="cmpA"></select></label>
+          <label>B<select id="cmpB"></select></label>
+        </div>
+      </div>
+      <canvas id="cmpCanvas" width="1040" height="210"></canvas>
+      <div class="cmp-legend" id="cmpLegend"></div>
+      <div class="cmp-note" id="cmpSummary"></div>
+    </section>
+
+    <!-- validation strip -->
+    <section class="valid">
+      <h3>Does the prediction match reality? <span class="illus" id="validTag">illustrative — not yet run</span></h3>
+      <p class="s">The whole company rests on one question: does what we predict track what real audiences do? These are stamped <b>illustrative</b> until the real run lands — a real partner respects "n=18, validating" over a fabricated slam dunk.</p>
+      <div class="stats">
+        <div class="stat"><div class="n" id="vN">—</div><div class="k">videos tested</div></div>
+        <div class="stat"><div class="n" id="vR">—</div><div class="k">attention r (vs TVSum)</div></div>
+        <div class="stat"><div class="n" id="vP">—</div><div class="k">permutation p</div></div>
+        <div class="stat"><div class="n" id="vBase">—</div><div class="k">beats ffmpeg baseline?</div></div>
+      </div>
+      <div class="note">Numbers appear only from a real honest_corr_timeseries.py run. Method shown on every number: model = TRIBE v2 (public, Algonauts-2025 winner) · null = circular-shift permutation · n = timepoints within a video.</div>
+    </section>
+
+    <!-- roadmap / vision -->
+    <section class="vision">
+      <span class="tag">Vision — not yet validated</span>
+      <h3>The roadmap to specific, named emotions</h3>
+      <p class="s">We ship only what a held-out test can reproduce. Named emotions ("amusement", "tension") are the goal, earned one rung at a time as we collect real audience reactions. This panel is a roadmap, not a result.</p>
+      <div class="ladder" id="ladder"></div>
+      <div class="fly">
+        <div class="flycard"><div class="n" id="flyAds">0</div><div class="k">ads × reactions collected</div></div>
+        <div class="flycard"><div class="n" id="flyRung">Rung 1</div><div class="k">current validated rung</div></div>
+        <div class="flycard"><div class="n" id="flyAcc">—</div><div class="k">held-out accuracy</div></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    Soma (working name) · demo shell · sample data throughout — wire real model output before any external showing<br>
+    Predicted signal: TRIBE v2 (public weights) · attention ground-truth: TVSum · affect ground-truth (planned): LIRIS-ACCEDE
+  </footer>
+
+  <script src="scrollbrain.js"></script>
+  <script src="app.js"></script>
+
+  <!-- ===== 3D cortex hero: smooth-scroll + HUD compare toggle + WebGL probe ===== -->
+  <script src="./vendor/lenis/lenis.min.js"></script>
+  <script>
+    /* HUD compare toggle — works with or without WebGL; ?hud=minimal|moderate persists */
+    (function () {
+      var tour = document.getElementById('brain-tour');
+      var btn = document.getElementById('hudToggle');
+      if (!tour || !btn) return;
+      /* Minimal is the standard; ?hud=moderate opts into the instrument chrome for comparison. */
+      var mode = new URLSearchParams(location.search).get('hud') === 'moderate' ? 'moderate' : 'minimal';
+      function apply(m) {
+        tour.classList.toggle('hud-minimal', m === 'minimal');
+        tour.classList.toggle('hud-moderate', m !== 'minimal');
+        btn.querySelector('b').textContent = m === 'minimal' ? 'Minimal' : 'Moderate';
+      }
+      apply(mode);
+      btn.addEventListener('click', function () {
+        mode = mode === 'minimal' ? 'moderate' : 'minimal';
+        apply(mode);
+        var u = new URL(location); u.searchParams.set('hud', mode); history.replaceState(null, '', u);
+      });
+    })();
+
+    /* Bare-hero state: at the very top the opening view is just the brain — nav + honesty
+       watermark fade in only once you scroll in. Toggles a class the CSS keys off. */
+    (function () {
+      var root = document.documentElement;
+      function upd() { root.classList.toggle('at-hero-top', (window.scrollY || window.pageYOffset) < 12); }
+      upd();
+      window.addEventListener('scroll', upd, { passive: true });
+      window.addEventListener('resize', upd, { passive: true });
+    })();
+
+    /* WebGL + ES-module probe: load the 3D module only if supported, else keep the
+       existing 2D scrollbrain.js as the graceful fallback (chapters still read as text). */
+    (function () {
+      var ok = false;
+      try {
+        var c = document.createElement('canvas');
+        ok = !!(window.WebGLRenderingContext && (c.getContext('webgl2') || c.getContext('webgl')));
+      } catch (e) { ok = false; }
+      var modules = 'noModule' in HTMLScriptElement.prototype;   // proxy for import-map support
+      if (ok && modules) {
+        document.documentElement.classList.add('brain3d-on');
+        import('./brain3d.js').catch(function (err) {
+          console.warn('[brain3d] load failed, keeping 2D fallback:', err);
+          document.documentElement.classList.remove('brain3d-on');
+          document.documentElement.classList.add('brain3d-failed');
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

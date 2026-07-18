@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Soma — request early access</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --base:#04060A; --panel:#0A0D12; --panel-2:#0D1117; --raise:#141922; --line:#1E2530;
+      --ink:#EAF4FF; --dim:#94A2B3; --faint:#586474;
+      --fire-1:#7FD4FF; --fire-2:#C7E9FF; --fire-3:#FFFFFF;
+      --neon:#EAF9FF; --neon-dim:#7FD4FF;
+      --ok:#3ED8A0; --amber:#FFC44D; --hyp:#FF6B6B;
+      --disp:'Space Grotesk',system-ui,sans-serif;
+      --mono:'Space Mono',ui-monospace,monospace;
+      --body:'Inter',system-ui,-apple-system,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--base);color:var(--ink);font-family:var(--body);line-height:1.55;
+      -webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden;position:relative}
+    #scrollBrain{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block}
+    #brainVeil{position:fixed;inset:0;z-index:0;pointer-events:none;
+      background:radial-gradient(115% 95% at 50% 46%, rgba(4,6,10,0) 34%, rgba(4,6,10,.5) 100%),
+                 linear-gradient(180deg, rgba(4,6,10,.12), rgba(4,6,10,.32))}
+    nav,.wrap{position:relative;z-index:1}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;max-width:960px;margin:0 auto}
+    .brand{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:-.01em}
+    .brand .orb{width:22px;height:22px;border-radius:50%;
+      background:radial-gradient(circle at 35% 30%, #fff, var(--neon-dim) 62%, #0a2a3a);
+      box-shadow:0 0 18px rgba(127,212,255,.7), 0 0 4px rgba(255,255,255,.8)}
+    .brand small{font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-left:4px}
+    nav a{color:var(--dim);text-decoration:none;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:999px;padding:6px 13px}
+    nav a:hover{color:var(--ink);border-color:var(--neon-dim)}
+
+    .wrap{max-width:760px;margin:0 auto;padding:26px 22px 60px}
+    .kick{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--neon-dim);display:inline-flex;align-items:center;gap:8px;margin:18px 0 16px}
+    .kick i{width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 10px var(--neon)}
+    h1{font-family:var(--disp);font-weight:700;font-size:clamp(30px,5.4vw,48px);line-height:1.05;letter-spacing:-.025em;margin-bottom:14px}
+    h1 .grad{background:linear-gradient(100deg,#fff,var(--neon-dim) 60%,#fff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 26px rgba(127,212,255,.35)}
+    .lead{font-size:17px;color:var(--dim);max-width:620px;margin-bottom:8px}
+    .oneliner{font-size:15px;color:var(--ink);max-width:620px;margin:14px 0 4px;border-left:2px solid var(--neon-dim);padding-left:14px}
+
+    /* honest evidence key */
+    .evidence{display:flex;flex-wrap:wrap;gap:14px;margin:22px 0 6px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+    .evidence b{font-weight:700}
+    .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+    .dot.g{background:var(--ok)} .dot.a{background:var(--amber)} .dot.r{background:var(--hyp)}
+
+    /* capture card */
+    .card{margin:28px 0 0;background:linear-gradient(180deg,rgba(10,13,18,.86),rgba(10,13,18,.72));
+      backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+      border:1px solid var(--line);border-radius:18px;padding:26px 24px;box-shadow:0 30px 80px -40px rgba(0,0,0,.9)}
+    .card h2{font-family:var(--disp);font-size:20px;font-weight:600;margin-bottom:6px}
+    .card p.s{color:var(--dim);font-size:13.5px;max-width:560px;margin-bottom:18px}
+    form{display:flex;gap:10px;flex-wrap:wrap}
+    .field{flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px}
+    label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+    input[type=email],input[type=text]{width:100%;background:var(--base);border:1px solid var(--line);border-radius:10px;
+      padding:12px 14px;color:var(--ink);font-family:var(--body);font-size:15px;outline:none}
+    input:focus{border-color:var(--fire-1);box-shadow:0 0 0 1px var(--fire-1)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;width:100%}
+    button.cta{background:linear-gradient(100deg,var(--fire-1),var(--fire-3));color:#05070B;border:none;border-radius:10px;
+      padding:12px 22px;font-family:var(--disp);font-weight:700;font-size:15px;cursor:pointer;white-space:nowrap;align-self:flex-end;box-shadow:0 0 22px -6px rgba(127,212,255,.6)}
+    button.cta:hover{filter:brightness(1.08)}
+    button.cta:disabled{opacity:.5;cursor:not-allowed;filter:none}
+    .err{color:var(--hyp);font-family:var(--mono);font-size:11px;margin-top:10px;min-height:14px}
+    .micro{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:14px;letter-spacing:.02em;line-height:1.6}
+
+    /* thank-you state */
+    .thanks{display:none;text-align:left}
+    .thanks.show{display:block}
+    .thanks .tick{width:42px;height:42px;border-radius:50%;background:rgba(55,211,153,.12);border:1px solid rgba(55,211,153,.5);
+      display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+    .thanks .tick svg{width:20px;height:20px;stroke:var(--ok);fill:none;stroke-width:2.4}
+    .thanks h2{font-family:var(--disp);font-size:22px;font-weight:600;margin-bottom:8px}
+    .thanks p{color:var(--dim);font-size:14px;max-width:520px}
+    .thanks .again{margin-top:16px;background:transparent;color:var(--dim);border:1px dashed var(--line);border-radius:8px;
+      padding:8px 14px;font-family:var(--mono);font-size:12px;cursor:pointer}
+
+    .disclosure{margin-top:26px;border:1px dashed var(--line);border-radius:14px;padding:16px 18px;
+      background:repeating-linear-gradient(45deg, rgba(255,255,255,.012) 0 12px, transparent 12px 24px)}
+    .disclosure b{color:var(--ink)}
+    .disclosure p{font-size:12.5px;color:var(--dim);line-height:1.6}
+    .chip{display:inline-block;font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:4px 10px;
+      background:rgba(6,9,14,.55);font-family:var(--mono);margin-bottom:10px}
+
+    footer{text-align:center;padding:8px 0 0;font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.03em;line-height:1.9;margin-top:34px}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <canvas id="scrollBrain" aria-hidden="true"></canvas>
+  <div id="brainVeil" aria-hidden="true"></div>
+  <nav>
+    <div class="brand"><span class="orb"></span>Soma<small>working name</small></div>
+    <a href="index.html">← see the demo</a>
+  </nav>
+
+  <div class="wrap">
+    <div class="kick"><i></i>Early access · design partners</div>
+    <h1>Pre-test your video ads against the <span class="grad">predicted brain response</span> — before you spend.</h1>
+    <p class="lead">We predict the average viewer's second-by-second cortical response to a video ad with Meta's public TRIBE&nbsp;v2, then read an attention arc (and a coarse affect arc) off it — from the file, no human panel.</p>
+    <p class="oneliner">The honest one-liner: everyone doing synthetic ad testing prompts an LLM to role-play a consumer. We predict the actual neural response using a brain-encoding model trained on real fMRI — the grounding the category lacks.</p>
+
+    <div class="evidence">
+      <span><span class="dot g"></span><b>Validated</b> — video → brain activation (TRIBE v2 vs real fMRI)</span>
+      <span><span class="dot a"></span><b>Weakly validated</b> — attention arc vs human interest</span>
+      <span><span class="dot r"></span><b>Hypothesis</b> — affect / named emotions (not yet validated)</span>
+    </div>
+
+    <div class="card">
+      <!-- capture view -->
+      <div id="captureView">
+        <span class="chip">no spam · one email when a design-partner slot opens</span>
+        <h2>Request early access</h2>
+        <p class="s">We're onboarding a handful of DTC brands and performance-marketing teams as design partners. Leave your email and we'll reach out — no automated pitch sequence, a real person.</p>
+        <form id="waitForm" novalidate>
+          <div class="row">
+            <div class="field">
+              <label for="email">Work email</label>
+              <input id="email" type="email" autocomplete="email" placeholder="you@brand.com" required />
+            </div>
+            <div class="field" style="max-width:240px">
+              <label for="company">Company <span style="text-transform:none;color:var(--faint)">(optional)</span></label>
+              <input id="company" type="text" autocomplete="organization" placeholder="Brand / agency" />
+            </div>
+            <button class="cta" type="submit">Request access</button>
+          </div>
+          <div class="err" id="err" role="alert"></div>
+        </form>
+        <div class="micro">This form stores your entry <b>only in your own browser</b> (localStorage) for this prototype — it is not sent to any server or third-party service. When we wire a real backend, we'll ask before contacting you.</div>
+      </div>
+
+      <!-- thank-you view -->
+      <div class="thanks" id="thanksView" aria-live="polite">
+        <div class="tick"><svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"></polyline></svg></div>
+        <h2>You're on the list.</h2>
+        <p id="thanksMsg">Thanks — we saved your interest locally on this device. We'll reach out personally when a design-partner slot opens. No automated drip, no fake urgency.</p>
+        <button class="again" id="againBtn" type="button">Add another email</button>
+      </div>
+    </div>
+
+    <div class="disclosure">
+      <span class="chip">what we will and won't claim</span>
+      <p><b>The attention arc is pre-registered and being validated right now</b> — it may return null, and if it does we'll say so. <b>Affect (valence / arousal) is an unvalidated hypothesis.</b> Everything is a <b>group average, cortex only</b> — not one person's feeling, and never a confident single named-emotion score. We ship a claim only after a held-out test reproduces it.</p>
+    </div>
+
+    <footer>
+      Soma (working name) · early-access capture is a local-only prototype · no backend, no data leaves this browser<br>
+      Predicted signal: TRIBE v2 (public weights) · attention ground-truth: TVSum · affect ground-truth (planned): LIRIS-ACCEDE
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      var KEY = "soma_waitlist_v1";
+      var form = document.getElementById("waitForm");
+      var emailEl = document.getElementById("email");
+      var companyEl = document.getElementById("company");
+      var errEl = document.getElementById("err");
+      var capture = document.getElementById("captureView");
+      var thanks = document.getElementById("thanksView");
+      var thanksMsg = document.getElementById("thanksMsg");
+      var again = document.getElementById("againBtn");
+
+      // RFC-lite email check — enough to catch typos, not to reject the internet.
+      function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+      function read() {
+        try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+        catch (e) { return []; }
+      }
+      function write(list) {
+        try { localStorage.setItem(KEY, JSON.stringify(list)); return true; }
+        catch (e) { return false; } // private mode / storage disabled — still show thanks
+      }
+
+      function showThanks(dupe) {
+        capture.style.display = "none";
+        thanks.classList.add("show");
+        thanksMsg.textContent = dupe
+          ? "You're already on the list on this device — no need to add it twice. We'll reach out personally when a slot opens."
+          : "Thanks — we saved your interest locally on this device. We'll reach out personally when a design-partner slot opens. No automated drip, no fake urgency.";
+      }
+      function resetView() {
+        thanks.classList.remove("show");
+        capture.style.display = "";
+        emailEl.value = ""; companyEl.value = ""; errEl.textContent = "";
+        emailEl.focus();
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errEl.textContent = "";
+        var email = (emailEl.value || "").trim().toLowerCase();
+        if (!validEmail(email)) { errEl.textContent = "Enter a valid email address."; emailEl.focus(); return; }
+        var list = read();
+        var dupe = list.some(function (r) { return r.email === email; });
+        if (!dupe) {
+          list.push({ email: email, company: (companyEl.value || "").trim(), ts: new Date().toISOString() });
+          write(list);
+        }
+        showThanks(dupe);
+      });
+
+      again.addEventListener("click", resetView);
+    })();
+  </script>
+  <script src="scrollbrain.js"></script>
+</body>
+</html>

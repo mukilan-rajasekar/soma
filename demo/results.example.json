@@ -1,0 +1,28 @@
+{
+  "_comment": "SHAPE DOCUMENTATION / EXAMPLE ONLY. app.js fetches 'results.json' (NOT this *.example.json file). Copy to results.json ONLY with real honest_corr_timeseries.py output. Never ship fabricated numbers — a null result is a valid, honest result and renders correctly.",
+  "_fields": {
+    "n": "int — videos/timepoints tested -> #vN (alias accepted: n_videos)",
+    "attention_r": "number|null — Spearman r of predicted-vs-human arc -> #vR (alias: r)",
+    "permutation_p": "number|null — circular-shift permutation p-value -> #vP (alias: p)",
+    "beats_baseline": "bool — did it beat the ffmpeg dumb baseline? -> #vBase (yes/no)",
+    "feature": "string — pre-registered feature that produced this, roi|global",
+    "null_result": "bool — set true when the pre-registered test returned null; strip stamps 'null result' (red), never 'measured' (green)",
+    "tag": "string (optional) — overrides the auto-built #validTag label"
+  },
+  "_example_positive": {
+    "n": 18,
+    "attention_r": 0.31,
+    "permutation_p": 0.004,
+    "beats_baseline": true,
+    "feature": "roi",
+    "null_result": false
+  },
+  "_example_null": {
+    "n": 18,
+    "attention_r": 0.05,
+    "permutation_p": 0.41,
+    "beats_baseline": false,
+    "feature": "global",
+    "null_result": true
+  }
+}
