@@ -2,6 +2,7 @@
 -- Soma — Supabase schema
 -- Run this once in your Supabase project: Dashboard → SQL Editor → New query →
 -- paste this whole file → Run. Safe to re-run (idempotent).
+-- schema v1 — last changed 2026-07-18. Re-paste to apply (idempotent). Changelog: supabase/README.md
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------

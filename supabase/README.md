@@ -99,3 +99,74 @@ posture as the waitlist.
 
 The public key can't read either (by design). Use the dashboard: **Table editor →
 `waitlist`** / **`uploads`**. Or export server-side with the service_role key.
+
+---
+
+## Security & key hygiene
+
+### CSP smoke-test (do this after every deploy)
+
+The demo ships a Content-Security-Policy via [`../demo/vercel.json`](../demo/vercel.json).
+It pins the exact Supabase project origin in `connect-src` + `media-src`, so a
+**mis-scoped CSP is the one way this silently breaks**. After every deploy, smoke-test
+all four Supabase-touching paths in the browser (open DevTools → Console, watch for CSP
+violations):
+
+1. **Arcs fetch** — the video picker populates (`connect-src` to Supabase).
+2. **Waitlist insert** — submit `waitlist.html`, confirm a row lands.
+3. **Upload** — drop a video in the concierge box, confirm the file + `uploads` row.
+4. **Preview** — the uploaded/hero video actually plays (`media-src` to Supabase).
+
+If any of these fail with a CSP error, the pinned origin in `demo/vercel.json` is wrong —
+fix the origin, don't loosen the policy.
+
+> **Post-YC follow-up:** `index.html` deliberately ships inline `<script>`/inline styles,
+> so the CSP allows `script-src 'self' 'unsafe-inline'` + `style-src 'self' 'unsafe-inline'`.
+> After the sprint, externalize the inline scripts/styles into files and drop `'unsafe-inline'`
+> from both directives — that closes the last XSS gap the current policy leaves open.
+
+### Anon / publishable key rotation
+
+The publishable (anon) key is public by design (RLS gates it), but rotate it on a cadence
+anyway so a stale key never outlives the people who've seen it:
+
+- **Cadence:** rotate every **6–12 months**, and **immediately** on a team departure or any
+  suspected exposure.
+- **Steps:** Dashboard → **Settings → API** → roll the **publishable** key → update
+  [`../demo/supabase-config.js`](../demo/supabase-config.js) with the new key → **redeploy**
+  (Vercel picks it up). The site keeps working through the swap; old key stops after the roll.
+- **service_role key:** this one bypasses RLS and lives only server-side (pipeline env var,
+  never in `supabase-config.js`). If it is **ever** exposed, rotate it **instantly** — a
+  leaked service_role key can read every table and every uploaded video.
+
+### Secret-leak guard (run before every push)
+
+```bash
+grep -rnE 'sb_secret_|service_role' demo/ | grep -v vendor
+```
+
+This must return **nothing but doc-comment warnings** (the "NEVER put the service_role key
+here" notes). Any real `sb_secret_...` value or service_role key match under `demo/` is a
+leak — stop and rotate that key before pushing.
+
+---
+
+## Schema changelog
+
+**We do NOT use Supabase CLI migrations.** For one project + 3 people, the CLI's
+Docker/toolchain setup is a rabbit hole that isn't worth it. [`schema.sql`](./schema.sql)
+is already **fully idempotent** (every `create ... if not exists` / `drop policy if exists` /
+`on conflict do update`), so **re-pasting the whole file into the SQL Editor IS a safe
+migration** — it converges the database to the current schema no matter what state it's in.
+Bump the `-- schema vN` line at the top of `schema.sql` and add a row here on every change.
+
+| Date | Change | Applied by |
+|---|---|---|
+| 2026-07-18 | **v1** — initial schema: `waitlist` table (write-only anon), `arcs` table (public read / service_role write), `uploads` table (write-only anon intake queue), private `uploads` storage bucket (150 MB cap, video mime-types, insert-only anon). | Mukilan |
+
+> **Caveat — non-idempotent changes.** Re-pasting is safe only for additive/idempotent
+> changes. A change that **drops a column, renames something, or tightens a policy that must
+> be dropped-then-recreated** is NOT covered by a plain re-paste — it needs **guarded SQL**
+> (e.g. `alter table ... drop column if exists ...`, `drop policy if exists ...` before the
+> new `create policy`) or an **explicit manual step**, and that step MUST be logged as its own
+> row in the table above so the next person re-pasting doesn't lose it.

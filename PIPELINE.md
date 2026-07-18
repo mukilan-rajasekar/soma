@@ -30,6 +30,21 @@ export HF_HUB_DOWNLOAD_TIMEOUT=300
 # pre-download all weights to the persistent volume, then run under tmux/nohup
 ```
 
+### A1b. Smoke-test the neuralset/tribev2 API + pin versions (F1) — do this FIRST
+Before spending GPU time on any long batch, run the fast API smoke test **on the box**:
+```bash
+python -m pytest tests/test_build_events.py -q   # ~10s
+```
+This catches a **neuralset / tribev2 API break in ~10 seconds** instead of at minute 1 of a
+multi-hour batch — the model download + extraction is the expensive part, so you don't want to
+discover a breaking upstream change after paying for it. If it passes, **pin what you just
+resolved** so the box is reproducible: record the exact **tribev2 commit** and the **resolved
+neuralset version** into `requirements-gpu.txt`.
+```bash
+pip freeze | grep -iE 'neuralset|tribe' >> requirements-gpu.txt   # capture resolved versions
+# + note the pinned facebook/tribev2 commit SHA alongside it in requirements-gpu.txt
+```
+
 ### A2. Get TRIBE running on ONE clip + confirm the scale (F1)
 ```bash
 # prove the VERIFIED audio+video config first (default; fastest to a result):
@@ -44,6 +59,25 @@ Your Day-2 decision was **full trimodal** (adds the text/LLaMA branch). Add
 `--modality trimodal` **once gated LLaMA-3.2 access is confirmed** — do it as an
 upgrade after `av` is proven end-to-end, not as the first thing you fight on the
 box. `--modality video` (audio dropped) is the last-resort de-risk on a 24 GB card.
+
+### A2b. Weight & code durability (F1) — snapshot on this first session
+The first successful GPU run downloads the **~1 GB `facebook/tribev2` checkpoint into `./cache`**.
+Upstream can vanish (repos get pulled or re-gated), so protect the run while the box is already up:
+- **Snapshot the weights.** `tar` the checkpoint and upload it to a **private** store — a private
+  Supabase `models` bucket / a private HF mirror repo / R2 / S3 — and record its **sha256**. This
+  should **piggyback on this first GPU session at ~zero cost** (the box + the files are already there).
+  ```bash
+  tar -czf tribev2-cache.tgz ./cache
+  shasum -a 256 tribev2-cache.tgz        # record this hash next to the upload
+  # then upload tribev2-cache.tgz to the private bucket / mirror
+  ```
+- **Fork the source.** Fork the **tribev2** (and note **neuralset**) source to a **private repo** so
+  the package survives upstream deletion.
+- **Fallback / restore.** If upstream ever disappears: restore the tarball into `./cache`, then
+  ```bash
+  export HF_HUB_OFFLINE=1
+  python batch_extract.py ...            # runs unchanged, fully offline from ./cache
+  ```
 
 ### A3. Build the a-priori ROI mask (F1/F2)
 ```bash

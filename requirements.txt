@@ -12,7 +12,14 @@
 # ---------------------------------------------------------------------------
 # GROUP A — GPU / INFERENCE  (rented A100 / Colab only; generates the arcs)
 # ---------------------------------------------------------------------------
-# numpy is pinned HARD: the TRIBE / neuralset compiled stack breaks on numpy>=2.1.
+# NOTE: the full pinned GPU-only stack (with the exact neuralset/tribev2 commit
+# pins) lives in requirements-gpu.txt — install that on the GPU box, not this file.
+# numpy is pinned HARD. WHY: TRIBE v2 / neuralset ship compiled extensions built
+# against the numpy<2.1 C-ABI; importing them under numpy>=2.1 segfaults or throws
+# ImportError ("module compiled against ABI version ...") at load time.
+# triggered by: neuralset @ <commit-sha> and tribev2 @ <release-tag> — FILL IN from the GPU env
+# REMOVAL RUNWAY: lift this ceiling ONLY after those upstreams publish numpy>=2.1
+# wheels; then re-test `make head-demo` + a real batch_extract run before bumping.
 numpy>=1.26,<2.1
 torch                    # CUDA build; installed per the box's CUDA version
 # --- TRIBE v2 + its event-building stack (installed from their sources) ---

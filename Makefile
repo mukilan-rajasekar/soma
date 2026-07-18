@@ -3,8 +3,16 @@
 # here: it needs a GPU box + gated weights. See PIPELINE.md for that runbook.
 # Everything below is CPU / browser only.
 
-PY   := /Users/mukilan/projects/Brain\ Project/.venv/bin/python
-ROOT := /Users/mukilan/projects/Brain\ Project
+# ROOT/PY were hardcoded to a laptop path (was /Users/mukilan/.../Brain Project) —
+# not portable. Derive ROOT from THIS Makefile's own location instead. The repo path
+# contains a literal SPACE and every recipe below uses UNQUOTED $(ROOT)/... and $(PY),
+# so we re-insert backslash-escaping on the space after deriving the plain path.
+# PY ?= makes it overridable (e.g. PY=python3 make test) without editing this file.
+empty :=
+space := $(empty) $(empty)
+MKFILE_DIR := $(shell cd "$(dir $(lastword $(MAKEFILE_LIST)))" >/dev/null 2>&1 && pwd)
+ROOT := $(subst $(space),\$(space),$(MKFILE_DIR))
+PY ?= $(ROOT)/.venv/bin/python
 
 .DEFAULT_GOAL := help
 .PHONY: help synth dryrun test demo baseline publish pipeline pipeline-demo report ingest trim head head-demo

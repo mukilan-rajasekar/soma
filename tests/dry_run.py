@@ -5,6 +5,10 @@ behaves: detects the planted signal, stays quiet on the null control, and every
 stage produces well-formed output. No GPU, no real data.
 
 Run:  ./.venv/bin/python tests/make_synthetic_data.py && ./.venv/bin/python tests/dry_run.py
+
+Determinism: this run is reproducible because make_synthetic_data.py builds the
+fixtures with seed=42, and here we additionally pin np.random.seed(0), export
+PYTHONHASHSEED=0 to every subprocess, and pass explicit --seed 0 to train_head.py.
 """
 import json
 import os
@@ -20,6 +24,8 @@ ARCS = os.path.join(SYN, "arcs")
 HUMAN = os.path.join(SYN, "human")
 PY = sys.executable
 sys.path.insert(0, ROOT)
+sys.path.insert(0, HERE)
+from check_formats import check_arc_csv, check_arc_json, check_results_csv
 
 FAILS = []
 def check(name, cond, detail=""):
@@ -29,7 +35,10 @@ def check(name, cond, detail=""):
 
 
 def run(cmd):
-    r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
+    # PYTHONHASHSEED=0 pins hash-based ordering in every child process so the run
+    # is bit-for-bit reproducible (see the determinism note in the module docstring).
+    env = {**os.environ, "PYTHONHASHSEED": "0"}
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, env=env)
     if r.returncode != 0:
         print("   ! command failed:", " ".join(cmd))
         print(r.stdout[-1500:]); print(r.stderr[-1500:])
@@ -37,6 +46,7 @@ def run(cmd):
 
 
 def main():
+    np.random.seed(0)  # determinism: pin this process's RNG (see module docstring)
     os.makedirs(ARCS, exist_ok=True)
     man = json.load(open(os.path.join(SYN, "MANIFEST.json")))
     dmn = np.load(os.path.join(SYN, "roi_dmn.npy"))
@@ -61,6 +71,11 @@ def main():
         spots = batch_extract.detect_weak_spots(rmag, fps=1.0)
         batch_extract.write_demo_json(ARCS, v["id"], rmag, spots, "roi")
         check(f"arc shape ({v['id']})", len(gmag) == v["T"], f"T={len(gmag)}")
+        # enforce the file-format contracts the demo/report depend on
+        check(f"arc csv format ({v['id']})",
+              check_arc_csv(os.path.join(ARCS, f"arc_{v['id']}.csv")))
+        check(f"arc json format ({v['id']})",
+              check_arc_json(os.path.join(ARCS, f"arc_{v['id']}.json")))
 
     print("\n3. honest_corr_timeseries (the real honesty test)")
     r = run([PY, "honest_corr_timeseries.py", "--model-glob", os.path.join(ARCS, "arc_*.csv"),
@@ -70,6 +85,7 @@ def main():
     res_path = os.path.join(SYN, "results.csv")
     check("results.csv written", os.path.exists(res_path))
     if os.path.exists(res_path):
+        check("results.csv format", check_results_csv(res_path))
         rows = [l.split(",") for l in open(res_path).read().splitlines()[1:]]
         hdr = "video feature n r p p_param n_eff ceiling frac note".split()
         R = [dict(zip(hdr, r)) for r in rows]
@@ -156,7 +172,8 @@ def main():
     import re
     hdout = os.path.join(SYN, "head")
     r = run([PY, "train_head.py", "--preds-dir", SYN, "--arc-dir", ARCS,
-             "--human-dir", HUMAN, "--masks-dir", SYN, "--n-perm", "2000", "--out", hdout])
+             "--human-dir", HUMAN, "--masks-dir", SYN, "--n-perm", "2000",
+             "--seed", "0", "--out", hdout])
     print(r.stdout[-700:])
     hcsv = hdout + ".csv"
     check("train_head.csv written", os.path.exists(hcsv))
@@ -173,7 +190,8 @@ def main():
               p_null is not None and p_null >= 0.05, f"perm_p={p_null}")
     # negative control: shuffled training targets must collapse the across-video aggregate
     rc = run([PY, "train_head.py", "--preds-dir", SYN, "--arc-dir", ARCS,
-              "--human-dir", HUMAN, "--masks-dir", SYN, "--n-perm", "2000", "--shuffle-target"])
+              "--human-dir", HUMAN, "--masks-dir", SYN, "--n-perm", "2000",
+              "--seed", "0", "--shuffle-target"])
     m = re.search(r"Stouffer p = ([0-9.]+)", rc.stdout)
     sp = float(m.group(1)) if m else None
     check("head negative control does NOT leak (shuffled Stouffer p>=0.05)",

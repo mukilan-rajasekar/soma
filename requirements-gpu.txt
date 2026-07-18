@@ -1,0 +1,34 @@
+# Soma — GPU / INFERENCE requirements (rented A100 / Colab box ONLY).
+#
+# This mirrors the pinned GPU stack that generates the cached preds_<id>.npy arcs.
+# The CPU/analysis stack lives in requirements.txt; install ONE group per env to
+# avoid resolver fights (this group pins numpy hard — see requirements.txt for why).
+#
+#   pip install -r requirements-gpu.txt      # on the GPU box, in its own venv
+#
+# ---------------------------------------------------------------------------
+# Pinned numeric core (must match requirements.txt so arcs are reproducible).
+# numpy<2.1: TRIBE v2 / neuralset compiled extensions are built against the
+# numpy<2.1 C-ABI and segfault / ImportError on 2.1+ (see requirements.txt).
+# ---------------------------------------------------------------------------
+numpy>=1.26.4,<2.1
+scipy>=1.13,<1.16
+
+# ---------------------------------------------------------------------------
+# TRIBE v2 + its neuralset event stack — installed from source.
+# FILL IN: pin to a COMMIT (not main); run
+#   pip freeze | grep -iE "neuralset|tribev2|torch"
+# on the GPU box and paste the resolved versions here so this is reproducible.
+# ---------------------------------------------------------------------------
+tribev2[plotting] @ git+https://github.com/facebookresearch/tribev2.git@<PINNED_COMMIT_SHA>
+# neuralset            # FILL IN: pin to a resolved version/commit from `pip freeze`
+# huggingface_hub      # pulls the gated facebook/tribev2 weights (~1 GB, cached ./cache)
+# transformers         # trimodal (text/LLaMA) branch — needs gated LLaMA-3.2 access
+
+# ---------------------------------------------------------------------------
+# torch: install the CUDA build matching the box's CUDA version.
+# REMINDER: torchaudio MUST match the torch version exactly (same X.Y.Z), or the
+# audio-event extraction (ExtractAudioFromVideo) will fail to load at import time.
+# ---------------------------------------------------------------------------
+# torch                # CUDA build per the box's CUDA version
+# torchaudio           # MUST match torch's exact version

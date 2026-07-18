@@ -36,6 +36,10 @@ import sys
 
 PY = sys.executable
 ROOT = os.path.dirname(os.path.abspath(__file__))
+# format-contract checks live under tests/ (dependency-free); import so a real run
+# fails fast if a stage emits an off-schema CSV the demo/report can't consume.
+sys.path.insert(0, os.path.join(ROOT, "tests"))
+from check_formats import check_results_csv
 
 
 def run(label, cmd, required=True):
@@ -98,6 +102,8 @@ def main():
         [PY, "honest_corr_timeseries.py", "--model-glob", os.path.join(args.arc_dir, "arc_*.csv"),
          "--human-dir", args.human_dir, "--feature", "both", "--n-perm", str(args.n_perm),
          "--out", os.path.join(args.out_dir, "results")])
+    # fail fast if results.csv isn't the schema the demo/report + publish_results read
+    check_results_csv(results_csv)
 
     # 2) incremental (optional — needs baselines)
     have_incr = False
