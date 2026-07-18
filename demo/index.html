@@ -15,10 +15,13 @@
 <body>
   <canvas id="scrollBrain" aria-hidden="true"></canvas>
   <div id="brainVeil" aria-hidden="true"></div>
+  <!-- honesty: the background brain + its scroll-triggered flashes are ambient DECORATION,
+       not model output. Persistent label (hidden when the 3D hero with its own watermark runs). -->
+  <div id="scrollBrainTag" aria-hidden="true">ambient visual · not data</div>
   <nav>
     <div class="brand"><span class="orb"></span>Soma<small>working name</small></div>
     <div class="navright">
-      <span class="chip" title="The on-stage playback is a frozen offline result, not live GPU inference.">precomputed · cached result</span>
+      <span class="chip" title="The on-stage playback is a precomputed SAMPLE arc, not a real GPU run — no results.json is wired yet.">precomputed · sample arc</span>
       <a class="navcta" href="waitlist.html">Request early access →</a>
     </div>
   </nav>
@@ -32,7 +35,7 @@
         <span class="hud-corner bl"></span><span class="hud-corner br"></span>
         <div class="hud-telemetry">
           <div>SOMA · CORTICAL PREVIEW</div>
-          <div class="dim">fsaverage5 · 20,484 vtx · pial</div>
+          <div class="dim">decorative cortical mesh</div>
           <div class="dim">acq: <b>decorative</b> · not prediction data</div>
         </div>
         <div id="brainReticle" class="reticle"><span class="r-ring"></span><span class="r-h"></span><span class="r-v"></span></div>
@@ -49,7 +52,7 @@
         <p class="sub">We predict the average viewer's second-by-second brain response with Meta's public TRIBE&nbsp;v2, then read an attention arc and a coarse affect arc off it — each carrying an honest evidence badge.</p>
         <div class="evidence">
           <span><span class="dot g"></span><b>Validated</b> · video → brain</span>
-          <span><span class="dot a"></span><b>Weakly validated</b> · attention</span>
+          <span><span class="dot a"></span><b>Validation pending</b> · attention</span>
           <span><span class="dot r"></span><b>Hypothesis</b> · affect</span>
         </div>
         <div class="scrollcue">scroll to fly in <span>↓</span></div>
@@ -66,14 +69,14 @@
         <div class="ch-tag">02 · superior temporal · fusiform</div>
         <h2>It responds to faces and voices — not just cuts.</h2>
         <p>The face- and voice-sensitive cortex. This is our wedge: signal from <b>biology</b>, not an edit-heuristic or an LLM role-playing a viewer. A loudness-and-cuts detector stays dark right here.</p>
-        <span class="badge a">weakly validated · the wedge</span>
+        <span class="badge a">pre-registered · the wedge (test pending)</span>
       </div></article>
 
       <article class="chapter" data-ch="3"><div class="panel">
         <div class="ch-tag">03 · default-mode network</div>
         <h2>Where the ad holds — and where it loses them.</h2>
         <p>We read a moment-to-moment <b>attention arc</b>: bright where the ad holds, dimming at the seconds attention leaks — checked against a real human interest curve (TVSum), permutation-tested.</p>
-        <span class="badge a">weakly validated · vs TVSum</span>
+        <span class="badge a">validation pending · vs TVSum (not yet run)</span>
       </div></article>
 
       <article class="chapter" data-ch="4"><div class="panel">
@@ -127,7 +130,7 @@
             <!-- lane 1: attention -->
             <div class="lane">
               <div class="lane-h"><span class="name">Attention arc<small>where the ad holds vs loses people</small></span>
-                <span class="badge a" id="badgeAtt">weakly validated · vs TVSum</span></div>
+                <span class="badge r" id="badgeAtt">validation pending · not yet run</span></div>
               <canvas class="lanec" id="cAtt" width="720" height="150"></canvas>
             </div>
             <div class="callout hidden" id="callout"></div>
@@ -162,7 +165,19 @@
             </div>
 
             <div class="warnbox"><b>Read this as a group average, not a person's feeling.</b> A cortical spike is not a specific emotion — it is consistent with higher/lower arousal or valence, not proof anyone felt a named emotion. Weak-spot callouts are model predictions, not measured eye-tracking.</div>
-            <button class="uploadbtn" id="uploadBtn" title="Hook for the real async scoring path (Modal/Replicate). Not wired in this demo.">⤴ Upload your own ad <span class="soon">soon</span></button>
+            <div class="uploadbox" id="uploadBox">
+              <div class="uploadbox-h">⤴ Upload your own ad</div>
+              <p class="uploadbox-s">Drop a video (mp4 / mov / webm, ≤&nbsp;150&nbsp;MB). We run it through the brain and send back the arc — concierge for now, minutes not days.</p>
+              <div class="uploadbox-row">
+                <label class="filepick" id="filePick">
+                  <input type="file" id="videoFile" accept="video/*" hidden>
+                  <span id="fileLabel">Choose a video…</span>
+                </label>
+                <input type="email" id="uploadEmail" class="uploademail" placeholder="you@company.com" autocomplete="email">
+                <button class="uploadbtn" id="uploadBtn">Send it in</button>
+              </div>
+              <div class="uploadstatus" id="uploadStatus" aria-live="polite"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -207,7 +222,7 @@
       <div class="ladder" id="ladder"></div>
       <div class="fly">
         <div class="flycard"><div class="n" id="flyAds">0</div><div class="k">ads × reactions collected</div></div>
-        <div class="flycard"><div class="n" id="flyRung">Rung 1</div><div class="k">current validated rung</div></div>
+        <div class="flycard"><div class="n" id="flyRung">0</div><div class="k">rungs validated · attention in test</div></div>
         <div class="flycard"><div class="n" id="flyAcc">—</div><div class="k">held-out accuracy</div></div>
       </div>
     </section>
@@ -219,6 +234,8 @@
   </footer>
 
   <script src="scrollbrain.js"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase.js"></script>
   <script src="app.js"></script>
 
   <!-- ===== 3D cortex hero: smooth-scroll + HUD compare toggle + WebGL probe ===== -->

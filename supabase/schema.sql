@@ -57,3 +57,59 @@ create policy "public can read arcs"
 --  server-side by the pipeline, can write. service_role bypasses RLS.)
 
 create index if not exists arcs_created_idx on public.arcs (created_at desc);
+
+
+-- ----------------------------------------------------------------------------
+-- 3) uploads — concierge intake queue for "Upload your own ad" (demo console).
+--    The browser (anon key) uploads the video to the private `uploads` storage
+--    bucket below, then inserts ONE row here so we have a queue to process.
+--    Write-only for anon (no select policy) — the queue can't be scraped with
+--    the public key; read it from the dashboard or with the service_role key.
+-- ----------------------------------------------------------------------------
+create table if not exists public.uploads (
+  id            uuid primary key default gen_random_uuid(),
+  email         text,
+  filename      text,
+  size_bytes    bigint,
+  content_type  text,
+  storage_path  text not null unique,   -- object key in the `uploads` bucket
+  note          text,
+  status        text not null default 'queued',   -- queued | processing | done | failed
+  user_agent    text,
+  created_at    timestamptz not null default now()
+);
+
+alter table public.uploads enable row level security;
+
+drop policy if exists "anon can queue an upload" on public.uploads;
+create policy "anon can queue an upload"
+  on public.uploads for insert
+  to anon
+  with check (true);
+-- (no select / update / delete for anon → write-only intake from the browser)
+
+create index if not exists uploads_created_idx on public.uploads (created_at desc);
+
+
+-- ----------------------------------------------------------------------------
+-- 4) storage bucket `uploads` — holds the raw video bytes the demo sends.
+--    PRIVATE (public=false): raw ad footage is never publicly listable/readable.
+--    The founder reads it server-side with the service_role key to run the
+--    pipeline. Size/type caps keep the free tier + abuse in check.
+-- ----------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'uploads', 'uploads', false, 157286400,   -- 150 MB
+  array['video/mp4','video/quicktime','video/webm','video/x-msvideo','video/x-matroska']
+)
+on conflict (id) do update
+  set file_size_limit   = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+-- anon may only INSERT (upload) into this bucket — no select/list/update/delete,
+-- so a visitor can drop a file in but can never read anyone else's upload.
+drop policy if exists "anon can upload an ad" on storage.objects;
+create policy "anon can upload an ad"
+  on storage.objects for insert
+  to anon
+  with check (bucket_id = 'uploads');

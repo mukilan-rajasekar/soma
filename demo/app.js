@@ -18,7 +18,7 @@
 
   // ---- honest claim ladder (shown in the Vision panel) ----
   const LADDER = [
-    { lvl: "Rung 0", live: true,  text: "<b>Attention arc</b> — relative moment-to-moment salience. Validated vs TVSum, circular-shift null. (shipped)" },
+    { lvl: "Rung 0", live: true,  text: "<b>Attention arc</b> — relative moment-to-moment salience. Pre-registered vs TVSum with a circular-shift null — <b>test not yet run</b> (may return null)." },
     { lvl: "Rung 1", next: true,  text: "<b>2D affect arc</b> — relative valence + arousal. Earned by held-out test vs LIRIS-ACCEDE that beats a null AND a stimulus-only baseline. (near-term)" },
     { lvl: "Rung 2", text: "<b>Calibrated affect on real ads</b> — with confidence bands, validated on our own held-out ads vs self-report dials + wearable arousal." },
     { lvl: "Rung 3", text: "<b>A few discrete states</b> (amusement, tension, boredom…) — each shipped only after held-out AUROC clears a preset bar; the model abstains when unsure." },
@@ -31,6 +31,8 @@
     cAtt: $("cAtt"), cVal: $("cVal"), cAro: $("cAro"), brain: $("brainSvg"),
     playBtn: $("playBtn"), scrub: $("scrub"), clock: $("clock"),
     callout: $("callout"), brainT: $("brainT"), upload: $("uploadBtn"),
+    videoFile: $("videoFile"), uploadEmail: $("uploadEmail"),
+    uploadStatus: $("uploadStatus"), fileLabel: $("fileLabel"),
     badgeAtt: $("badgeAtt"), badgeVal: $("badgeVal"), badgeAro: $("badgeAro"),
     coarseWrap: $("coarseWrap"), cCoarse: $("cCoarse"), coarseLegend: $("coarseLegend"),
   };
@@ -71,27 +73,41 @@
   }
 
   // ---- load ----
-  function load(url) {
-    fetch(url)
-      .then((r) => { if (!r.ok) throw new Error("arc " + r.status); return r.json(); })
-      .then((data) => { arc = data; init(); })
-      .catch((e) => bail(url, e));
+  // A video item carries EITHER `arc` (a URL to a static sample json) OR
+  // `arcData` (an arc object already in memory — e.g. fetched live from Supabase).
+  function loadArc(item) {
+    if (item && item.arcData) return Promise.resolve(item.arcData);
+    return fetch(item.arc).then((r) => { if (!r.ok) throw new Error("arc " + r.status); return r.json(); });
   }
-  function bail(url, e) {
+  function load(item) {
+    const label = (item && (item.title || item.id || item.arc)) || "arc";
+    loadArc(item)
+      .then((data) => { arc = data; init(); })
+      .catch((e) => bail(label, e));
+  }
+  function bail(label, e) {
     [els.cAtt, els.cVal, els.cAro].forEach((c) => {
       const x = c.getContext("2d"); x.clearRect(0, 0, c.width, c.height);
       x.fillStyle = "#ff6b6b"; x.font = "13px monospace";
-      x.fillText("Could not load " + url + " — " + e.message, 14, 26);
+      x.fillText("Could not load " + label + " — " + e.message, 14, 26);
     });
   }
 
   function init() {
     duration = arc.duration_sec || (arc.timestamps[arc.timestamps.length - 1] || 0);
-    // badge for attention (from claim)
-    els.badgeAtt.textContent = "weakly validated · vs TVSum";
+    // attention badge — data-driven like the affect badges below. DEFAULT honest state
+    // is "validation pending": no GPU run / results.json exists yet, so nothing is
+    // validated. Only upgrade to "validated vs TVSum" when the arc carries a real
+    // permutation-tested result (arc.attention.status === "permutation-tested").
+    const attSt = (arc.attention && arc.attention.status) || "pending";
+    const attBadge = attSt === "permutation-tested" ? ["badge a", "validated vs TVSum"]
+      : attSt === "testing" ? ["badge a", "pre-registered · test running"]
+      : ["badge r", "validation pending · not yet run"];
+    els.badgeAtt.className = attBadge[0];
+    els.badgeAtt.textContent = attBadge[1];
     // affect badges reflect status
     const st = (arc.affect && arc.affect.status) || "illustrative";
-    const affectBadge = st === "permutation-tested" ? ["badge a", "weakly validated"]
+    const affectBadge = st === "permutation-tested" ? ["badge a", "proxy tracks · perm-tested"]
       : st === "hypothesis" ? ["badge r", "hypothesis · testing"]
       : ["badge r", "illustrative · not run"];
     [els.badgeVal, els.badgeAro].forEach((b) => { b.className = affectBadge[0]; b.textContent = affectBadge[1]; });
@@ -291,27 +307,108 @@
   }
 
   // ---- wiring ----
+  let refreshCompare = null;   // set by initCompare(); called after live arcs merge
+
   function pickVideo(v) {
+    if (!v) return;
     document.querySelectorAll(".vid").forEach((el) => el.classList.toggle("active", el.dataset.id === v.id));
-    seek(0); setPlaying(false); load(v.arc);
+    seek(0); setPlaying(false); load(v);
   }
 
-  $("vids").innerHTML = VIDEOS.map((v) => `
-    <div class="vid" data-id="${v.id}">
-      <div class="vthumb" style="background:${v.grad}">
-        <div class="play"><svg viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11"/></svg></div>
-        <div class="vmeta"><span>${v.src}</span><span>30s</span></div>
-      </div>
-      <div class="vtitle">${v.title}<span>${v.src}</span></div>
-    </div>`).join("");
-  document.querySelectorAll(".vid").forEach((el) =>
-    el.addEventListener("click", () => pickVideo(VIDEOS.find((v) => v.id === el.dataset.id))));
+  function durLabel(v) {
+    const d = v.arcData && v.arcData.duration_sec;
+    if (typeof d === "number" && d > 0) { const s = Math.round(d); return s >= 60 ? Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") : s + "s"; }
+    return "30s";
+  }
+
+  function renderVids() {
+    $("vids").innerHTML = VIDEOS.map((v) => `
+      <div class="vid" data-id="${escapeHtml(v.id)}">
+        <div class="vthumb" style="background:${v.grad}">
+          <div class="play"><svg viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11"/></svg></div>
+          <div class="vmeta"><span>${escapeHtml(v.src)}</span><span>${escapeHtml(durLabel(v))}</span></div>
+        </div>
+        <div class="vtitle">${escapeHtml(v.title)}<span>${escapeHtml(v.src)}</span></div>
+      </div>`).join("");
+    document.querySelectorAll(".vid").forEach((el) =>
+      el.addEventListener("click", () => pickVideo(VIDEOS.find((v) => v.id === el.dataset.id))));
+  }
+  renderVids();
 
   els.playBtn.addEventListener("click", () => setPlaying(!playing));
   els.scrub.addEventListener("input", () => seek((els.scrub.value / 100) * duration));
   [els.cAtt, els.cVal, els.cAro, els.cCoarse].filter(Boolean).forEach((c) =>
     c.addEventListener("click", (e) => { const r = c.getBoundingClientRect(); seek(((e.clientX - r.left) / r.width) * duration); }));
-  els.upload.addEventListener("click", (e) => { e.preventDefault(); });
+
+  // ---- live arcs from Supabase ----------------------------------------------
+  // Any arc published with publish_to_supabase.py appears here on load — no
+  // redeploy. Deterministic gradient from the id keeps the picker on-palette.
+  function gradFor(id) {
+    let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    const hue = 188 + (h % 42);   // teal→blue band, matches the neon theme
+    return `linear-gradient(135deg,hsl(${hue} 30% 25%),#0b1119 60%,#05070b)`;
+  }
+  function mergeLiveArcs() {
+    const sb = window.Soma && window.Soma.supabase;
+    if (!sb || !sb.enabled || typeof sb.fetchArcs !== "function") return;
+    sb.fetchArcs().then((rows) => {
+      if (!Array.isArray(rows) || !rows.length) return;
+      const have = new Set(VIDEOS.map((v) => v.id));
+      const live = [];
+      rows.forEach((r) => {
+        const id = r && r.ad_id;
+        if (!id || have.has(id) || !r.arc) return;   // never shadow a sample id
+        have.add(id);
+        const tag = r.meta && (r.meta.dataset || r.meta.source);
+        live.push({ id: id, title: r.title || id, src: "live · " + (tag || "Supabase"),
+          arcData: r.arc, grad: gradFor(id) });
+      });
+      if (!live.length) return;
+      VIDEOS.unshift.apply(VIDEOS, live);   // newest-first from the API → lead the picker
+      renderVids();
+      if (refreshCompare) refreshCompare();
+      pickVideo(VIDEOS[0]);                 // surface the newest live arc
+    }).catch(() => { /* offline / not set up yet — keep the samples */ });
+  }
+
+  // ---- upload box (concierge intake) ----------------------------------------
+  (function initUpload() {
+    const btn = els.upload, fileInp = els.videoFile, emailInp = els.uploadEmail,
+      statusEl = els.uploadStatus, fileLabel = els.fileLabel;
+    if (!btn) return;
+    const sb = window.Soma && window.Soma.supabase;
+    const MAX = 150 * 1024 * 1024;
+    function setStatus(msg, kind) { if (!statusEl) return; statusEl.textContent = msg || ""; statusEl.className = "uploadstatus" + (kind ? " " + kind : ""); }
+    if (fileInp && fileLabel) {
+      fileInp.addEventListener("change", () => {
+        const f = fileInp.files && fileInp.files[0];
+        fileLabel.textContent = f ? f.name : "Choose a video…";
+        if (f) setStatus("");
+      });
+    }
+    if (!sb || !sb.enabled) setStatus("Concierge intake isn't configured yet — it turns on once Supabase is wired.", "muted");
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const f = fileInp && fileInp.files && fileInp.files[0];
+      const email = (emailInp && emailInp.value || "").trim();
+      if (!f) { setStatus("Pick a video first.", "err"); return; }
+      if (f.size > MAX) { setStatus("That file is over 150 MB — trim it and try again.", "err"); return; }
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setStatus("That email doesn't look right.", "err"); return; }
+      if (!sb || !sb.enabled) { setStatus("Intake isn't configured — send the file to the team directly for now.", "muted"); return; }
+      btn.disabled = true;
+      setStatus("Uploading " + f.name + "…", "busy");
+      try {
+        await sb.uploadVideo(f, email, null);
+        setStatus("Got it. We'll run " + f.name + " through the brain and " + (email ? "email your read to " + email : "get your read back") + " shortly.", "ok");
+        if (fileInp) fileInp.value = "";
+        if (fileLabel) fileLabel.textContent = "Choose a video…";
+      } catch (err) {
+        setStatus("Upload failed (" + ((err && err.message) || "unknown") + "). The team can take the file directly for now.", "err");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  })();
 
   // roadmap ladder + flywheel (honest: nothing collected yet)
   $("ladder").innerHTML = LADDER.map((r) =>
@@ -366,13 +463,23 @@
   (function initCompare() {
     const selA = $("cmpA"), selB = $("cmpB"), cv = $("cmpCanvas");
     if (!selA || !selB || !cv) return;
-    const opts = VIDEOS.map((v) => `<option value="${v.arc}">${escapeHtml(v.title)}</option>`).join("");
-    selA.innerHTML = opts; selB.innerHTML = opts;
-    selA.selectedIndex = 0; selB.selectedIndex = 1;
     const cache = {};
-    const getArc = (url) => cache[url] || (cache[url] = fetch(url).then((r) => r.json()));
+    const itemById = (id) => VIDEOS.find((v) => v.id === id);
+    // key by id, resolve via loadArc() so inline (Supabase) arcs work like URL ones
+    const getArc = (id) => {
+      const it = itemById(id);
+      if (!it) return Promise.reject(new Error("no item " + id));
+      return cache[id] || (cache[id] = loadArc(it));
+    };
+    const titleFor = (id) => (itemById(id) || {}).title || "—";
+    function fillOpts() {
+      const prevA = selA.value, prevB = selB.value;
+      const opts = VIDEOS.map((v) => `<option value="${escapeHtml(v.id)}">${escapeHtml(v.title)}</option>`).join("");
+      selA.innerHTML = opts; selB.innerHTML = opts;
+      if (VIDEOS.some((v) => v.id === prevA)) selA.value = prevA; else selA.selectedIndex = 0;
+      if (VIDEOS.some((v) => v.id === prevB)) selB.value = prevB; else selB.selectedIndex = Math.min(1, VIDEOS.length - 1);
+    }
     const COL_A = "#EAF9FF", COL_B = "#7FD4FF", N = 120;
-    const titleFor = (url) => (VIDEOS.find((v) => v.arc === url) || {}).title || "—";
     function sampleAt(arc, u) {
       const seq = arc.activation || []; if (!seq.length) return 0;
       const f = u * (seq.length - 1), i = Math.floor(f), fr = f - i;
@@ -415,9 +522,12 @@
     }
     selA.addEventListener("change", render);
     selB.addEventListener("change", render);
+    fillOpts();
     render();
+    refreshCompare = function () { fillOpts(); render(); };
   })();
 
   // start
   pickVideo(VIDEOS[0]);
+  mergeLiveArcs();   // fold in any live Supabase arcs (async; no-op if unconfigured)
 })();
