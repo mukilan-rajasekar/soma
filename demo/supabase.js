@@ -11,7 +11,10 @@
   var enabled = !!(BASE && KEY);
 
   function headers(extra) {
-    var h = { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json" };
+    // New sb_publishable_ keys authenticate via the `apikey` header ONLY. Passing the
+    // publishable key as an Authorization: Bearer token makes the gateway reject it
+    // (that slot is for a user's JWT), so we omit it for anon access.
+    var h = { apikey: KEY, "Content-Type": "application/json" };
     for (var k in (extra || {})) h[k] = extra[k];
     return h;
   }

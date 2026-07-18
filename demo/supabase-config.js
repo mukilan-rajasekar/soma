@@ -12,6 +12,6 @@
  * (the waitlist stores to localStorage, exactly as before).
  */
 window.SOMA_SUPABASE = {
-  url: "",       // e.g. "https://abcdefghijkl.supabase.co"
-  anonKey: ""    // the "anon" "public" key — a long token starting with "eyJ..."
+  url: "https://jfjztzdnoybhfgbgljjh.supabase.co",
+  anonKey: "sb_publishable_2xiRx6ZMxixPVyPlifPL6Q_KRZXcEsl"   // publishable (public) key — safe to commit, gated by RLS
 };
