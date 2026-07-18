@@ -38,16 +38,67 @@ USAGE (on the GPU box, after the model + weights are cached):
       --roi-mask ./data/roi_mask_dmn.npy --modality trimodal
 """
 import argparse
+import errno
 import glob
 import json
 import os
 import sys
+import traceback
+from datetime import datetime
 
 import numpy as np
 
+# Weak-spot detection knobs (F-CONSTANTS): surfaced here so they're auditable.
+WEAK_SPOT_N_STD = 1.25       # flag runs >= this many robust SD below the clip's own median
+WEAK_SPOT_MIN_LEN_SEC = 3    # ignore dips shorter than this
+
+
+def _load_checkpoint(path):
+    """Return the set of already-completed video ids from the ledger, or empty set."""
+    try:
+        with open(path) as f:
+            return set(json.load(f)["completed"])
+    except (FileNotFoundError, KeyError, ValueError):
+        return set()
+
+
+def _mark_done(path, vid):
+    """Atomically add vid to the completion ledger (write tmp then os.replace)."""
+    done = _load_checkpoint(path)
+    done.add(vid)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump({"completed": sorted(done), "updated": datetime.now().isoformat()},
+                  f, indent=2)
+    os.replace(tmp, path)
+
+
+def _log_clip_error(err_log, vid, exc):
+    """Append the full traceback for a failed clip; print a one-line notice."""
+    with open(err_log, "a") as f:
+        f.write(f"\n=== {vid} @ {datetime.now().isoformat()} ===\n"
+                f"{traceback.format_exc()}\n")
+    print(f"    [ERROR] {vid}: {exc!r} — full traceback in {err_log}; batch continues")
+
 
 def build_events(video_path):
-    """The working manual event-build path from the notebook (no transcription)."""
+    """The working manual event-build path from the notebook (no transcription).
+
+    Contract for the ``neuralset.events.transforms`` pipeline (pinned so a
+    neuralset bump can't silently change the event schema):
+
+    INPUT  — a single-row events df describing the whole clip:
+             ``{type: 'Video', filepath: <str>, start: 0, timeline: 'default',
+             subject: 'default'}`` (standardized via ``standardize_events``).
+    STEPS  — ``ExtractAudioFromVideo`` adds Audio events derived from the video,
+             then ``ChunkEvents`` splits the Audio and Video streams into
+             ~30-60s spans (max_duration=60, min_duration=30).
+    OUTPUT — a standardized events df (re-run through ``standardize_events``) of
+             the chunked Audio+Video spans, ready for ``model.predict``.
+
+    The EXACT output columns can be captured from the events smoke test
+    (``tests/test_build_events.py``); pin them there rather than assuming here.
+    """
     import pandas as pd
     from neuralset.events.utils import standardize_events
     from neuralset.events.transforms import ExtractAudioFromVideo, ChunkEvents
@@ -102,10 +153,13 @@ def arc_from_preds(preds, roi_mask=None):
     return global_mag, roi_mag
 
 
-def detect_weak_spots(arc, fps=1.0, min_len_sec=3, drop_pctl=25):
+def detect_weak_spots(arc, fps=1.0, min_len_sec=WEAK_SPOT_MIN_LEN_SEC,
+                      n_std=WEAK_SPOT_N_STD):
     """
-    A weak spot = a sustained run where the (smoothed) arc sits in its own bottom
-    quartile. Labeled a model PREDICTION, never measured behavior.
+    A weak spot = a sustained run where the (smoothed) arc sits at least
+    ``n_std`` robust (MAD-based) standard deviations below the clip's OWN
+    median. FALSIFIABLE: a flat/steady arc yields ZERO spots (no forced bottom
+    quartile). Labeled a model PREDICTION, never measured behavior.
     """
     a = np.asarray(arc, float)
     if len(a) < 5:
@@ -113,8 +167,12 @@ def detect_weak_spots(arc, fps=1.0, min_len_sec=3, drop_pctl=25):
     k = max(1, int(round(fps)))
     kernel = np.ones(k) / k
     sm = np.convolve(a, kernel, mode="same")
-    thr = np.percentile(sm, drop_pctl)
-    low = sm <= thr
+    med = np.median(sm)
+    mad = 1.4826 * np.median(np.abs(sm - med))
+    if mad < 1e-9:
+        return []
+    z = (sm - med) / mad
+    low = z <= -n_std
     spots, i, n = [], 0, len(a)
     min_len = int(round(min_len_sec * fps))
     while i < n:
@@ -123,10 +181,13 @@ def detect_weak_spots(arc, fps=1.0, min_len_sec=3, drop_pctl=25):
             while j < n and low[j]:
                 j += 1
             if (j - i) >= min_len:
+                secs = round((j - i) / fps)
+                zmin = float(z[i:j].min())
                 spots.append({"start": round(i / fps, 2),
                               "end": round(j / fps, 2),
-                              "label": f"predicted dip - {round((j-i)/fps)}s low-"
-                                       f"activation stretch"})
+                              "label": f"predicted dip (hypothesis — not yet "
+                                       f"validated vs attention) — {secs}s, "
+                                       f"{abs(zmin):.1f}sd below baseline"})
             i = j
         else:
             i += 1
@@ -138,6 +199,7 @@ def write_demo_json(out_dir, vid, arc, weak_spots, feature_name, fps=1.0):
     lo, hi = np.percentile(a, 2), np.percentile(a, 98)
     norm = np.clip((a - lo) / (hi - lo + 1e-9), 0, 1)
     payload = {
+        "schema_version": "1.0",
         "video_id": vid,
         "fps_arc": fps,
         "duration_sec": round(len(a) / fps, 2),
@@ -174,9 +236,18 @@ def main():
     ap.add_argument("--demo-feature", choices=["global", "roi"], default="roi",
                     help="which feature drives the demo arc.json")
     ap.add_argument("--glob", default="*.mp4")
+    ap.add_argument("--force", action="store_true",
+                    help="re-extract clips even if they're in the completion ledger "
+                         "(default off: a re-run resumes and skips finished videos).")
     args = ap.parse_args()
 
     os.makedirs(args.out, exist_ok=True)
+
+    # Resume/resilience ledgers (F-BATCH-RESUME / F-BATCH-ERRLOG).
+    ckpt = os.path.join(args.out, "extraction_checkpoint.json")
+    progress = os.path.join(args.out, "extraction_progress.log")
+    err_log = os.path.join(args.out, "extraction_errors.log")
+    done = _load_checkpoint(ckpt)
     roi_mask = np.load(args.roi_mask) if args.roi_mask else None
     if roi_mask is None:
         print("[note] no --roi-mask given: computing GLOBAL only. Build the DMN mask "
@@ -208,8 +279,11 @@ def main():
     print(f"[batch] {len(videos)} clips -> {args.out}")
 
     printed_scale = False
-    for vp in videos:
+    for i, vp in enumerate(videos):
         vid = os.path.splitext(os.path.basename(vp))[0]
+        if vid in done and not args.force:
+            print(f"  [skip-done] {vid}")
+            continue
         npy = os.path.join(args.out, f"preds_{vid}.npy")
         try:
             if os.path.exists(npy):
@@ -241,9 +315,18 @@ def main():
             spots = detect_weak_spots(demo_arc, fps=1.0)
             write_demo_json(args.out, vid, demo_arc, spots,
                             feature_name=args.demo_feature)
+            _mark_done(ckpt, vid)
+            with open(progress, "a") as f:
+                f.write(f"{datetime.now().isoformat()} [{i+1}/{len(videos)}] {vid} ok\n")
             print(f"    ok: T={T}s  weak_spots={len(spots)}")
+        except MemoryError:
+            raise
+        except OSError as e:
+            if e.errno == errno.ENOSPC:
+                raise
+            _log_clip_error(err_log, vid, e)
         except Exception as e:  # noqa: BLE001 - one bad clip must not kill the batch
-            print(f"    [ERROR] {vid}: {e!r} - skipping, batch continues")
+            _log_clip_error(err_log, vid, e)
 
     print("\n[done] arcs cached. Next: tvsum_prep.py (human arcs) then "
           "honest_corr_timeseries.py.")

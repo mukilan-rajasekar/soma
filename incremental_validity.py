@@ -27,8 +27,11 @@ import zlib
 
 import numpy as np
 
+# _read_csv is the shared CSV parser from honest_corr_timeseries.py (stdlib csv); it is
+# safe for these numeric, machine-generated arc/human/baseline CSVs.
 from honest_corr_timeseries import (_read_csv, _rankdata, pearson, first_diff,
-                                     circular_shift_p, resample_to_grid, stem_id)
+                                     circular_shift_p, resample_to_grid, stem_id,
+                                     MIN_EFFECT_R)
 
 
 def _residualize(y, Z):
@@ -149,13 +152,13 @@ def main():
         # deterministic per-video seed (crc32, not salted hash) -> reproducible perm p
         p, pr = partial_shift_p(db, dh, dF, n_perm=args.n_perm,
                                 seed=zlib.crc32(vid.encode()))
-        verdict = ("adds signal" if (not np.isnan(p) and p < 0.05 and abs(pr) > 0.1)
+        verdict = ("adds signal" if (not np.isnan(p) and p < 0.05 and abs(pr) > MIN_EFFECT_R)
                    else "no lift over baseline")
         print(f"{vid:<20}{raw:>8.2f}{pr:>11.2f}{p:>9.3f}   {verdict}")
         rows.append((vid, raw, pr, p))
 
     if rows:
-        good = [r for r in rows if not np.isnan(r[3]) and r[3] < 0.05 and abs(r[2]) > 0.1]
+        good = [r for r in rows if not np.isnan(r[3]) and r[3] < 0.05 and abs(r[2]) > MIN_EFFECT_R]
         print(f"\n{len(good)}/{len(rows)} videos: brain arc adds signal OVER the dumb "
               "baseline.\nIf that number is 0, the neural read is just re-deriving the "
               "edit — say so honestly.")
@@ -164,7 +167,7 @@ def main():
             with open(args.out, "w") as f:
                 f.write("video,raw_r,partial_r,perm_p,adds_signal\n")
                 for vid, raw, pr, p in rows:
-                    adds = int(not np.isnan(p) and p < 0.05 and abs(pr) > 0.1)
+                    adds = int(not np.isnan(p) and p < 0.05 and abs(pr) > MIN_EFFECT_R)
                     f.write(f"{vid},{raw:.4f},{pr:.4f},{p:.4f},{adds}\n")
             print(f"[wrote] {args.out}  (feed to publish_results.py --incremental)")
 

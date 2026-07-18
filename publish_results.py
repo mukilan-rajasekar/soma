@@ -38,7 +38,7 @@ import os
 
 import numpy as np
 
-from honest_corr_timeseries import _read_csv, stouffer, fisher
+from honest_corr_timeseries import _read_csv, stouffer, fisher, MIN_EFFECT_R
 
 
 def _rows_for_feature(cols, feature):
@@ -88,7 +88,7 @@ def _beats_from_incremental(path, alpha):
     med_pr = float(np.nanmedian([r for r, _ in pairs]))
     if p_comb is None or np.isnan(p_comb):
         return None
-    return bool(p_comb < alpha and abs(med_pr) > 0.1)
+    return bool(p_comb < alpha and abs(med_pr) > MIN_EFFECT_R)
 
 
 def summarize(rows, alpha=0.05):
@@ -143,7 +143,7 @@ def main():
     # Whether it ALSO beats the dumb ffmpeg baseline is a SEPARATE pre-registered question
     # (beats_baseline, its own field below) and must never overwrite the attention verdict:
     # a genuine correlation that merely fails to beat the baseline is NOT a "null result".
-    is_null = (p is None) or (p >= args.alpha) or (abs(s["median_r"]) < 0.05)
+    is_null = (p is None) or (p >= args.alpha) or (abs(s["median_r"]) < MIN_EFFECT_R)
     if is_null:
         verdict = "null result — as pre-registered"
     elif beats is False:

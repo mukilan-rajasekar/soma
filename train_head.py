@@ -114,10 +114,14 @@ def video_data(vid, preds_dir, arc_dir, human_dir, masks, shot_sec):
     hp = os.path.join(human_dir, f"human_arc_{vid}.csv")
     annp = os.path.join(human_dir, f"human_annos_{vid}.npy")
     if not (os.path.exists(predp) and os.path.exists(arcp) and os.path.exists(hp)):
+        missing = [os.path.basename(p) for p in (predp, arcp, hp) if not os.path.exists(p)]
+        print(f"[skip] {vid}: missing partner file(s) {', '.join(missing)}")
         return None
     preds = np.load(predp).astype(float)
     _, hc = _read_csv(hp)
     if "t_start" not in hc or "importance" not in hc:
+        miss = [c for c in ("t_start", "importance") if c not in hc]
+        print(f"[skip] {vid}: human_arc missing required column(s) {', '.join(miss)}")
         return None
     t_start = np.asarray(hc["t_start"], float)
     human = np.asarray(hc["importance"], float)
@@ -137,6 +141,7 @@ def video_data(vid, preds_dir, arc_dir, human_dir, masks, shot_sec):
     X = np.column_stack([feat_grid, roi_grid])                  # (n_shots, F+1)
     good = ~np.isnan(X).any(axis=1) & ~np.isnan(human)
     if int(good.sum()) < 10:
+        print(f"[skip] {vid}: only {int(good.sum())} good shots (<10 required)")
         return None
     annos = np.load(annp) if os.path.exists(annp) else None
     return dict(vid=vid, X=_standardize(X, good), human=human,
@@ -326,6 +331,37 @@ def report(rows, feats, shuffle, out):
                 head_real=bool(head_real), beats=bool(beats))
 
 
+def preflight_coverage(preds_dir, arc_dir, human_dir):
+    """Trace input coverage BEFORE video_data() silently drops anything, so the
+    headline validation n can never shrink without a printed reason.
+
+    Globs the four input families, strips each prefix/suffix to bare video ids,
+    reports how many are complete (preds & arc & human_arc), then names every id
+    that lacks a partner (-> DROPPED) or lacks human_annos (-> ceiling NaN).
+    """
+    def _ids(directory, prefix, suffix):
+        return {os.path.basename(p)[len(prefix):-len(suffix)]
+                for p in glob.glob(os.path.join(directory, prefix + "*" + suffix))}
+
+    preds = _ids(preds_dir, "preds_", ".npy")
+    arcs = _ids(arc_dir, "arc_", ".csv")
+    human = _ids(human_dir, "human_arc_", ".csv")
+    annos = _ids(human_dir, "human_annos_", ".npy")
+    complete = preds & arcs & human
+    print(f"[preflight] preds={len(preds)} arc={len(arcs)} human_arc={len(human)} "
+          f"annos={len(annos)} -> {len(complete)} complete")
+    for vid in sorted(preds - complete):
+        lacks = []
+        if vid not in arcs:
+            lacks.append(f"arc_{vid}.csv")
+        if vid not in human:
+            lacks.append(f"human_arc_{vid}.csv")
+        print(f"[preflight]   {vid}: lacks {', '.join(lacks)} -> DROPPED")
+    for vid in sorted(complete - annos):
+        print(f"[preflight]   {vid}: no human_annos -> ceiling will be NaN")
+    return complete
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -346,6 +382,7 @@ def main():
     if not masks:
         raise SystemExit(f"No roi_*.npy masks in {args.masks_dir} — build them with "
                          "build_roi_mask.py (--network dmn/dan/valence/arousal).")
+    preflight_coverage(args.preds_dir, args.arc_dir, args.human_dir)
     # ids from preds_<id>.npy (stem_id doesn't strip the 'preds_' prefix, so do it here)
     vids = sorted({os.path.basename(p)[len("preds_"):-len(".npy")]
                    for p in glob.glob(os.path.join(args.preds_dir, "preds_*.npy"))})

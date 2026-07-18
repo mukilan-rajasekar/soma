@@ -58,11 +58,34 @@ Does TRIBE v2's predicted per-second cortical **activation arc** track a
   (secondary), per feature.
 - Report **median r** and **median ceiling** per feature.
 
+## Confirmatory family / multiple comparisons
+- **One pre-specified primary.** The **single** confirmatory test is the `roi`
+  feature's **combined signed-Stouffer p across videos at alpha = 0.05**. Because
+  there is exactly one pre-specified primary, **no multiple-comparisons correction
+  is required.**
+- **`global` is a CONTRAST baseline, not a second shot at significance.** It is
+  pre-specified and **expected null**; its job is to *differ from* `roi` (which is
+  what makes a positive `roi` a *distinct* finding vs. the published
+  global-vs-replay null), not to be an independent test. It is reported **side by
+  side** with `roi` but is **NOT counted in the confirmatory family.**
+- **Everything else is EXPLORATORY.** Any additional feature, ROI, or aggregation —
+  Fisher omnibus, effective-N parametric p, the affect prereg, incremental
+  validity — is **exploratory** and badged as such in every report. Exploratory
+  results generate hypotheses; they do not confirm them.
+- **If a second feature is ever elevated to confirmatory**, apply
+  **Holm–Bonferroni** across the confirmatory family and record the change **here,
+  before running.** We never expand the family after seeing results.
+
 ## Decision / interpretation (agreed in advance)
 - **Signal** = `roi` survives the circular-shift null with a consistent-sign,
   non-trivial fraction of the human ceiling across videos, **while** `global` is
   null (which would make the result a *distinct* finding from the published
   global-vs-replay null).
+- **Minimum effect size:** a result counts as **non-trivial only if
+  `|median r| >= 0.10`**; below that we report it as **effectively null even when
+  p < alpha** — the same floor used for incremental validity. The preferred
+  long-term bar is **'fraction of the noise ceiling'** (a post-YC refinement); the
+  raw-`r` floor is the **locked interim** (2026-07-18).
 - **Null** = nothing survives. That is a legitimate pre-registered outcome and we
   report it plainly. The honest pitch line then leads with the validated step 1
   and the machine, not a rescued correlation.

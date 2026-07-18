@@ -46,6 +46,20 @@ import numpy as np
 FSAVERAGE5_N = 20484   # cortical surface vertices
 SCHAEFER1000_N = 1000  # MNI-volume parcels (Schaefer 2018)
 
+# ---------------------------------------------------------------------------
+# to_display() transform constants — DISPLAY-ONLY for an UNVALIDATED a-priori
+# proxy (status=proxy-hypothesis; see PREREGISTRATION-affect.md). These shape
+# only how the arcs RENDER in the demo; they touch no analysis/validation path.
+# Values are byte-identical to the previous inline literals — only relocated.
+# ---------------------------------------------------------------------------
+DISPLAY_Z_DIVISOR = 2.5      # squash z-scores toward the plottable range (~2.5 SD -> edge)
+VALENCE_CLIP = (-0.9, 0.9)   # keep valence inside ~[-1,1] without pinning the rail
+AROUSAL_CENTER = 0.5         # center the calm..intense arousal lane at 0.5
+AROUSAL_HALFSPAN = 0.5       # z * halfspan spreads arousal across the half-lane
+AROUSAL_CLIP = (0.05, 0.98)  # keep arousal off the 0/1 rails for a readable curve
+VALENCE_BAND = 0.28          # wide uncertainty band: this is an unvalidated proxy
+AROUSAL_BAND = 0.25          # wide uncertainty band: this is an unvalidated proxy
+
 
 def space_name(n_units):
     """Human label for a detected unit count (honest 'unknown' for anything else)."""
@@ -85,13 +99,16 @@ def valence_arousal(preds, val_mask, aro_mask):
 
 
 def to_display(valence_z, arousal_z):
-    """Clip z-scores to plottable ranges + crude uncertainty bands (wide, honest)."""
-    val = np.clip(valence_z / 2.5, -0.9, 0.9)               # ~[-1,1]
-    aro = np.clip((arousal_z / 2.5) * 0.5 + 0.5, 0.05, 0.98)  # ~[0,1], centered
-    band_v = 0.28   # wide bands: this is an unvalidated proxy
-    band_a = 0.25
-    return (val, np.clip(val - band_v, -1, 1), np.clip(val + band_v, -1, 1),
-            aro, np.clip(aro - band_a, 0, 1), np.clip(aro + band_a, 0, 1))
+    """Clip z-scores to plottable ranges + crude uncertainty bands (wide, honest).
+
+    Display-only for an unvalidated proxy (see PREREGISTRATION-affect.md). All
+    magic numbers now live in module-level constants (byte-identical values).
+    """
+    val = np.clip(valence_z / DISPLAY_Z_DIVISOR, *VALENCE_CLIP)               # ~[-1,1]
+    aro = np.clip((arousal_z / DISPLAY_Z_DIVISOR) * AROUSAL_HALFSPAN + AROUSAL_CENTER,
+                  *AROUSAL_CLIP)                                              # ~[0,1], centered
+    return (val, np.clip(val - VALENCE_BAND, -1, 1), np.clip(val + VALENCE_BAND, -1, 1),
+            aro, np.clip(aro - AROUSAL_BAND, 0, 1), np.clip(aro + AROUSAL_BAND, 0, 1))
 
 
 def main():

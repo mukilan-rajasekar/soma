@@ -62,13 +62,23 @@ Only hard dependency is numpy. matplotlib is optional (forest plot); if absent,
 a results table is still written.
 """
 import argparse
+import csv
 import glob
 import math
 import os
 import sys
+import time
 import zlib
 
 import numpy as np
+
+
+# pre-registered minimum non-trivial effect size (|median Spearman r|); below this a
+# result is effectively null even if p<alpha
+MIN_EFFECT_R = 0.10
+
+DEFAULT_N_PERM = 5000       # max circular shifts evaluated before we sample instead of enumerate
+DEFAULT_MIN_SHIFT = 3       # smallest circular shift; excludes near-identity rolls at either end
 
 
 # -----------------------------------------------------------------------------
@@ -141,7 +151,7 @@ def _norm_ppf(p):
            (((((b[0]*r + b[1])*r + b[2])*r + b[3])*r + b[4])*r + 1)
 
 
-def circular_shift_p(x, y, n_perm=5000, min_shift=3, seed=0):
+def circular_shift_p(x, y, n_perm=DEFAULT_N_PERM, min_shift=DEFAULT_MIN_SHIFT, seed=0):
     """
     Two-sided p under a circular-shift null that preserves each series'
     autocorrelation: circularly roll y and recompute the correlation.
@@ -256,6 +266,41 @@ def leave_one_annotator_out_ceiling(annos):
     return float(np.nanmean(rs))
 
 
+def split_half_ceiling(annos, seed=0, n_splits=25):
+    """
+    annos: (n_annotators, n_shots). A reliability-based noise ceiling, complementary
+    to the leave-one-annotator-out one. For each random split of the A annotators into
+    two halves, correlate the first-differenced half-means:
+        r_half = spearman(first_diff(h1.mean(0)), first_diff(h2.mean(0)))
+    Average r_half across splits (skipping NaN/<=0 splits), Spearman-Brown up-correct
+    the half-panel reliability to the FULL panel (R_full = 2*r_half/(1+r_half)), and
+    return sqrt(R_full) as the predictable-signal ceiling. Deterministic given `seed`.
+    """
+    annos = np.asarray(annos, float)
+    A, T = annos.shape
+    if A < 2 or T < 4:
+        return np.nan
+    rng = np.random.default_rng(seed)
+    rs = []
+    for _ in range(n_splits):
+        perm = rng.permutation(A)
+        h1, h2 = perm[: A // 2], perm[A // 2:]
+        if len(h1) < 1 or len(h2) < 1:
+            continue
+        r_half = spearman(first_diff(annos[h1].mean(axis=0)),
+                          first_diff(annos[h2].mean(axis=0)))
+        if np.isnan(r_half) or r_half <= 0:
+            continue
+        rs.append(r_half)
+    if not rs:
+        return np.nan
+    r_half = float(np.mean(rs))
+    R_full = 2 * r_half / (1 + r_half)
+    if R_full <= 0:
+        return np.nan
+    return float(math.sqrt(R_full))
+
+
 # -----------------------------------------------------------------------------
 # per-video test
 # -----------------------------------------------------------------------------
@@ -290,10 +335,16 @@ def test_one_video(model_t, model_v, human_t_start, human_v, annos,
     p, r, n = circular_shift_p(dm, dh, n_perm=n_perm, seed=seed)
     n_eff = effective_n(dm, dh)
     p_param = parametric_p_from_r(r, n_eff)
+    # Primary ceiling: leave-one-annotator-out human agreement.
     ceiling = leave_one_annotator_out_ceiling(annos) if annos is not None else np.nan
     frac = (r / ceiling) if (ceiling and not np.isnan(ceiling) and ceiling > 0) else np.nan
+    # Secondary ceiling: split-half reliability, Spearman-Brown up-corrected (deterministic seed).
+    ceiling_sh = split_half_ceiling(annos, seed=seed) if annos is not None else np.nan
+    frac_sh = (r / ceiling_sh) if (ceiling_sh and not np.isnan(ceiling_sh) and ceiling_sh > 0) \
+        else np.nan
     return dict(n=n, r=r, p=p, p_param=p_param, n_eff=n_eff,
-                ceiling=ceiling, frac_of_ceiling=frac, note="")
+                ceiling=ceiling, frac_of_ceiling=frac,
+                ceiling_splithalf=ceiling_sh, frac_of_ceiling_splithalf=frac_sh, note="")
 
 
 # -----------------------------------------------------------------------------
@@ -333,14 +384,24 @@ def fisher(ps):
 # -----------------------------------------------------------------------------
 # io
 # -----------------------------------------------------------------------------
-def _read_csv(path):
-    """Tiny CSV reader (no pandas dependency). Returns (header, dict of columns)."""
-    with open(path) as f:
-        lines = [ln.rstrip("\n") for ln in f if ln.strip()]
-    header = lines[0].split(",")
+def _read_csv(path, required=None):
+    """Tiny CSV reader (stdlib `csv`, no pandas dependency). Returns (header, dict of cols).
+
+    Uses csv.reader so quoted fields / embedded commas parse correctly (an upgrade over the
+    old naive .split(",")). Blank rows are skipped, header cells are stripped, and each column
+    is coerced to a float array when every value parses, else kept as an object array. If
+    `required` is given, raises ValueError listing any missing columns (optional, backward-
+    compatible: the ~14 existing call sites still get the same (header, cols) two-tuple).
+    """
+    with open(path, newline="") as f:
+        rows = [r for r in csv.reader(f) if r and any(c.strip() for c in r)]
+    header = [h.strip() for h in rows[0]]
+    if required is not None:
+        missing = [c for c in required if c not in header]
+        if missing:
+            raise ValueError(f"{path}: missing required column(s): {', '.join(missing)}")
     cols = {h: [] for h in header}
-    for ln in lines[1:]:
-        parts = ln.split(",")
+    for parts in rows[1:]:
         for h, v in zip(header, parts):
             cols[h].append(v)
     for h in header:
@@ -359,6 +420,27 @@ def stem_id(path):
     return base
 
 
+def _run_bench():
+    """Micro-benchmark the permutation null: time circular_shift_p on synthesized
+    first-differenced pairs of increasing length. Prints a `len_points,seconds` table
+    plus the number of shifts actually enumerated per length. Deterministic (fixed seed).
+    """
+    rng = np.random.default_rng(0)
+    print("len_points,seconds,shifts_enumerated")
+    for n in [30, 60, 120, 240, 480]:
+        # first-difference two smooth random walks -> length-n pairs shaped like the
+        # real (already-first-differenced) inputs to circular_shift_p
+        x = first_diff(np.cumsum(rng.standard_normal(n + 1)))
+        y = first_diff(np.cumsum(rng.standard_normal(n + 1)))
+        # distinct shifts the null actually evaluates (mirrors circular_shift_p's policy)
+        lo, hi = DEFAULT_MIN_SHIFT, n - DEFAULT_MIN_SHIFT
+        n_shifts = min(max(0, hi - lo + 1), DEFAULT_N_PERM)
+        t0 = time.perf_counter()
+        circular_shift_p(x, y)
+        dt = time.perf_counter() - t0
+        print(f"{n},{dt:.4f},{n_shifts}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -370,10 +452,17 @@ def main():
                     help="which pre-registered feature(s) to test")
     ap.add_argument("--shot-sec", type=float, default=2.0,
                     help="TVSum shot length (grid step)")
-    ap.add_argument("--n-perm", type=int, default=5000)
+    ap.add_argument("--n-perm", type=int, default=DEFAULT_N_PERM)
     ap.add_argument("--out", default="validation/results",
                     help="output prefix (writes <out>.csv and <out>_forest.png)")
+    ap.add_argument("--bench", action="store_true",
+                    help="skip the normal run; time circular_shift_p on synthesized "
+                         "first-differenced pairs of increasing length and print a table")
     args = ap.parse_args()
+
+    if args.bench:
+        _run_bench()
+        return
 
     model_files = sorted(glob.glob(args.model_glob))
     if not model_files:
@@ -469,8 +558,11 @@ def _fmt(x, nd=2):
 def _write_results(out, rows, feats):
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     path = out + ".csv"
+    # NOTE: the two split-half columns are APPENDED at the END so every existing column
+    # index/consumer (publish_results.py, etc.) is unaffected.
     cols = ["video", "feature", "n", "r", "p", "p_param", "n_eff",
-            "ceiling", "frac_of_ceiling", "note"]
+            "ceiling", "frac_of_ceiling", "note",
+            "ceiling_splithalf", "frac_of_ceiling_splithalf"]
     with open(path, "w") as f:
         f.write(",".join(cols) + "\n")
         for r in rows:
