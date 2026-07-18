@@ -106,7 +106,7 @@
 
     <div class="evidence">
       <span><span class="dot g"></span><b>Validated</b> — video → brain activation (TRIBE v2 vs real fMRI)</span>
-      <span><span class="dot a"></span><b>Weakly validated</b> — attention arc vs human interest</span>
+      <span><span class="dot a"></span><b>Validation pending</b> — attention arc vs human interest (test not yet run)</span>
       <span><span class="dot r"></span><b>Hypothesis</b> — affect / named emotions (not yet validated)</span>
     </div>
 
@@ -153,6 +153,10 @@
     </footer>
   </div>
 
+  <!-- Supabase (optional): if supabase-config.js is filled in, the waitlist stores
+       to the database; otherwise it falls back to localStorage automatically. -->
+  <script src="supabase-config.js"></script>
+  <script src="supabase.js"></script>
   <script>
     (function () {
       var KEY = "soma_waitlist_v1";
@@ -191,17 +195,48 @@
         emailEl.focus();
       }
 
-      form.addEventListener("submit", function (e) {
+      var SB = (window.Soma && window.Soma.supabase) || { enabled: false };
+
+      // Keep the on-page honesty copy accurate to where the email actually goes.
+      (function () {
+        if (!SB.enabled) return;
+        var micro = document.querySelector(".micro");
+        if (micro) micro.innerHTML =
+          "Your email is stored in our own database (Supabase) so a real person can reach out when a design-partner slot opens — used only for that. No third-party marketing, no automated drip.";
+        var foot = document.querySelector("footer");
+        if (foot) foot.innerHTML = foot.innerHTML.replace(
+          "early-access capture is a local-only prototype · no backend, no data leaves this browser",
+          "early-access capture is stored in our own database (Supabase) · used only to contact you about access");
+      })();
+
+      form.addEventListener("submit", async function (e) {
         e.preventDefault();
         errEl.textContent = "";
         var email = (emailEl.value || "").trim().toLowerCase();
         if (!validEmail(email)) { errEl.textContent = "Enter a valid email address."; emailEl.focus(); return; }
+        var company = (companyEl.value || "").trim();
+        var btn = form.querySelector("button.cta");
         var list = read();
         var dupe = list.some(function (r) { return r.email === email; });
-        if (!dupe) {
-          list.push({ email: email, company: (companyEl.value || "").trim(), ts: new Date().toISOString() });
-          write(list);
+
+        if (SB.enabled) {
+          btn.disabled = true;
+          try {
+            await SB.joinWaitlist({ email: email, company: company, source: "waitlist.html", user_agent: navigator.userAgent });
+            btn.disabled = false;
+            showThanks(false);            // write-only from the browser → can't detect server-side dupes
+            return;
+          } catch (err) {
+            // network / DB hiccup → keep a local copy so the signup isn't lost, still thank them
+            if (!dupe) { list.push({ email: email, company: company, ts: new Date().toISOString() }); write(list); }
+            btn.disabled = false;
+            showThanks(dupe);
+            return;
+          }
         }
+
+        // no backend configured → original localStorage behaviour
+        if (!dupe) { list.push({ email: email, company: company, ts: new Date().toISOString() }); write(list); }
         showThanks(dupe);
       });
 
