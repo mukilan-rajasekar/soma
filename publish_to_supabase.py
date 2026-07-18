@@ -36,6 +36,36 @@ import urllib.request
 DEFAULT_URL = "https://jfjztzdnoybhfgbgljjh.supabase.co"
 
 
+def load_dotenv():
+    """Populate os.environ from a `.env` file (repo root or the script's dir), so
+    you can paste keys into `.env` instead of exporting them. Stdlib only — no
+    python-dotenv dependency. Never overrides a var already set in the real env.
+    Skips placeholder values (anything containing 'PASTE' or ending in '...')."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    for path in (os.path.join(os.getcwd(), ".env"), os.path.join(here, ".env")):
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, val = line.split("=", 1)
+                    key = key.strip()
+                    if key.startswith("export "):
+                        key = key[len("export "):].strip()
+                    val = val.strip().strip('"').strip("'")
+                    if not key or key in os.environ:
+                        continue
+                    if "PASTE" in val or val.endswith("..."):   # ignore placeholders
+                        continue
+                    os.environ[key] = val
+        except OSError:
+            pass
+        break   # first .env found wins
+
+
 def load_arc(path):
     with open(path, "r") as f:
         return json.load(f)
@@ -114,6 +144,7 @@ def upsert(url, key, row, dry_run):
 
 
 def main():
+    load_dotenv()   # pick up SUPABASE_* from .env before reading env / building args
     ap = argparse.ArgumentParser(description="Publish arc_<id>.json files to the Supabase `arcs` table.")
     ap.add_argument("paths", nargs="+", help="arc JSON file(s) or glob(s), e.g. 'data/arcs/arc_*.json'")
     ap.add_argument("--id", help="override ad_id (only valid with a single file)")
