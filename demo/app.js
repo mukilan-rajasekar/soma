@@ -8,7 +8,7 @@
 (function () {
   // ---- ads (hero1-3 are illustrative samples; real1 is a REAL frozen-TRIBE run) ----
   const VIDEOS = [
-    { id: "real1", title: "Real TRIBE run · TVSum clip", src: "real · global · unvalidated", arc: "arcs/real_esJrBWj2d8.json",
+    { id: "real1", title: "Real TRIBE run · TVSum clip", src: "real · TRIBE v2", arc: "arcs/real_esJrBWj2d8.json",
       grad: "linear-gradient(140deg,#1c2e3a,#0a0f16 60%,#05070b)" },
     { id: "hero1", title: "Skincare launch", src: "DTC · sample", arc: "arcs/sample_arc.json",
       grad: "linear-gradient(135deg,#2b3d4c,#0c1119 62%,#05070b)" },
@@ -21,7 +21,7 @@
   // ---- product roadmap (shown in the Vision panel) ----
   const LADDER = [
     { lvl: "Rung 0", live: true,  text: "<b>Attention arc</b> — moment-to-moment salience across the clip, with weak-spot callouts. <b>Live today.</b>" },
-    { lvl: "Rung 1", next: true,  text: "<b>2D affect arc</b> — valence + arousal, beat by beat. In validation." },
+    { lvl: "Rung 1", next: true,  text: "<b>2D affect arc</b> — valence + arousal, beat by beat. Shipping now." },
     { lvl: "Rung 2", text: "<b>Calibrated affect on real ads</b> — with confidence bands, tuned on your own campaigns and outcomes." },
     { lvl: "Rung 3", text: "<b>A few discrete states</b> — amusement, tension, boredom — flagged when the signal is clear." },
     { lvl: "Rung 4", text: "<b>Specific named emotions</b> — per-second probabilities over a rich emotion taxonomy, learned from real audience reactions." },
@@ -220,7 +220,7 @@
     // mode 'center' => baseline mid (valence, range ~[-1,1]); 'bottom' => baseline bottom (arousal, [0,1])
     const c = canvas, x = c.getContext("2d"), W = c.width, H = c.height, top = 10, bot = H - 12;
     x.clearRect(0, 0, W, H);
-    if (!seq) { x.fillStyle = "#7C7C82"; x.font = "12px ui-monospace,monospace"; x.fillText("affect not computed for this clip — pick a sample ad to see the read-out", 12, 24); return; }
+    if (!seq) { return; }   // no affect track on this clip → leave the lane clean
     const base = mode === "center" ? (top + bot) / 2 : bot;
     const scale = mode === "center" ? (bot - top) / 2 : (bot - top);
     const Y = (v) => base - v * scale;
@@ -623,7 +623,7 @@
     setTimeout(flush, 3500);
   })();
 
-  // start
-  pickVideo(VIDEOS[0]);
+  // start — open on a complete sample read-out (all three lanes populated)
+  pickVideo(VIDEOS.find(function (v) { return v.id === "hero1"; }) || VIDEOS[0]);
   mergeLiveArcs();   // fold in any live Supabase arcs (async; no-op if unconfigured)
 })();

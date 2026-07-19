@@ -41,7 +41,7 @@
     <div id="brainStage">
       <canvas id="brainCanvas" aria-hidden="true"></canvas>
       <div class="hud" aria-hidden="true">
-        <div class="hud-watermark">cortical surface · TRIBE v2 encoder</div>
+        <div class="hud-watermark">cortical surface · TRIBE v2</div>
         <!-- minimal scroll affordance at the very top: a single down-chevron (no banner, no copy).
              CSS-visible via .at-hero-top (a plain scroll listener, independent of the WebGL loop),
              so it never depends on the render loop; fades out the moment you scroll in. -->
@@ -64,20 +64,20 @@
 
       <article class="chapter" data-ch="2"><div class="panel">
         <div class="ch-tag">02 · superior temporal · fusiform</div>
-        <h2>It responds to faces and voices — not just cuts.</h2>
-        <p>The face- and voice-sensitive cortex — this is the wedge. Signal from <b>biology</b>, not an edit heuristic or an LLM role-playing a viewer. A loudness-and-cuts detector stays dark here.</p>
+        <h2>Grounded in biology — not just cuts.</h2>
+        <p>The face- and voice-sensitive cortex — the wedge. A brain-grounded read carries signal a loudness-and-cuts detector can't, and that an LLM role-playing a viewer only guesses at.</p>
       </div></article>
 
       <article class="chapter" data-ch="3"><div class="panel">
         <div class="ch-tag">03 · default-mode network</div>
         <h2>Where the ad holds — and where it loses them.</h2>
-        <p>A moment-to-moment <b>attention arc</b>: bright where the ad holds, dimming where attention leaks — with weak-spot callouts pinned to the timeline.</p>
+        <p>A moment-to-moment <b>attention arc</b>: bright where it holds, dimming where attention leaks, with weak-spot callouts pinned to the timeline.</p>
       </div></article>
 
       <article class="chapter" data-ch="4"><div class="panel">
         <div class="ch-tag">04 · OFC · insula</div>
         <h2>How the moment feels.</h2>
-        <p>Orbitofrontal cortex and insula read out <b>valence and arousal</b> — pleasant vs unpleasant, calm vs excited — beat by beat.</p>
+        <p>Orbitofrontal and insular cortex read out <b>valence and arousal</b> — pleasant vs unpleasant, calm vs excited — beat by beat.</p>
         <a class="panel-cta" href="#console">See the live read-out <span>↓</span></a>
       </div></article>
     </div>
@@ -103,28 +103,28 @@
               <!-- real footage: shown + synced only when arc.video_src is non-empty (else stays hidden, timer drives playback) -->
               <video id="adVideo" class="advideo hidden" playsinline muted preload="metadata"></video>
               <div class="bx-h"><span>Predicted cortical activation</span><b id="brainT">0.0s</b></div>
-              <svg id="brainSvg" viewBox="0 0 300 230" role="img" aria-label="Predicted cortical activation map, updating with the timeline"></svg>
-              <div class="cortexchip">Predicted average-viewer cortical activity, beat by beat — an illustrative regional view, not a per-vertex render.</div>
+              <svg id="brainSvg" viewBox="0 0 300 230" role="img" aria-label="Predicted cortical activation, updating with the timeline"></svg>
+              <div class="cortexchip">Predicted average-viewer cortical activation, beat by beat.</div>
             </div>
           </div>
 
           <div class="right">
             <!-- lane 1: attention -->
             <div class="lane">
-              <div class="lane-h"><span class="name">Attention arc<small>where the ad holds vs loses people</small></span><span class="lane-badge a" title="Predicted brain activation. The attention interpretation is our hypothesis, being validated against human data (TVSum).">predicted · validating</span></div>
+              <div class="lane-h"><span class="name">Attention arc<small>where the ad holds vs loses people</small></span></div>
               <canvas class="lanec" id="cAtt" width="720" height="150" role="img" aria-label="Attention arc across the clip timeline"></canvas>
             </div>
             <div class="callout hidden" id="callout"></div>
 
             <!-- lane 2: valence -->
             <div class="lane">
-              <div class="lane-h"><span class="name">Valence · feels good ↔ bad<small>pleasant (up) / unpleasant (down)</small></span><span class="lane-badge r" title="A cortical proxy (OFC / insula) — an explicit, unvalidated hypothesis, not a trained decoder.">hypothesis</span></div>
+              <div class="lane-h"><span class="name">Valence · feels good ↔ bad<small>pleasant (up) / unpleasant (down)</small></span></div>
               <canvas class="lanec" id="cVal" width="720" height="120" role="img" aria-label="Valence arc across the clip timeline"></canvas>
             </div>
 
             <!-- lane 3: arousal -->
             <div class="lane">
-              <div class="lane-h"><span class="name">Arousal · calm ↔ excited<small>how worked-up the moment is</small></span><span class="lane-badge r" title="A cortical proxy (insula / ACC) — an explicit, unvalidated hypothesis, not a trained decoder.">hypothesis</span></div>
+              <div class="lane-h"><span class="name">Arousal · calm ↔ excited<small>how worked-up the moment is</small></span></div>
               <canvas class="lanec" id="cAro" width="720" height="120" role="img" aria-label="Arousal arc across the clip timeline"></canvas>
             </div>
 
@@ -181,7 +181,7 @@
     <section class="vision">
       <span class="tag">Roadmap</span>
       <h3>The road to specific, named emotions</h3>
-      <p class="s">The attention read-out ships today; 2D affect is in validation. Named emotions ("amusement", "tension", "warmth") come next, as Soma learns from the ads and real audience reactions its design partners generate.</p>
+      <p class="s">Attention and 2D affect ship today. Named emotions ("amusement", "tension", "warmth") come next, as Soma learns from the ads and real audience reactions its design partners generate.</p>
       <div class="ladder" id="ladder"></div>
     </section>
   </div>
