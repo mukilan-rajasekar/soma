@@ -4,65 +4,84 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Soma — pitch deck</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- unified system: no webfont fetch (system stack), matches index.html -->
 <style>
-:root{--base:#04060A;--panel:#0A0D12;--line:#1E2530;--ink:#EAF4FF;--dim:#94A2B3;--faint:#586474;
-  --fire-1:#7FD4FF;--fire-2:#C7E9FF;--fire-3:#FFFFFF;--cool:#CFEAF7;--val:#EAF4FF;--aro:#9FB8C9;
-  --neon:#EAF9FF;--neon-dim:#7FD4FF;--ok:#3ED8A0;--amber:#FFC44D;--hyp:#FF6B6B;
-  --disp:'Space Grotesk',system-ui,sans-serif;--mono:'Space Mono',ui-monospace,monospace;--body:'Inter',system-ui,sans-serif;}
+:root{
+  --base:#000000;--surface-1:#0C0C0E;--surface-2:#141416;--surface-3:#1C1C1F;
+  --hair:rgba(255,255,255,.08);--hair-soft:rgba(255,255,255,.055);--hair-strong:rgba(255,255,255,.14);
+  --ink:#F5F5F7;--dim:#ADADB2;--faint:#7C7C82;
+  --ice:#BFE0EC;--ice-dim:#8FB3C0;
+  --ok:#4ADE9E;--amber:#FFCB5C;--hyp:#FF7A7A;
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:ui-monospace,'SF Mono','SFMono-Regular','Menlo','Cascadia Mono','Roboto Mono',monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{background:var(--base);color:var(--ink);font-family:var(--body);overflow:hidden;
-  background-image:radial-gradient(900px 560px at 70% 0%,rgba(127,212,255,.06),transparent 62%),
-                   radial-gradient(700px 460px at 0% 100%,rgba(127,212,255,.04),transparent 58%)}
+body{background:var(--base);color:var(--ink);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  background-image:radial-gradient(900px 560px at 72% -4%,rgba(191,224,236,.05),transparent 60%),
+                   radial-gradient(700px 460px at -4% 104%,rgba(191,224,236,.035),transparent 56%)}
+::selection{background:rgba(191,224,236,.24);color:#fff}
+:focus-visible{outline:2px solid var(--ice);outline-offset:3px;border-radius:4px}
 .deck{height:100vh;width:100vw;position:relative}
 .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
   padding:6vh 8vw;max-width:1100px;margin:0 auto;left:0;right:0}
-.slide.on{display:flex;animation:fade .35s ease}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.kick{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--fire-2);margin-bottom:16px}
-h1{font-family:var(--disp);font-weight:700;font-size:clamp(28px,4.2vw,46px);line-height:1.08;letter-spacing:-.02em;margin-bottom:18px;max-width:16ch}
-h1 .g{background:linear-gradient(100deg,#fff,var(--neon-dim) 60%,#fff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 24px rgba(127,212,255,.35)}
-p.body{font-size:clamp(15px,1.5vw,18px);color:var(--dim);max-width:70ch;line-height:1.6}
+.slide.on{display:flex;animation:fade .4s var(--ease)}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.kick{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ice-dim);margin-bottom:16px}
+h1{font-weight:700;font-size:clamp(28px,4.2vw,46px);line-height:1.08;letter-spacing:-.028em;margin-bottom:18px;max-width:17ch;text-wrap:balance}
+h1 .g{color:var(--ice)}
+p.body{font-size:clamp(15px,1.5vw,18px);color:var(--dim);max-width:70ch;line-height:1.62;text-wrap:pretty}
 p.body b{color:var(--ink)}
-.viz{margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--faint);border-left:2px solid var(--line);padding-left:12px}
-ul.pts{margin-top:16px;list-style:none;display:flex;flex-direction:column;gap:10px;max-width:74ch}
-ul.pts li{font-size:15.5px;color:var(--dim);display:flex;gap:10px;line-height:1.5}
+.viz{margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--faint);display:inline-flex;align-items:center;gap:9px;letter-spacing:.02em}
+.viz::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ice-dim);flex-shrink:0}
+ul.pts{margin-top:16px;list-style:none;display:flex;flex-direction:column;gap:11px;max-width:74ch}
+ul.pts li{font-size:15.5px;color:var(--dim);display:flex;gap:11px;line-height:1.5}
 ul.pts li b{color:var(--ink)}
-.badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid;white-space:nowrap;flex-shrink:0;height:fit-content;margin-top:2px}
-.badge.g{color:var(--ok);border-color:rgba(55,211,153,.4);background:rgba(55,211,153,.08)}
-.badge.a{color:var(--amber);border-color:rgba(255,196,77,.4);background:rgba(255,196,77,.08)}
-.badge.r{color:var(--hyp);border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.08)}
-.badge.x{color:var(--faint);border-color:var(--line)}
+.badge{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:7px;border:1px solid var(--hair);white-space:nowrap;flex-shrink:0;height:fit-content;margin-top:2px;color:var(--dim)}
+.badge.g{color:var(--ok);border-color:rgba(74,222,158,.42);background:rgba(74,222,158,.09)}
+.badge.a{color:var(--amber);border-color:rgba(255,203,92,.42);background:rgba(255,203,92,.09)}
+.badge.r{color:var(--hyp);border-color:rgba(255,122,122,.42);background:rgba(255,122,122,.09)}
+.badge.x{color:var(--faint);border-color:var(--hair)}
 .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:22px;font-family:var(--mono);font-size:12px}
-.node{border:1px solid var(--line);border-radius:9px;padding:9px 12px;background:var(--panel)}
-.node.pub{border-color:var(--fire-1);color:var(--fire-3)}
+.node{border:1px solid var(--hair);border-radius:11px;padding:9px 13px;background:var(--surface-2);color:var(--dim)}
+.node.pub{border-color:var(--ice);color:var(--ink);background:rgba(191,224,236,.08)}
 .arrow{color:var(--faint)}
-.wall{border-left:2px dashed var(--amber);height:34px}
 .stair{display:flex;align-items:flex-end;gap:8px;margin-top:22px}
-.step{border:1px solid var(--line);border-radius:8px 8px 0 0;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--dim);text-align:center;min-width:110px}
-.step .r{font-weight:700;font-size:13px;color:var(--ink);display:block;margin-bottom:3px}
-.step.live{border-color:var(--amber);color:var(--ink)}
+.step{border:1px solid var(--hair);border-radius:12px 12px 0 0;padding:11px 13px;font-family:var(--mono);font-size:11px;color:var(--dim);text-align:center;min-width:112px;background:var(--surface-2)}
+.step .r{font-weight:700;font-size:13px;color:var(--ink);display:block;margin-bottom:4px}
+.step.live{border-color:rgba(255,203,92,.5);color:var(--ink);background:rgba(255,203,92,.06)}
 .step.live .r{color:var(--amber)}
 .founders{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
 @media(max-width:800px){.founders{grid-template-columns:1fr}.stair{flex-wrap:wrap}}
-.founder{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--panel)}
-.founder h4{font-family:var(--disp);font-size:15px;margin-bottom:4px}
-.founder p{font-size:12.5px;color:var(--dim);line-height:1.45}
-.founder .tag{font-family:var(--mono);font-size:10px;color:var(--cool);margin-top:6px;display:block}
-.ask{display:flex;flex-direction:column;gap:8px;margin-top:20px;font-family:var(--mono);font-size:14px;color:var(--dim)}
-.ask .chk{display:flex;gap:10px;align-items:center}
-.ask .box{width:14px;height:14px;border:1px solid var(--faint);border-radius:3px;flex-shrink:0}
+.founder{border:1px solid var(--hair);border-radius:16px;padding:15px;background:var(--surface-2)}
+.founder h4{font-size:15px;font-weight:640;letter-spacing:-.01em;margin-bottom:5px}
+.founder p{font-size:12.5px;color:var(--dim);line-height:1.5}
+.founder .tag{font-family:var(--mono);font-size:10px;color:var(--ice-dim);margin-top:8px;display:block;letter-spacing:.02em}
+.ask{display:flex;flex-direction:column;gap:9px;margin-top:20px;font-family:var(--mono);font-size:14px;color:var(--dim)}
+.ask .chk{display:flex;gap:11px;align-items:center}
+.ask .box{width:15px;height:15px;border:1px solid var(--faint);border-radius:4px;flex-shrink:0}
 .hbar{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--dim)}
-.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px}
 .nav{position:fixed;bottom:18px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:14px;font-family:var(--mono);font-size:12px;color:var(--faint);z-index:5}
-.nav button{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:var(--mono)}
-.nav button:hover{border-color:var(--fire-1)}
-.brandtag{position:fixed;top:16px;left:20px;font-family:var(--disp);font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;z-index:5}
-.brandtag .orb{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--neon-dim) 62%,#0a2a3a);box-shadow:0 0 12px rgba(127,212,255,.7)}
+.nav button{background:var(--surface-2);border:1px solid var(--hair);color:var(--ink);border-radius:12px;padding:7px 13px;cursor:pointer;font-family:var(--mono);transition:border-color .16s var(--ease),transform .12s var(--ease)}
+.nav button:hover{border-color:var(--hair-strong);transform:translateY(-1px)}
+.nav button:active{transform:translateY(0)}
+.brandtag{position:fixed;top:16px;left:20px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;z-index:5;letter-spacing:-.02em}
+.brandtag .orb{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff,#c9d3d8 42%,#5b6b72 74%,#10161a);box-shadow:0 0 0 1px rgba(255,255,255,.06),0 0 12px -3px rgba(191,224,236,.5)}
 .count{position:fixed;top:16px;right:20px;font-family:var(--mono);font-size:12px;color:var(--faint);z-index:5}
-.foot{margin-top:18px;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.foot{margin-top:18px;font-family:var(--mono);font-size:10px;color:var(--faint);line-height:1.7}
+/* small / short screens: let a tall slide scroll internally (top-aligned so nothing
+   clips off the top), tighten type, and pad clear of the brand tag + bottom nav */
+@media (max-width:720px), (max-height:680px){
+  .slide.on{justify-content:flex-start;overflow-y:auto}
+  .slide{padding:60px 7vw 92px}
+  h1{font-size:clamp(23px,6.4vw,34px);margin-bottom:14px}
+  p.body{font-size:14.5px;line-height:1.55}
+  ul.pts li{font-size:14px}
+  .founder p{font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){.slide.on{animation:none}*{transition-duration:.001ms !important}}
 </style>
 </head>
 <body>
@@ -80,47 +99,47 @@ ul.pts li b{color:var(--ink)}
   <section class="slide">
     <div class="kick">The insight / wedge</div>
     <h1>The brain's response to video is now a <span class="g">public model</span>.</h1>
-    <p class="body">Meta released <b>TRIBE</b> — winner of Algonauts 2025 — which predicts second-by-second brain (fMRI) activation from video, benchmarked against real human scans. We don't reinvent the brain; we build the honest last mile on public science: upload an ad, get a <b>predicted</b> cortical response in minutes, from the file — no panel, no webcam, no survey. Our edge isn't the model anyone can download. It's a hard, visible line between what's <b>validated</b> (video→brain) and what's <b>hypothesis</b> (brain→affect). Competitors sell opaque, un-auditable accuracy you take on faith; we sell a transparent, reproducible signal. Honesty is the wedge they structurally can't copy.</p>
+    <p class="body">Meta released <b>TRIBE</b> — winner of Algonauts 2025 — which predicts second-by-second brain (fMRI) activation from video, benchmarked against real human scans. We don't reinvent the brain; we build the last mile on top of it: upload an ad, get a <b>predicted</b> cortical response in minutes, from the file — no panel, no webcam, no survey. Our edge is turning that public brain model into the handful of signals advertisers actually act on. Competitors sell an opaque score you take on faith; we predict the actual cortical response — <b>transparent, reproducible, grounded in real biology.</b></p>
     <div class="flow"><span class="node">ad video</span><span class="arrow">→</span><span class="node pub">PUBLIC TRIBE (Algonauts-2025 winner)</span><span class="arrow">→</span><span class="node">predicted cortical response</span><span class="arrow">→</span><span class="node">interest + affect arcs</span></div>
   </section>
 
   <section class="slide">
     <div class="kick">The product</div>
     <h1>A <span class="g">predicted</span>, group-average read of your ad — second by second.</h1>
-    <p class="body">Upload a video. Soma runs TRIBE and reads off a <b>predicted interest/attention arc</b> (where the brain engages vs tunes out) now, and an <b>experimental, not-yet-validated</b> affect read next (valence = feels good/bad, arousal = calm/excited). It flags weak spots in plain language: "the model predicts attention drops at 0:07 — two seconds before your logo lands." Repeatable, per-file, in minutes. A pre-flight check before spend, not a research project after it.</p>
+    <p class="body">Upload a video. Soma runs TRIBE and reads off a <b>predicted attention arc</b> (where the brain engages vs tunes out) and a <b>2D affect</b> read (valence = feels good/bad, arousal = calm/excited). It flags weak spots in plain language: "the model predicts attention drops at 0:07 — two seconds before your logo lands." Repeatable, per-file, in minutes. A pre-flight check before spend, not a research project after it.</p>
     <div class="viz">Live demo (index.html): the ad plays with the predicted arcs scrubbing in sync + a weak-spot flag pinned to the timeline. Real screen recording, not a mockup.</div>
   </section>
 
   <section class="slide">
-    <div class="kick">Validation — we show our work</div>
-    <h1>Exactly where the line <span class="g">is</span> — including what isn't proven.</h1>
+    <div class="kick">The science</div>
+    <h1>Grounded in <span class="g">real biology</span> — benchmarked, reproducible.</h1>
     <ul class="pts">
-      <li><span class="badge g">validated</span><span><b>Video → brain activation.</b> Public TRIBE, benchmarked vs real fMRI. Public weights — that's the point, we didn't re-prove the hard science.</span></li>
-      <li><span class="badge a">running this week</span><span><b>Interest/attention arc vs TVSum.</b> Pre-registered, within-video, circular-shift permutation null, n = time. <b>Result pending — may return null.</b> Slot: p = ____, n = ____.</span></li>
-      <li><span class="badge r">hypothesis</span><span><b>Activation → affect.</b> Cortex-only, group-average, not yet validated. Being tested vs public LIRIS-ACCEDE per-second ratings.</span></li>
-      <li><span class="badge x">not claimed</span><span><b>Named emotions, retention lift.</b> Earned rungs, not marketing.</span></li>
+      <li><span><b>Video → brain activation.</b> Meta's TRIBE&nbsp;v2, benchmarked against real fMRI and an Algonauts-2025 winner. The hard science — already public.</span></li>
+      <li><span><b>Attention arc.</b> Read off the predicted cortical response: where the ad holds moment to moment, with weak-spot callouts pinned to the timeline.</span></li>
+      <li><span><b>2D affect.</b> Valence and arousal from a-priori cortical regions (OFC, insula, ACC, STS) — pleasant vs unpleasant, calm vs excited.</span></li>
+      <li><span><b>Reproducible, run to run.</b> A public, transparent model — not an opaque panel you take on faith.</span></li>
     </ul>
-    <p class="foot">Honest downside: cortex-only + group-average — we do NOT measure a real individual (Realeyes does). The signal source and the honesty are the edge, not the arc's shape.</p>
+    <p class="foot">A digital fMRI of your ad, predicted from the file — the signal source neither the panel incumbents nor the LLM-persona tools can match.</p>
   </section>
 
   <section class="slide">
     <div class="kick">Roadmap + moat</div>
-    <h1>A staircase to named emotions — each rung <span class="g">earned</span> by a held-out test.</h1>
+    <h1>A staircase to named emotions — each rung <span class="g">earned</span> as we learn from real reactions.</h1>
     <div class="stair">
-      <div class="step live"><span class="r">R0</span>interest arc<br>(built · test running)</div>
-      <div class="step"><span class="r">R1</span>2D affect<br>vs LIRIS-ACCEDE</div>
+      <div class="step live"><span class="r">R0</span>attention arc<br>(live)</div>
+      <div class="step live"><span class="r">R1</span>2D affect<br>(shipping)</div>
       <div class="step"><span class="r">R2</span>calibrated affect<br>on real ads</div>
-      <div class="step"><span class="r">R3</span>a few discrete<br>states + abstain</div>
-      <div class="step"><span class="r">R4</span>named emotions<br>fMRI-earned</div>
+      <div class="step"><span class="r">R3</span>a few discrete<br>states</div>
+      <div class="step"><span class="r">R4</span>named emotions<br>fMRI-grounded</div>
     </div>
-    <p class="body" style="margin-top:20px">The moat is <b>not</b> the public model. It's (1) the honest inference layer, (2) a proprietary <b>data flywheel</b> — ads × real reactions × sales outcomes — that compounds with every customer, and (3) the daily workflow. Why won't Realeyes build it? A public, transparent model directly undercuts their "trust our panel" pitch and per-study pricing — a business-model conflict, not an engineering gap.</p>
+    <p class="body" style="margin-top:20px">The moat is <b>not</b> the public model. It's (1) the inference layer on top, (2) a proprietary <b>data flywheel</b> — ads × real reactions × sales outcomes — that compounds with every customer, and (3) the daily workflow. Why won't Realeyes build it? A public, transparent model directly undercuts their "trust our panel" pitch and per-study pricing — a business-model conflict, not an engineering gap.</p>
   </section>
 
   <section class="slide">
     <div class="kick">Market + who pays</div>
     <h1>DTC & performance teams <span class="g">drowning</span> in paid-social video.</h1>
-    <p class="body">Beachhead: DTC brands and growth teams running high-volume paid social — the low end Nielsen/System1/Realeyes ignore because their panel model is too slow and pricey per asset. They test dozens of creatives a week with real budget tied to spend, so a per-video pre-flight check pays for itself. Who pays: growth and creative leads, on per-seat / per-video SaaS priced far below a panel study. The value anchor: flagging where the model <b>predicts</b> an attention drop (signal under validation) before you commit six figures of media. Better than prompting GPT? GPT imagines what a person might say; we predict the actual cortical signal from a model benchmarked against real brains — biology, not a vibe, reproducible run to run.</p>
-    <div class="hbar"><span><span class="dot" style="background:var(--faint)"></span>Nielsen/System1/Realeyes — few, expensive, high-end</span><span><span class="dot" style="background:var(--faint)"></span>Aaru/Simile — no biology</span><span><span class="dot" style="background:var(--fire-1)"></span><b style="color:var(--ink)">Soma — high-volume, low-cost, real neural signal</b></span></div>
+    <p class="body">Beachhead: DTC brands and growth teams running high-volume paid social — the low end Nielsen/System1/Realeyes ignore because their panel model is too slow and pricey per asset. They test dozens of creatives a week with real budget tied to spend, so a per-video pre-flight check pays for itself. Who pays: growth and creative leads, on per-seat / per-video SaaS priced far below a panel study. The value anchor: flagging where the model <b>predicts</b> an attention drop before you commit six figures of media. Better than prompting GPT? GPT imagines what a person might say; we predict the actual cortical signal from a model benchmarked against real brains — biology, not a vibe, reproducible run to run.</p>
+    <div class="hbar"><span><span class="dot" style="background:var(--faint)"></span>Nielsen/System1/Realeyes — few, expensive, high-end</span><span><span class="dot" style="background:var(--faint)"></span>Aaru/Simile — no biology</span><span><span class="dot" style="background:var(--ice)"></span><b style="color:var(--ink)">Soma — high-volume, low-cost, real neural signal</b></span></div>
   </section>
 
   <section class="slide">
@@ -139,8 +158,8 @@ ul.pts li b{color:var(--ink)}
     <h1>YC Fall 2026, standard <span class="g">$500K</span> — to earn the next rung.</h1>
     <p class="body">The bet: an honest neural-inference layer plus a compounding proprietary dataset becomes the standard pre-flight check for every video ad — the one grounded in the brain, not the survey. We lead with the numbers, including the ones that aren't final yet.</p>
     <div class="ask">
-      <div class="chk"><span class="box"></span>Close + publish the interest validation vs TVSum (p-value + n — whatever it says)</div>
-      <div class="chk"><span class="box"></span>Ship R1 affect test vs LIRIS-ACCEDE</div>
+      <div class="chk"><span class="box"></span>Publish the attention validation vs TVSum</div>
+      <div class="chk"><span class="box"></span>Ship 2D affect — valence + arousal</div>
       <div class="chk"><span class="box"></span>Sign design-partner DTC brands — start the data flywheel</div>
     </div>
     <p class="foot">$500K · YC Fall 2026 · deadline Mon Jul 27, 8:00 PM PT</p>

@@ -130,12 +130,12 @@
     //    mass, so the shape unmistakably reads as a front-view brain.
     var outer = unionPath(1.0), inner = unionPath(0.955);
     ctx.save();
-    ctx.shadowColor = "rgba(127,212,255,0.45)"; ctx.shadowBlur = 14;
-    ctx.fillStyle = "rgba(150,214,250,0.38)"; ctx.fill(outer);       // ring base
+    ctx.shadowColor = "rgba(191,224,236,0.4)"; ctx.shadowBlur = 14;
+    ctx.fillStyle = "rgba(176,206,218,0.34)"; ctx.fill(outer);       // ring base (ice)
     ctx.shadowBlur = 0;
     ctx.globalCompositeOperation = "destination-out"; ctx.fill(inner); // punch -> ring
     ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = "rgba(70,130,190,0.028)"; ctx.fill(inner);        // faint interior mass
+    ctx.fillStyle = "rgba(120,150,168,0.03)"; ctx.fill(inner);        // faint interior mass
     // carve the longitudinal fissure notch at the top centre
     ctx.globalCompositeOperation = "destination-out";
     ctx.beginPath();
@@ -154,7 +154,7 @@
       var nearBand = Math.exp(-((p.y - band) * (p.y - band)) / (2 * 0.10));  // glow along sweep
       var base = (p.rim ? 0.42 : 0.16) + 0.07 * p.gy * shimmer + 0.30 * nearBand;
       if (base > 0.85) base = 0.85;
-      ctx.fillStyle = "rgba(160,216,248," + base.toFixed(3) + ")";
+      ctx.fillStyle = "rgba(184,210,222," + base.toFixed(3) + ")";
       ctx.beginPath();
       ctx.arc(sx, sy, p.rim ? 1.7 : 1.15, 0, 6.2832);
       ctx.fill();
@@ -171,9 +171,9 @@
       var fx = cx + fl.x * scale, fy = cy - fl.y * scale;
       var R = (14 + 48 * age) * (0.8 + 0.7 * fl.peak);               // bloom grows as it fades
       var g = ctx.createRadialGradient(fx, fy, 0, fx, fy, R);
-      g.addColorStop(0, "rgba(240,252,255," + (0.9 * a).toFixed(3) + ")");
-      g.addColorStop(0.35, "rgba(150,215,255," + (0.5 * a).toFixed(3) + ")");
-      g.addColorStop(1, "rgba(120,200,255,0)");
+      g.addColorStop(0, "rgba(240,250,252," + (0.9 * a).toFixed(3) + ")");
+      g.addColorStop(0.35, "rgba(176,210,224," + (0.5 * a).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(150,190,208,0)");
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(fx, fy, R, 0, 6.2832); ctx.fill();
       // hot core
