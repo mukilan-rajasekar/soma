@@ -429,7 +429,7 @@
         <div class="vthumb" style="background:${v.grad}">
           <canvas class="vthumb-arc" width="300" height="188" aria-hidden="true"></canvas>
           <div class="play"><svg viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11"/></svg></div>
-          <div class="vmeta"><span>${escapeHtml(v.src)}</span><span>${escapeHtml(durLabel(v))}</span></div>
+          <div class="vmeta"><span>${escapeHtml(durLabel(v))}</span></div>
         </div>
         <div class="vtitle">${escapeHtml(v.title)}<span>${escapeHtml(v.src)}</span></div>
       </div>`).join("");

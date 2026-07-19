@@ -29,6 +29,14 @@
       <canvas id="brainCanvas" aria-hidden="true"></canvas>
       <div class="hud" aria-hidden="true">
         <div class="hud-watermark">cortical surface · TRIBE v2 encoder</div>
+        <!-- persistent hero cue: CSS-visible at the very top (keyed off .at-hero-top, which a
+             plain scroll listener maintains — independent of the WebGL loop), so the opening
+             frame is never a wordless brain. Fades out as you scroll in and the headline panel
+             takes over; the watermark fades in on the inverse. -->
+        <div class="herocue">
+          <span class="herocue-line">Neural pre-testing for video ads</span>
+          <span class="herocue-scroll">scroll to fly in <span>↓</span></span>
+        </div>
       </div>
     </div>
 
@@ -37,7 +45,6 @@
         <div class="kick"><i></i>Neural pre-testing for video ads</div>
         <h1>See where an ad <span class="grad">holds attention</span> and how it <span class="grad">feels</span> — predicted from the file, before you spend a dollar.</h1>
         <p class="sub">Soma predicts the average viewer's second-by-second brain response with Meta's TRIBE&nbsp;v2, then reads an attention arc and a coarse affect arc off it — no panel, no survey, in minutes.</p>
-        <div class="scrollcue">scroll to fly in <span>↓</span></div>
       </div></article>
 
       <article class="chapter" data-ch="1"><div class="panel">

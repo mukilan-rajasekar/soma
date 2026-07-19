@@ -132,8 +132,6 @@ h1 .grad{color:var(--ice)}                    /* emphasis = ice accent, never a 
 .panel h2{font-weight:700;font-size:clamp(22px,3vw,30px);line-height:1.08;letter-spacing:-.025em;margin-bottom:11px}
 .panel p{font-size:15px;color:var(--dim);line-height:1.58;margin-bottom:15px;text-wrap:pretty}
 .panel p b{color:var(--ink);font-weight:600}
-.scrollcue{margin-top:20px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:9px}
-.scrollcue span{animation:cuebob 1.7s var(--ease-soft) infinite}
 @keyframes cuebob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
 .panel-cta{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;color:#08090c;font-weight:600;
   text-decoration:none;border-radius:999px;padding:10px 18px;background:var(--ink);
@@ -170,6 +168,21 @@ h1 .grad{color:var(--ice)}                    /* emphasis = ice accent, never a 
 .hud{position:absolute;inset:0;pointer-events:none;z-index:var(--z-hud)}
 .hud-watermark{position:absolute;bottom:20px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
 
+/* persistent hero cue — the opening frame is a bare brain, so this one value line + scroll
+   affordance is the only always-legible copy at the very top. Shown ONLY at hero-top (a plain
+   scroll listener toggles .at-hero-top, independent of the WebGL loop, so it never ships blank),
+   and fades as the headline panel takes over. Lives inside .hud → already brain3d-on-gated. */
+.herocue{position:absolute;left:0;right:0;bottom:clamp(48px,12vh,104px);
+  display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:26px 22px 20px;
+  opacity:0;transition:opacity .6s var(--ease);
+  /* soft radial scrim (same idea as the chapter scrims): keeps the copy legible whether it
+     falls over pure black or the light translucent brain, without a hard bar */
+  background:radial-gradient(76% 155% at 50% 62%,rgba(4,5,7,.82),rgba(4,5,7,0) 74%)}
+.brain3d-on.at-hero-top .herocue{opacity:1}
+.herocue-line{font-size:clamp(15px,2.1vw,19px);font-weight:600;letter-spacing:-.01em;color:var(--ink);text-wrap:balance;text-shadow:0 1px 10px rgba(0,0,0,.7)}
+.herocue-scroll{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:inline-flex;align-items:center;gap:9px;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+.herocue-scroll span{animation:cuebob 1.7s var(--ease-soft) infinite}
+
 /* fallback: no WebGL / load failed → readable stacked chapters, no 3D chrome */
 .brain3d-failed #brainStage{position:relative;height:auto;background:none}
 .brain3d-failed #brainCanvas,.brain3d-failed .hud{display:none}
@@ -193,20 +206,25 @@ h1 .grad{color:var(--ice)}                    /* emphasis = ice accent, never a 
 .cbar .lbl{margin-left:auto;text-transform:uppercase;letter-spacing:.14em}
 
 .pick{padding:clamp(16px,3vw,20px)}
-.vids{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+/* responsive picker: 4 samples in one row on desktop (auto-fit), 2×2 on tablet, 1-up on
+   phone — see the column ladder in the RESPONSIVE block. Replaces the fixed 3-col that
+   orphaned the 4th card. */
+.vids{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
 .vid{cursor:pointer;border:1px solid var(--hair);border-radius:18px;overflow:hidden;background:var(--surface-2);
   transition:border-color var(--dur-2) var(--ease),transform var(--dur-2) var(--ease),box-shadow var(--dur-2) var(--ease)}
 .vid:hover{transform:translateY(-3px);border-color:var(--hair-strong);box-shadow:0 18px 40px -28px rgba(0,0,0,.9)}
 .vid.active{border-color:var(--ice);box-shadow:0 0 0 1px var(--ice),0 20px 44px -26px rgba(191,224,236,.4)}
-.vthumb{aspect-ratio:16/10;position:relative;display:flex;align-items:flex-end;padding:10px;overflow:hidden}
+.vthumb{aspect-ratio:16/10;position:relative;display:flex;align-items:flex-end;justify-content:flex-end;padding:10px;overflow:hidden}
 .vthumb canvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:.9}
 .vthumb .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;
   background:rgba(8,9,12,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(3px);
   display:flex;align-items:center;justify-content:center;transition:transform var(--dur-2) var(--ease),background var(--dur-2)}
 .vid:hover .vthumb .play{transform:translate(-50%,-50%) scale(1.08);background:rgba(8,9,12,.7)}
 .vthumb .play svg{width:12px;height:12px;margin-left:2px;fill:var(--ink)}
-.vmeta{position:relative;font-family:var(--mono);font-size:10px;color:#fff;letter-spacing:.04em;display:flex;gap:8px;
-  text-shadow:0 1px 5px rgba(0,0,0,.75)}
+/* lone runtime chip, bottom-right — the source/evidence tag lives once under the title */
+.vmeta{position:relative;font-family:var(--mono);font-size:10px;color:#fff;letter-spacing:.04em;
+  padding:3px 7px;border-radius:7px;background:rgba(8,9,12,.5);
+  text-shadow:0 1px 4px rgba(0,0,0,.6);font-variant-numeric:tabular-nums}
 .vtitle{padding:10px 12px;font-size:13px;font-weight:600;letter-spacing:-.01em}
 .vtitle span{display:block;font-family:var(--mono);font-size:10px;font-weight:400;color:var(--faint);margin-top:3px;letter-spacing:.05em;text-transform:uppercase}
 
@@ -343,8 +361,11 @@ footer{text-align:center;padding:32px 0 48px;font-family:var(--mono);font-size:1
 @media(max-width:880px){
   .stage{grid-template-columns:1fr}
   .stage-left{position:static;top:auto;flex-direction:column}
-  .vids{grid-template-columns:1fr}
 }
+/* picker column ladder: hold 4-in-a-row only while it fits cleanly; below that go 2×2, then
+   1-up. (auto-fit alone yields a 3+1 orphan in the ~880–920px band — pin 2-col through there.) */
+@media(max-width:920px){ .vids{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:520px){ .vids{grid-template-columns:1fr} }
 @media(max-width:680px){
   nav{padding:12px 16px}
   .navright{gap:8px}
@@ -374,5 +395,5 @@ footer{text-align:center;padding:32px 0 48px;font-family:var(--mono);font-size:1
   html{scroll-behavior:auto}
   *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
   .reveal{opacity:1 !important;transform:none !important}
-  .scrollcue span{animation:none}
+  .herocue-scroll span{animation:none}
 }
