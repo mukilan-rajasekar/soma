@@ -90,6 +90,7 @@
     return max <= 0 ? 0 : Math.max(0, Math.min(1, (window.pageYOffset || 0) / max));
   }
   var sp = scrollProgress(), lastY = window.pageYOffset || 0, scrollAccum = 0, _t = 0;
+  var rafId = 0;   // id of the pending draw frame, so visibility gating can cancel it
 
   function onScroll() {
     var y = window.pageYOffset || 0;
@@ -182,7 +183,9 @@
     }
     ctx.globalCompositeOperation = "source-over";
 
-    if (!reduce) requestAnimationFrame(draw);
+    // keep looping while visible; stop rescheduling in a hidden tab (visibilitychange re-kicks)
+    if (!reduce && !document.hidden) rafId = requestAnimationFrame(draw);
+    else rafId = 0;
   }
 
   if (reduce) {
@@ -193,7 +196,26 @@
       { passive: true });
   } else {
     // a gentle idle heartbeat so it breathes even when not scrolling
-    setInterval(function () { if (!reduce) spawnFlash(0.85 - sp * 1.7, 0.5); }, 620);
-    requestAnimationFrame(draw);
+    var heartbeat = null;
+    function startIdle() {
+      if (!heartbeat) heartbeat = setInterval(function () {
+        if (!document.hidden) spawnFlash(0.85 - sp * 1.7, 0.5);
+      }, 620);
+    }
+    function stopIdle() { if (heartbeat) { clearInterval(heartbeat); heartbeat = null; } }
+    // Page Visibility gating: this canvas is a fixed full-viewport background, so an
+    // IntersectionObserver would always intersect — pause the rAF loop AND the idle
+    // heartbeat when the tab is hidden, and re-kick both when it returns.
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        stopIdle();
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      } else {
+        startIdle();
+        if (!rafId) rafId = requestAnimationFrame(draw);
+      }
+    });
+    startIdle();
+    rafId = requestAnimationFrame(draw);
   }
 })();

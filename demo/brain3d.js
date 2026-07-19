@@ -212,6 +212,13 @@ async function init() {
   renderer.domElement.addEventListener('webglcontextlost', onContextLost, false);
 
   if (REDUCE) { renderOnce(); wireStaticScroll(); return; }
+  // Page Visibility guard: the IntersectionObserver pauses the loop off-screen, but a
+  // backgrounded (hidden) tab still intersects — so also halt the rAF loop when the tab
+  // is hidden, and re-arm it on return if the tour is still in view.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) running = false;
+    else if (inView) start();
+  });
   if (!MOBILE) initLenis();
   window.addEventListener('scroll', onScroll, { passive: true });
   start();
@@ -327,7 +334,7 @@ function resize() {
 }
 
 // ---- lifecycle ---------------------------------------------------------------
-function start() { if (running || !inView || REDUCE) return; running = true; clock.getDelta(); requestAnimationFrame(frame); }
+function start() { if (running || !inView || REDUCE || document.hidden) return; running = true; clock.getDelta(); requestAnimationFrame(frame); }
 function renderOnce() {
   if (!composer) return;
   applyCamera(progress);

@@ -112,3 +112,23 @@ are used — those are removed from waitlist/pitch.
   them. No glassmorphism as decoration. No hero-metric template. No per-section
   tracked-uppercase eyebrow used as scaffolding (the console step-labels "1 · …",
   "2 · …" are a real numbered sequence and stay).
+
+## Why no build step (deliberate static architecture)
+
+The demo ships as plain HTML/CSS/JS with **no bundler, no toolchain, no build
+step** — on purpose:
+
+- **Auditable in the browser.** All code is human-readable directly in DevTools
+  (view-source, no minified/transpiled bundle). This matches the company's
+  honesty posture — the honesty labels and validated-vs-hypothesis boundaries in
+  the UI are backed by source anyone can read without un-minifying.
+- **Modules already work with zero tooling.** ES modules load natively via a
+  `<script type="importmap">` (see `index.html`), so the "modules need a bundler"
+  premise is false — cross-file imports resolve in the browser as-is.
+- **Simpler CSP.** With no bundler and no `eval`/`new Function`, the Content
+  Security Policy stays tight and easy to reason about.
+- **Nothing to break during the sprint.** There is no build toolchain to
+  misconfigure, version-drift, or fail at the worst moment mid-sprint.
+- **When to revisit.** Add a bundler (e.g. esbuild) *only* if cross-file
+  bundling ever becomes genuinely unavoidable (many modules / tree-shaking /
+  legacy-target transpile) — not before.

@@ -86,7 +86,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:var(--z-nav);
 .brand .orb{width:20px;height:20px;border-radius:50%;flex-shrink:0;
   background:radial-gradient(circle at 34% 30%,#fff,#c9d3d8 40%,#5b6b72 72%,#10161a);
   box-shadow:0 0 0 1px rgba(255,255,255,.06),0 0 18px -4px rgba(191,224,236,.45)}
-.brand small{font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.16em;text-transform:uppercase;margin-left:2px}
+.brand small{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.16em;text-transform:uppercase;margin-left:2px}
 .navright{display:flex;align-items:center;gap:10px}
 .chip{font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--hair);border-radius:999px;
   padding:5px 12px;background:rgba(12,12,14,.6);white-space:nowrap}
@@ -208,7 +208,7 @@ h1 .grad{color:var(--ice)}                    /* emphasis = ice accent, never a 
 .vmeta{position:relative;font-family:var(--mono);font-size:10px;color:#fff;letter-spacing:.04em;display:flex;gap:8px;
   text-shadow:0 1px 5px rgba(0,0,0,.75)}
 .vtitle{padding:10px 12px;font-size:13px;font-weight:600;letter-spacing:-.01em}
-.vtitle span{display:block;font-family:var(--mono);font-size:9.5px;font-weight:400;color:var(--faint);margin-top:3px;letter-spacing:.05em;text-transform:uppercase}
+.vtitle span{display:block;font-family:var(--mono);font-size:10px;font-weight:400;color:var(--faint);margin-top:3px;letter-spacing:.05em;text-transform:uppercase}
 
 .analysis{padding:0 clamp(16px,3vw,20px) clamp(18px,3vw,22px)}
 .stage{display:grid;grid-template-columns:300px 1fr;gap:16px;margin-top:2px;align-items:start}

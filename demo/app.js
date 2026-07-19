@@ -88,6 +88,9 @@
     if (!d || typeof d !== "object") return false;
     if (!Array.isArray(d.timestamps) || !d.timestamps.length) return false;
     if (!Array.isArray(d.activation) || !d.activation.length) return false;
+    // parallel arrays: a length mismatch draws a silently WRONG-but-plausible curve
+    // (points indexed off the wrong axis), so reject rather than render it.
+    if (d.timestamps.length !== d.activation.length) return false;
     const dur = d.duration_sec || d.timestamps[d.timestamps.length - 1] || 0;
     return dur > 0;
   }
@@ -116,7 +119,7 @@
     duration = arc.duration_sec || ts[ts.length - 1] || 0;
     setupVideo();   // (a) real footage sync if arc.video_src is non-empty; else timer
     setupCoarse();  // (b) coarse discrete-state distribution if arc.affect.coarse_states present
-    if (!started) { started = true; requestAnimationFrame(loop); } // one loop, not one-per-pick
+    if (!started) { started = true; startLoop(); } // one loop, not one-per-pick (gated + re-armable)
   }
 
   // ---- (a) real footage sync -------------------------------------------------
@@ -292,10 +295,22 @@
   function fmt(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
 
   let loopErrLogged = false;   // warn once, not per-frame, if a draw ever throws
+  // rAF gate: pause the playback loop while the console is scrolled off-screen
+  // (IntersectionObserver) or the tab is hidden (visibilitychange). loopRunning is a
+  // single-frame guard so re-entry (scroll back / regain focus) never starts a 2nd loop.
+  let loopRunning = false, consoleOnScreen = true;
+  function loopActive() { return consoleOnScreen && !document.hidden; }
+  function startLoop() {
+    if (loopRunning || !loopActive()) return;   // never double-arm; never run while parked
+    loopRunning = true;
+    requestAnimationFrame(loop);
+  }
   function loop() {
+    loopRunning = false;        // this frame is executing; a fresh one is armed only via startLoop()
+    if (!loopActive()) return;  // parked off-screen / tab hidden — startLoop() re-arms on re-entry
     // a failed load left an error frame on the canvases — keep the loop alive but don't
     // repaint stale data over it (a later successful pick clears `failed`).
-    if (failed) { requestAnimationFrame(loop); return; }
+    if (failed) { startLoop(); return; }
     try {
       const t = currentTime();
       if (playing && !hasVideo && t >= duration) setPlaying(false); // video mode ends via 'ended'
@@ -318,8 +333,21 @@
       // so the demo recovers on the next pick instead of freezing. Warn once, not at 60fps.
       if (!loopErrLogged) { loopErrLogged = true; console.warn("Soma loop draw error (suppressed after first):", e); }
     }
-    requestAnimationFrame(loop);   // re-armed unconditionally, even after a draw error
+    startLoop();   // re-armed (guarded), even after a draw error — parks itself when off-screen/hidden
   }
+  // pause the loop when it can't be seen. NOT gated on prefers-reduced-motion: this is the
+  // visitor's own playback UI, not decoration. Both signals feed loopActive(); startLoop()
+  // is guarded, so a re-entry from either source can never spin up a duplicate loop.
+  (function gateLoop() {
+    const stage = document.getElementById("console");
+    if (stage && "IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => {
+        consoleOnScreen = entries.some((en) => en.isIntersecting);
+        startLoop();
+      }, { threshold: 0 }).observe(stage);
+    }
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) startLoop(); });
+  })();
 
   // ---- wiring ----
   let refreshCompare = null;   // set by initCompare(); called after live arcs merge
