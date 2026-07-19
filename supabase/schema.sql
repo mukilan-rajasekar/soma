@@ -7,9 +7,10 @@
 
 -- ----------------------------------------------------------------------------
 -- 1) waitlist — early-access signups from demo/waitlist.html
---    The browser uses the public "anon" key, which can ONLY insert here.
---    There is deliberately NO select policy for anon, so the email list can
---    never be scraped with the public key. Read it from the Supabase dashboard
+--    The browser signs up ONLY through the join_waitlist() RPC below — never a
+--    direct insert. (A direct anon insert + UNIQUE(email) would leak 201-vs-409,
+--    an email-enumeration oracle.) There is also NO anon select policy, so the
+--    list can't be read with the public key. Read it from the Supabase dashboard
 --    (Table editor) or with the service_role key server-side.
 -- ----------------------------------------------------------------------------
 create table if not exists public.waitlist (
@@ -23,12 +24,48 @@ create table if not exists public.waitlist (
 
 alter table public.waitlist enable row level security;
 
+-- A direct anon insert + UNIQUE(email) leaks 201 (new) vs 409 (duplicate) — an
+-- email-enumeration oracle for anyone holding the public key. Signups now go through
+-- public.join_waitlist() below, which swallows duplicates and always reports success.
+-- Drop the legacy insert policy so re-running this file stays idempotent:
 drop policy if exists "anon can join waitlist" on public.waitlist;
-create policy "anon can join waitlist"
-  on public.waitlist for insert
-  to anon
-  with check (true);
--- (no select / update / delete policy for anon → write-only from the browser)
+-- (no anon insert/select/update/delete → writable ONLY via join_waitlist(),
+--  readable only with the service_role key.)
+
+-- SECURITY DEFINER RPC — the ONLY way the browser writes a signup. Dedups silently
+-- (on conflict do nothing) and returns void, so there is no new-vs-duplicate signal a
+-- caller can probe. Args match demo/waitlist.html's joinWaitlist() payload.
+create or replace function public.join_waitlist(
+  email      text,
+  company    text default null,
+  source     text default 'waitlist.html',
+  user_agent text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if nullif(btrim(join_waitlist.email), '') is null then
+    return;                       -- nothing to insert; still report success
+  end if;
+  insert into public.waitlist (email, company, source, user_agent)
+  values (
+    lower(btrim(join_waitlist.email)),
+    join_waitlist.company,
+    coalesce(join_waitlist.source, 'waitlist.html'),
+    join_waitlist.user_agent
+  )
+  on conflict (email) do nothing;
+end;
+$$;
+
+-- CREATE FUNCTION grants EXECUTE to PUBLIC by default; lock that down and hand it to
+-- anon only. (revoke also strips authenticated/service_role — fine today: neither calls
+-- this RPC; the pipeline inserts directly with the service_role key.)
+revoke all on function public.join_waitlist(text, text, text, text) from public;
+grant execute on function public.join_waitlist(text, text, text, text) to anon;
 
 
 -- ----------------------------------------------------------------------------
@@ -80,14 +117,24 @@ create table if not exists public.uploads (
   created_at    timestamptz not null default now()
 );
 
+-- Keep status within the queue lifecycle (defense-in-depth; anon is further pinned to
+-- 'queued' below). Idempotent: there is no ADD CONSTRAINT IF NOT EXISTS for CHECK, so
+-- drop-then-add.
+alter table public.uploads drop constraint if exists uploads_status_check;
+alter table public.uploads
+  add constraint uploads_status_check
+  check (status in ('queued','processing','done','failed'));
+
 alter table public.uploads enable row level security;
 
 drop policy if exists "anon can queue an upload" on public.uploads;
 create policy "anon can queue an upload"
   on public.uploads for insert
   to anon
-  with check (true);
--- (no select / update / delete for anon → write-only intake from the browser)
+  with check (status = 'queued');
+-- anon may only file a QUEUED row (the client omits status, so the column default
+-- 'queued' applies and this check passes); it cannot self-mark a row done/processing
+-- to hide it from the founder's "status = queued" queue view. (still no select/update/delete.)
 
 create index if not exists uploads_created_idx on public.uploads (created_at desc);
 
@@ -104,7 +151,8 @@ values (
   array['video/mp4','video/quicktime','video/webm','video/x-msvideo','video/x-matroska']
 )
 on conflict (id) do update
-  set file_size_limit   = excluded.file_size_limit,
+  set public             = excluded.public,          -- re-assert private (public=false) on re-run
+      file_size_limit    = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
 
 -- anon may only INSERT (upload) into this bucket — no select/list/update/delete,
@@ -113,4 +161,8 @@ drop policy if exists "anon can upload an ad" on storage.objects;
 create policy "anon can upload an ad"
   on storage.objects for insert
   to anon
-  with check (bucket_id = 'uploads');
+  with check (bucket_id = 'uploads' and name like 'queued/%');
+-- anon may only drop bytes under uploads/queued/ (where the client writes — supabase.js).
+-- NOTE: allowed_mime_types matches the client-supplied Content-Type, which is spoofable;
+-- real content validation + rate-limiting/CAPTCHA are an infra follow-up (an edge function
+-- issuing signed upload URLs), NOT something RLS can enforce. See supabase/README.md.

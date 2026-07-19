@@ -89,6 +89,15 @@ def main():
     incr_csv = os.path.join(args.out_dir, "incremental.csv")
     affect_csv = os.path.join(args.out_dir, "affect_results.csv")
 
+    # Clear last run's OPTIONAL-stage outputs up front: a stage that is SKIPPED this
+    # run must never leave a stale CSV/plot for the report or publish to embed as if
+    # fresh (that would stamp a different dataset's numbers into an as-is report). The
+    # required attention stage regenerates results.csv every run, so leave that.
+    for stale in (incr_csv, affect_csv,
+                  os.path.join(args.out_dir, "affect_results_forest.png")):
+        if os.path.exists(stale):
+            os.remove(stale)
+
     if not _has(os.path.join(args.arc_dir, "arc_*.csv")):
         raise SystemExit(f"No arc_*.csv in {args.arc_dir}. Run batch_extract.py / "
                          f"colab_run.ipynb first (that's the GPU step).")
@@ -118,8 +127,9 @@ def main():
               "to enable the 'beats ffmpeg?' test).")
 
     # 3) affect (optional — needs arc jsons with affect + liris)
+    have_affect = False
     if _has(os.path.join(args.arc_json_dir, "arc_*.json")) and _has(os.path.join(args.liris_dir, "liris_*.csv")):
-        run("affect · Rung-1 vs LIRIS",
+        have_affect = run("affect · Rung-1 vs LIRIS",
             [PY, "affect_validate.py", "--liris-dir", args.liris_dir,
              "--arc-dir", args.arc_json_dir, "--baseline-dir", args.baseline_dir,
              "--n-perm", str(args.n_perm), "--out", os.path.join(args.out_dir, "affect_results")],
@@ -142,16 +152,18 @@ def main():
     if args.report:
         cmd = [PY, "make_report.py", "--results", results_csv,
                "--out", os.path.join(args.out_dir, "report.html")]
-        if os.path.exists(affect_csv):
+        # include an optional section ONLY if its stage actually ran+succeeded THIS run
+        # (not merely that a file is on disk) — same this-run guard the publish stage uses.
+        if have_affect and os.path.exists(affect_csv):
             cmd += ["--affect", affect_csv]
-        if os.path.exists(incr_csv):
+        if have_incr and os.path.exists(incr_csv):
             cmd += ["--incremental", incr_csv]
         run("report · validation/report.html", cmd, required=False)
 
     print("\n" + "=" * 72)
     print(f"[done] pipeline complete. Outputs in {args.out_dir}/ "
           f"(results.csv{', incremental.csv' if have_incr else ''}"
-          f"{', affect_results.csv' if os.path.exists(affect_csv) else ''}, report.html).")
+          f"{', affect_results.csv' if have_affect else ''}, report.html).")
     if args.demo:
         print("       demo/results.json written — the demo will show the real numbers "
               "(or an honest null).")

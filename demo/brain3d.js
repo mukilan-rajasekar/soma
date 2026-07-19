@@ -174,11 +174,12 @@ async function init() {
     side: THREE.DoubleSide, transparent: true, depthWrite: false,
     uniforms: {
       uLightDir: { value: new THREE.Vector3(0.35, 0.78, 0.55).normalize() },
-      uAmbient: { value: 0.34 },
+      uAmbient: { value: 0.42 },                // a touch more fill so darks aren't jet-black mid-motion
       uBaseLo: { value: new THREE.Color(0.05, 0.055, 0.075) },    // deep sulcus
       uBaseHi: { value: new THREE.Color(0.82, 0.85, 0.92) },      // gyral crown
       uRimGain: { value: 0.55 },
-      uBaseAlpha: { value: 0.13 },              // see-through centre (hollow)
+      uBaseAlpha: { value: 0.17 },              // slightly less see-through, so the hollow centre
+                                                // doesn't strobe to pure black as the camera flies
       uEdgeAlpha: { value: 0.90 },              // opaque silhouette
       uRegion: { value: new THREE.Vector3(0, 0, 0) },
       uAct: { value: 0 }, uRadius: { value: 0.58 },
@@ -205,8 +206,12 @@ async function init() {
   updatePanels(true);
 
   new ResizeObserver(resize).observe(stageEl);
-  const io = new IntersectionObserver((e) => { inView = e[0].isIntersecting; if (inView && !REDUCE) start(); },
-    { threshold: 0 });
+  const io = new IntersectionObserver((e) => {
+    inView = e[0].isIntersecting;
+    if (REDUCE) return;               // reduced-motion: static frame, no rAF loop either way
+    if (inView) start();              // re-entering the viewport re-arms the render loop
+    else running = false;             // off-screen: stop rendering (frame() bails; lenis keeps its own rAF)
+  }, { threshold: 0 });
   io.observe(tourEl);
   renderer.domElement.addEventListener('webglcontextlost', onContextLost, false);
 
@@ -220,8 +225,13 @@ async function init() {
 function initLenis() {
   try {
     if (!window.Lenis) return;
-    lenis = new window.Lenis({ lerp: 0.075, wheelMultiplier: 1.0, smoothWheel: true });
+    lenis = new window.Lenis({ lerp: 0.1, wheelMultiplier: 1.0, smoothWheel: true });
     window.__lenis = lenis;
+    // Drive lenis from its OWN persistent rAF, independent of the WebGL render loop,
+    // so pausing the brain tour off-screen (the IntersectionObserver above) never
+    // stalls page smooth-scroll. rAF's timestamp is performance.now()-equivalent.
+    const lenisLoop = (t) => { if (lenis) { lenis.raf(t); requestAnimationFrame(lenisLoop); } };
+    requestAnimationFrame(lenisLoop);
     document.querySelectorAll('a[href^="#"]').forEach(a => {
       a.addEventListener('click', (e) => {
         const id = a.getAttribute('href');
@@ -281,11 +291,13 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const time = clock.elapsedTime;
 
-  if (lenis) lenis.raf(performance.now());
+  // lenis is driven by its own persistent rAF (see initLenis), so this render loop
+  // can pause when the tour scrolls off-screen without freezing page smooth-scroll.
 
   // frame-rate-independent damping toward the scroll target — softened so a fast scroll
-  // glides the camera in instead of snapping between poses.
-  progress += (target - progress) * (1 - Math.pow(0.06, dt));
+  // glides the camera in instead of snapping between poses. Higher base = more glide/lag,
+  // so a flick-scroll eases the zoom in rather than strobing there in a couple of frames.
+  progress += (target - progress) * (1 - Math.pow(0.14, dt));
   if (Math.abs(target - progress) < 1e-4) progress = target;
 
   applyCamera(MOBILE ? 0 : progress);         // mobile: hold the hero pose (no camera flight)
@@ -342,6 +354,7 @@ function onContextLost(e) {
   e.preventDefault(); running = false;
   document.documentElement.classList.remove('brain3d-on');     // reveal 2D fallback
   document.documentElement.classList.add('brain3d-failed');
+  if (window.__loadScrollBrain) window.__loadScrollBrain();    // spin up the 2D brain on demand
 }
 
 // ---- boot --------------------------------------------------------------------
@@ -349,4 +362,5 @@ init().catch(err => {
   console.warn('[brain3d] init failed, keeping 2D fallback:', err);
   document.documentElement.classList.remove('brain3d-on');
   document.documentElement.classList.add('brain3d-failed');
+  if (window.__loadScrollBrain) window.__loadScrollBrain();   // asset/geometry load failed → 2D brain
 });

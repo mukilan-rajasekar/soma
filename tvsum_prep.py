@@ -68,6 +68,13 @@ def frames_to_shots(anno, fps, shot_sec):
     return shots.T, block                                  # (n_annot, n_shots)
 
 
+def pick_fps(nframes, length, fallback_fps):
+    """Real per-video fps = nframes/length when a usable length is present; else the
+    --fps fallback. A video's OWN length must win (do not let a global --fps override a
+    video that reports its length, or the human timebase is silently stretched)."""
+    return (nframes / length) if (length and length > 0) else fallback_fps
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -77,13 +84,15 @@ def main():
                     help="shot length in seconds (grid step; must match "
                          "honest_corr_timeseries.py --shot-sec)")
     ap.add_argument("--fps", type=float, default=None,
-                    help="override fps if a video's 'length' is missing in the .mat")
+                    help="fallback fps, used ONLY when a video's 'length' is missing in "
+                         "the .mat (the real per-video fps = nframes/length is always "
+                         "preferred when length is present)")
     args = ap.parse_args()
 
     os.makedirs(args.out, exist_ok=True)
     n = 0
     for vid, anno, length, nframes in load_tvsum_mat(args.mat):
-        fps = args.fps or (nframes / length if length else None)
+        fps = pick_fps(nframes, length, args.fps)
         if not fps:
             print(f"  [skip] {vid}: no length/fps to convert frames->seconds "
                   f"(pass --fps)")
