@@ -32,7 +32,7 @@ const NARROW = window.innerWidth < 820;
 const MOBILE = COARSE || NARROW;              // "static brain, no camera flight"
 const DPR_CAP = MOBILE ? 1.5 : 2;
 
-// ---- the tour: one hero + six region stops -----------------------------------
+// ---- the tour: one hero + four region stops -----------------------------------
 // cam/target/region are in unit-brain space (centre at origin, radius ~1).
 // x=L→R, y=posterior→anterior (front = +y), z=inferior→superior (up = +z).
 // Hero is a near-frontal "someone standing in front of you" view; each stop dollies
@@ -43,8 +43,6 @@ const CH = [
   { id: 'sts',    cam: [ 2.15, -0.05,  0.02], target: [0.40, -0.05, -0.24], fov: 27, region: [ 0.66, -0.05, -0.34] },
   { id: 'dmn',    cam: [ 0.10, -1.85,  1.28], target: [0.00, -0.28,  0.30], fov: 27, region: [ 0.00, -0.52,  0.42] },
   { id: 'affect', cam: [ 0.04,  2.09, -0.68], target: [0.00,  0.40, -0.30], fov: 27, region: [ 0.00,  0.66, -0.46] },
-  { id: 'valid',  cam: [ 0.78,  2.72,  0.65], target: [0.00,  0.00,  0.02], fov: 30, region: null },
-  { id: 'road',   cam: [ 1.88,  1.60,  0.34], target: [0.42,  0.42, -0.03], fov: 27, region: [ 0.62,  0.55, -0.04] },
 ];
 const N = CH.length;
 
@@ -56,7 +54,6 @@ let progress = 0, target = 0;      // 0..1 along the whole tour
 let activeCh = 0, actEase = 0;     // heatmap activation envelope (0..1)
 let lastBare = true;               // true = at the very top: bare brain, no bubble
 const panels = [];
-let railTicks = [];
 let tourEl = null, stageEl = null;
 let lenis = null;
 
@@ -141,7 +138,6 @@ async function init() {
   tourEl = document.getElementById('brain-tour');
   stageEl = document.getElementById('brainStage');
   document.querySelectorAll('#brain-tour .chapter').forEach(el => panels.push(el));
-  railTicks = Array.from(document.querySelectorAll('#brain-tour .hud-rail i'));
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: !MOBILE, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP));
@@ -276,7 +272,6 @@ function updatePanels(force) {
   lastBare = bare;
   activeCh = a;
   panels.forEach((el, i) => el.classList.toggle('is-active', !bare && i === a));
-  railTicks.forEach((el, i) => el.classList.toggle('on', !bare && i === a));
   setRegion(a);
 }
 function setRegion(i) {
