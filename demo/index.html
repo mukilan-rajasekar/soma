@@ -29,14 +29,10 @@
       <canvas id="brainCanvas" aria-hidden="true"></canvas>
       <div class="hud" aria-hidden="true">
         <div class="hud-watermark">cortical surface · TRIBE v2 encoder</div>
-        <!-- persistent hero cue: CSS-visible at the very top (keyed off .at-hero-top, which a
-             plain scroll listener maintains — independent of the WebGL loop), so the opening
-             frame is never a wordless brain. Fades out as you scroll in and the headline panel
-             takes over; the watermark fades in on the inverse. -->
-        <div class="herocue">
-          <span class="herocue-line">Neural pre-testing for video ads</span>
-          <span class="herocue-scroll">scroll to fly in <span>↓</span></span>
-        </div>
+        <!-- minimal scroll affordance at the very top: a single down-chevron (no banner, no copy).
+             CSS-visible via .at-hero-top (a plain scroll listener, independent of the WebGL loop),
+             so it never depends on the render loop; fades out the moment you scroll in. -->
+        <div class="herocue"><svg viewBox="0 0 26 14" aria-hidden="true"><path d="M3 3 13 11 23 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
     </div>
 
@@ -102,20 +98,20 @@
           <div class="right">
             <!-- lane 1: attention -->
             <div class="lane">
-              <div class="lane-h"><span class="name">Attention arc<small>where the ad holds vs loses people</small></span></div>
+              <div class="lane-h"><span class="name">Attention arc<small>where the ad holds vs loses people</small></span><span class="lane-badge a" title="Predicted brain activation. The attention interpretation is our hypothesis, being validated against human data (TVSum).">predicted · validating</span></div>
               <canvas class="lanec" id="cAtt" width="720" height="150" role="img" aria-label="Attention arc across the clip timeline"></canvas>
             </div>
             <div class="callout hidden" id="callout"></div>
 
             <!-- lane 2: valence -->
             <div class="lane">
-              <div class="lane-h"><span class="name">Valence · feels good ↔ bad<small>pleasant (up) / unpleasant (down)</small></span></div>
+              <div class="lane-h"><span class="name">Valence · feels good ↔ bad<small>pleasant (up) / unpleasant (down)</small></span><span class="lane-badge r" title="A cortical proxy (OFC / insula) — an explicit, unvalidated hypothesis, not a trained decoder.">hypothesis</span></div>
               <canvas class="lanec" id="cVal" width="720" height="120" role="img" aria-label="Valence arc across the clip timeline"></canvas>
             </div>
 
             <!-- lane 3: arousal -->
             <div class="lane">
-              <div class="lane-h"><span class="name">Arousal · calm ↔ excited<small>how worked-up the moment is</small></span></div>
+              <div class="lane-h"><span class="name">Arousal · calm ↔ excited<small>how worked-up the moment is</small></span><span class="lane-badge r" title="A cortical proxy (insula / ACC) — an explicit, unvalidated hypothesis, not a trained decoder.">hypothesis</span></div>
               <canvas class="lanec" id="cAro" width="720" height="120" role="img" aria-label="Arousal arc across the clip timeline"></canvas>
             </div>
 
@@ -172,7 +168,7 @@
     <section class="vision">
       <span class="tag">Roadmap</span>
       <h3>The road to specific, named emotions</h3>
-      <p class="s">Attention and 2D affect ship today. Named emotions ("amusement", "tension", "warmth") come next, as Soma learns from the ads and real audience reactions its design partners generate.</p>
+      <p class="s">The attention read-out ships today; 2D affect is in validation. Named emotions ("amusement", "tension", "warmth") come next, as Soma learns from the ads and real audience reactions its design partners generate.</p>
       <div class="ladder" id="ladder"></div>
     </section>
   </div>

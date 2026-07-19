@@ -21,7 +21,7 @@
   // ---- product roadmap (shown in the Vision panel) ----
   const LADDER = [
     { lvl: "Rung 0", live: true,  text: "<b>Attention arc</b> — moment-to-moment salience across the clip, with weak-spot callouts. <b>Live today.</b>" },
-    { lvl: "Rung 1", next: true,  text: "<b>2D affect arc</b> — valence + arousal, beat by beat. Shipping now." },
+    { lvl: "Rung 1", next: true,  text: "<b>2D affect arc</b> — valence + arousal, beat by beat. In validation." },
     { lvl: "Rung 2", text: "<b>Calibrated affect on real ads</b> — with confidence bands, tuned on your own campaigns and outcomes." },
     { lvl: "Rung 3", text: "<b>A few discrete states</b> — amusement, tension, boredom — flagged when the signal is clear." },
     { lvl: "Rung 4", text: "<b>Specific named emotions</b> — per-second probabilities over a rich emotion taxonomy, learned from real audience reactions." },
@@ -220,7 +220,7 @@
     // mode 'center' => baseline mid (valence, range ~[-1,1]); 'bottom' => baseline bottom (arousal, [0,1])
     const c = canvas, x = c.getContext("2d"), W = c.width, H = c.height, top = 10, bot = H - 12;
     x.clearRect(0, 0, W, H);
-    if (!seq) { x.fillStyle = "#ADADB2"; x.font = "12px ui-monospace,monospace"; x.fillText("no affect data", 12, 24); return; }
+    if (!seq) { x.fillStyle = "#7C7C82"; x.font = "12px ui-monospace,monospace"; x.fillText("affect not computed for this clip — pick a sample ad to see the read-out", 12, 24); return; }
     const base = mode === "center" ? (top + bot) / 2 : bot;
     const scale = mode === "center" ? (bot - top) / 2 : (bot - top);
     const Y = (v) => base - v * scale;
@@ -475,13 +475,13 @@
           arcData: r.arc, grad: gradFor(id) });
       });
       if (!live.length) return;
-      VIDEOS.unshift.apply(VIDEOS, live);   // newest-first from the API → lead the picker
+      // append live arcs at the END (not unshift-to-front): keeps the featured real-run card in
+      // place and never re-orders the sample cards under the visitor, so nothing "jumps" when the
+      // async fetch resolves late. New cards land on row 2+.
+      VIDEOS.push.apply(VIDEOS, live);
       renderVids();
       if (refreshCompare) refreshCompare();
-      // surface the newest live arc ONLY if the visitor hasn't engaged yet — never
-      // interrupt an in-progress selection or playback (the fetch can resolve late).
-      if (!userPicked && !playing) pickVideo(VIDEOS[0]);
-      else markActive(currentId);           // re-render dropped the highlight; restore it
+      markActive(currentId);                // re-render dropped the highlight; restore it
     }).catch(() => { /* offline / not set up yet — keep the samples */ });
   }
 
