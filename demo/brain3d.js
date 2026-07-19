@@ -1,6 +1,6 @@
 /* brain3d.js — Soma's cortical hero (v2, "clinical" redesign).
  *
- * A front-facing, matte-white 3D cortex on pure black — the REAL fsaverage5 surface
+ * A front-facing, matte-white 3D cortex on pure black — the REAL fsaverage6 surface
  * TRIBE v2 predicts on (20,484 vertices). Deeply defined gyri/sulci (sulcal-depth
  * shading bakes in the fold contrast). Scrolling dollies the camera INTO each region;
  * as it arrives, a warm fMRI-style "hot" heatmap blooms on that patch of cortex and a
@@ -146,7 +146,7 @@ async function init() {
   camera = new THREE.PerspectiveCamera(27, 1, 0.01, 100);
   camera.up.set(0, 0, 1);                     // superior (+z) is up → upright anatomical brain
 
-  // ---- geometry from the fsaverage5 binaries ----
+  // ---- geometry from the fsaverage6 binaries ----
   const [pos, idx, sulc] = await Promise.all([
     loadBin('fs6_pos.bin', Float32Array),   // fsaverage6 (81,924 vtx) — crisper DECORATIVE surface
     loadBin('fs6_idx.bin', Uint32Array),

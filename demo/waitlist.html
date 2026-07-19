@@ -205,7 +205,10 @@
             showThanks(false);            // write-only from the browser → can't detect server-side dupes
             return;
           } catch (err) {
-            // network / DB hiccup → keep a local copy so the signup isn't lost, still thank them
+            // Surface the failure in the console — the localStorage copy below is browser-local
+            // and the founder can NEVER see it, so a broken RPC would otherwise lose signups
+            // silently behind a "thanks!" screen. If you see this, re-apply supabase/schema.sql.
+            console.warn("[waitlist] join_waitlist failed — signup saved only to this browser's localStorage (not visible to the team):", err);
             if (!dupe) { list.push({ email: email, company: company, ts: new Date().toISOString() }); write(list); }
             btn.disabled = false;
             showThanks(dupe);
