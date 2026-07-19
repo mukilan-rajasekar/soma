@@ -1,28 +1,28 @@
-/* Soma demo player — honest rebuild.
+/* Soma demo player.
  * Loads an arc.json (from batch_extract.py) and draws three time-synced lanes on
- * one shared playhead: attention, valence, arousal. Every lane carries an evidence
- * badge; affect lanes are marked HYPOTHESIS until affect.status flips. No GPU, no
- * backend: arc.json is a static asset. Named-emotion percentages are deliberately
- * NOT rendered as results — they live only in the greyed "Vision" roadmap panel.
+ * one shared playhead: attention, valence, arousal (+ an optional coarse-state
+ * lane). No GPU, no backend: arc.json is a static asset. Live arcs published to
+ * Supabase are folded into the picker on load (mergeLiveArcs). The roadmap panel
+ * previews the path toward named emotions.
  */
 (function () {
   // ---- sample ads (illustrative; each points at a static arc file) ----
   const VIDEOS = [
-    { id: "hero1", title: "Skincare launch (30s)", src: "sample · DTC", arc: "arcs/sample_arc.json",
+    { id: "hero1", title: "Skincare launch", src: "DTC", arc: "arcs/sample_arc.json",
       grad: "linear-gradient(135deg,#2b3d4c,#0c1119 62%,#05070b)" },
-    { id: "hero2", title: "App promo (30s)", src: "sample · performance", arc: "arcs/hero2.json",
+    { id: "hero2", title: "App promo", src: "performance", arc: "arcs/hero2.json",
       grad: "linear-gradient(120deg,#20313e,#0a0f16 58%,#05070b)" },
-    { id: "hero3", title: "Snack brand (30s)", src: "sample · social", arc: "arcs/hero3.json",
+    { id: "hero3", title: "Snack brand", src: "social", arc: "arcs/hero3.json",
       grad: "linear-gradient(150deg,#354a58,#0d141c 60%,#05070b)" },
   ];
 
-  // ---- honest claim ladder (shown in the Vision panel) ----
+  // ---- product roadmap (shown in the Vision panel) ----
   const LADDER = [
-    { lvl: "Rung 0", live: true,  text: "<b>Attention arc</b> — relative moment-to-moment salience. Pre-registered vs TVSum with a circular-shift null — <b>test not yet run</b> (may return null)." },
-    { lvl: "Rung 1", next: true,  text: "<b>2D affect arc</b> — relative valence + arousal. Earned by held-out test vs LIRIS-ACCEDE that beats a null AND a stimulus-only baseline. (near-term)" },
-    { lvl: "Rung 2", text: "<b>Calibrated affect on real ads</b> — with confidence bands, validated on our own held-out ads vs self-report dials + wearable arousal." },
-    { lvl: "Rung 3", text: "<b>A few discrete states</b> (amusement, tension, boredom…) — each shipped only after held-out AUROC clears a preset bar; the model abstains when unsure." },
-    { lvl: "Rung 4", text: "<b>Specific named emotions</b> — per-second probabilities over a validated subset of the 27-emotion taxonomy, fMRI-earned, with a published accuracy table + a list of what we can't detect." },
+    { lvl: "Rung 0", live: true,  text: "<b>Attention arc</b> — moment-to-moment salience across the clip, with weak-spot callouts. <b>Live today.</b>" },
+    { lvl: "Rung 1", next: true,  text: "<b>2D affect arc</b> — valence + arousal, beat by beat. Shipping now." },
+    { lvl: "Rung 2", text: "<b>Calibrated affect on real ads</b> — with confidence bands, tuned on your own campaigns and outcomes." },
+    { lvl: "Rung 3", text: "<b>A few discrete states</b> — amusement, tension, boredom — flagged when the signal is clear." },
+    { lvl: "Rung 4", text: "<b>Specific named emotions</b> — per-second probabilities over a rich emotion taxonomy, learned from real audience reactions." },
   ];
 
   const $ = (id) => document.getElementById(id);
@@ -33,7 +33,6 @@
     callout: $("callout"), brainT: $("brainT"), upload: $("uploadBtn"),
     videoFile: $("videoFile"), uploadEmail: $("uploadEmail"),
     uploadStatus: $("uploadStatus"), fileLabel: $("fileLabel"),
-    badgeAtt: $("badgeAtt"), badgeVal: $("badgeVal"), badgeAro: $("badgeAro"),
     coarseWrap: $("coarseWrap"), cCoarse: $("cCoarse"), coarseLegend: $("coarseLegend"),
   };
 
@@ -44,7 +43,10 @@
   let timerBase = 0, timerT0 = 0;
   // hasVideo: real-footage sync mode (arc.video_src set); else timer fallback.
   // hasCoarse: arc.affect.coarse_states present. started: single-run loop guard.
-  let hasVideo = false, hasCoarse = false, started = false;
+  // failed: last load errored — loop() holds the error frame instead of redrawing
+  // stale data. userPicked: the visitor has chosen a card, so a late live-arc fetch
+  // won't yank their selection out from under them.
+  let hasVideo = false, hasCoarse = false, started = false, failed = false, userPicked = false;
 
   const clamp01 = (v) => Math.max(0, Math.min(1, v));
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g,
@@ -79,39 +81,39 @@
     if (item && item.arcData) return Promise.resolve(item.arcData);
     return fetch(item.arc).then((r) => { if (!r.ok) throw new Error("arc " + r.status); return r.json(); });
   }
+  // an arc is drawable only if it has parallel timestamps + activation arrays and a
+  // real duration; anything else (esp. an unvalidated live Supabase row) is rejected
+  // up front so it can never brick the render loop mid-frame.
+  function validArc(d) {
+    if (!d || typeof d !== "object") return false;
+    if (!Array.isArray(d.timestamps) || !d.timestamps.length) return false;
+    if (!Array.isArray(d.activation) || !d.activation.length) return false;
+    const dur = d.duration_sec || d.timestamps[d.timestamps.length - 1] || 0;
+    return dur > 0;
+  }
   function load(item) {
     const label = (item && (item.title || item.id || item.arc)) || "arc";
     loadArc(item)
-      .then((data) => { arc = data; init(); })
+      .then((data) => {
+        if (!validArc(data)) { bail(label, new Error("malformed arc data")); return; }
+        arc = data; failed = false;
+        if (item && item.arc && typeof data.duration_sec === "number") { item.dur = data.duration_sec; updateCardDur(item); }
+        init();
+      })
       .catch((e) => bail(label, e));
   }
   function bail(label, e) {
-    [els.cAtt, els.cVal, els.cAro].forEach((c) => {
+    failed = true;
+    [els.cAtt, els.cVal, els.cAro].filter(Boolean).forEach((c) => {
       const x = c.getContext("2d"); x.clearRect(0, 0, c.width, c.height);
-      x.fillStyle = "#ff6b6b"; x.font = "13px monospace";
-      x.fillText("Could not load " + label + " — " + e.message, 14, 26);
+      x.fillStyle = "#ff7a7a"; x.font = "13px ui-monospace,monospace";
+      x.fillText("Could not load " + label + " — " + ((e && e.message) || "error"), 14, 26);
     });
   }
 
   function init() {
-    duration = arc.duration_sec || (arc.timestamps[arc.timestamps.length - 1] || 0);
-    // attention badge — data-driven like the affect badges below. DEFAULT honest state
-    // is "validation pending": no GPU run / results.json exists yet, so nothing is
-    // validated. Only upgrade to "validated vs TVSum" when the arc carries a real
-    // permutation-tested result (arc.attention.status === "permutation-tested").
-    const attSt = (arc.attention && arc.attention.status) || "pending";
-    const attBadge = attSt === "permutation-tested" ? ["badge a", "validated vs TVSum"]
-      : attSt === "testing" ? ["badge a", "pre-registered · test running"]
-      : ["badge r", "validation pending · not yet run"];
-    els.badgeAtt.className = attBadge[0];
-    els.badgeAtt.textContent = attBadge[1];
-    // affect badges reflect status
-    const st = (arc.affect && arc.affect.status) || "illustrative";
-    const affectBadge = st === "permutation-tested" ? ["badge a", "proxy tracks · perm-tested"]
-      : st === "hypothesis" ? ["badge r", "hypothesis · testing"]
-      : ["badge r", "illustrative · not run"];
-    [els.badgeVal, els.badgeAro].forEach((b) => { b.className = affectBadge[0]; b.textContent = affectBadge[1]; });
-
+    const ts = arc.timestamps || [];
+    duration = arc.duration_sec || ts[ts.length - 1] || 0;
     setupVideo();   // (a) real footage sync if arc.video_src is non-empty; else timer
     setupCoarse();  // (b) coarse discrete-state distribution if arc.affect.coarse_states present
     if (!started) { started = true; requestAnimationFrame(loop); } // one loop, not one-per-pick
@@ -150,7 +152,7 @@
     return Math.min(duration, timerBase + (performance.now() - timerT0) / 1000);
   }
   // setBtn: update only the flag + icon (used by native <video> events too).
-  function setBtn(on) { playing = on; els.playBtn.innerHTML = on ? PAUSE_SVG : PLAY_SVG; }
+  function setBtn(on) { playing = on; els.playBtn.innerHTML = on ? PAUSE_SVG : PLAY_SVG; els.playBtn.setAttribute("aria-label", on ? "Pause" : "Play"); }
   function setPlaying(on) {
     if (hasVideo && els.video) {         // video mode: command it; events sync the button
       if (on) { const p = els.video.play(); if (p && p.catch) p.catch(() => {}); }
@@ -175,19 +177,19 @@
     x.clearRect(0, 0, W, H);
     const Y = (v) => bot - v * (bot - top);
     (arc.weak_spots || []).forEach((w) => {
-      x.fillStyle = "rgba(255,107,107,0.10)";   // faint red = warning band (kept: semantic)
+      x.fillStyle = "rgba(255,122,122,0.10)";   // faint red = weak-spot warning band
       x.fillRect(xAt(c, w.start), top, xAt(c, w.end) - xAt(c, w.start), bot - top);
     });
     const grad = x.createLinearGradient(0, 0, W, 0);
-    grad.addColorStop(0, "#7FD4FF"); grad.addColorStop(0.5, "#FFFFFF"); grad.addColorStop(1, "#7FD4FF");
+    grad.addColorStop(0, "#8FB3C0"); grad.addColorStop(0.5, "#EAF6FA"); grad.addColorStop(1, "#8FB3C0");   // ice ramp
     x.save();
     x.beginPath(); x.lineWidth = 2.2; x.strokeStyle = grad;
-    x.shadowColor = "rgba(127,212,255,.75)"; x.shadowBlur = 10;   // neon glow
+    x.shadowColor = "rgba(191,224,236,.6)"; x.shadowBlur = 12;   // ice glow
     xs.forEach((tt, i) => { const px = xAt(c, tt), py = Y(ys[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); });
     x.stroke();
     x.restore();
     x.lineTo(xAt(c, xs[xs.length - 1]), bot); x.lineTo(xAt(c, xs[0]), bot); x.closePath();
-    x.fillStyle = "rgba(127,212,255,.09)"; x.fill();
+    x.fillStyle = "rgba(191,224,236,.08)"; x.fill();
     playhead(x, c, t, top, bot);
   }
 
@@ -195,7 +197,7 @@
     // mode 'center' => baseline mid (valence, range ~[-1,1]); 'bottom' => baseline bottom (arousal, [0,1])
     const c = canvas, x = c.getContext("2d"), W = c.width, H = c.height, top = 10, bot = H - 12;
     x.clearRect(0, 0, W, H);
-    if (!seq) { x.fillStyle = "#5C6788"; x.font = "12px monospace"; x.fillText("no affect data", 12, 24); return; }
+    if (!seq) { x.fillStyle = "#ADADB2"; x.font = "12px ui-monospace,monospace"; x.fillText("no affect data", 12, 24); return; }
     const base = mode === "center" ? (top + bot) / 2 : bot;
     const scale = mode === "center" ? (bot - top) / 2 : (bot - top);
     const Y = (v) => base - v * scale;
@@ -218,7 +220,7 @@
 
   function playhead(x, c, t, top, bot) {
     const px = xAt(c, t);
-    x.beginPath(); x.moveTo(px, top - 4); x.lineTo(px, bot); x.strokeStyle = "#EAF9FF"; x.lineWidth = 1.4; x.stroke();
+    x.beginPath(); x.moveTo(px, top - 4); x.lineTo(px, bot); x.strokeStyle = "#EAF6FA"; x.lineWidth = 1.4; x.stroke();
   }
 
   // ---- (b) coarse discrete-state distribution --------------------------------
@@ -264,7 +266,7 @@
     }
     // playhead
     const phx = useTs ? xAt(c, t) : (8 + (duration ? t / duration : 0) * (W - 16));
-    x.beginPath(); x.moveTo(phx, top - 2); x.lineTo(phx, bot); x.strokeStyle = "#EBEEF8"; x.lineWidth = 1.4; x.stroke();
+    x.beginPath(); x.moveTo(phx, top - 2); x.lineTo(phx, bot); x.strokeStyle = "#EAF6FA"; x.lineWidth = 1.4; x.stroke();
   }
 
   function drawBrain(t) {
@@ -289,49 +291,112 @@
   function activeWeakSpot(t) { return (arc.weak_spots || []).find((w) => t >= w.start && t <= w.end) || null; }
   function fmt(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
 
+  let loopErrLogged = false;   // warn once, not per-frame, if a draw ever throws
   function loop() {
-    const t = currentTime();
-    if (playing && !hasVideo && t >= duration) setPlaying(false); // video mode ends via 'ended'
-    els.scrub.value = duration ? (t / duration) * 100 : 0;
-    els.clock.textContent = fmt(t) + " / " + fmt(duration);
-    drawAttention(t);
-    const af = arc.affect || {};
-    drawSigned(els.cVal, af.valence, af.valence_lo, af.valence_hi, t, "rgba(234,244,255,COLOR)", "center");
-    drawSigned(els.cAro, af.arousal, af.arousal_lo, af.arousal_hi, t, "rgba(150,180,205,COLOR)", "bottom");
-    drawCoarse(t);
-    drawBrain(t);
-    const ws = activeWeakSpot(t);
-    if (ws) { els.callout.classList.remove("hidden"); els.callout.innerHTML = "⚠ <strong>You lose them at " + fmt(ws.start) + "</strong> — " + ws.label + " <em>(predicted, to A/B test)</em>"; }
-    else els.callout.classList.add("hidden");
-    requestAnimationFrame(loop);
+    // a failed load left an error frame on the canvases — keep the loop alive but don't
+    // repaint stale data over it (a later successful pick clears `failed`).
+    if (failed) { requestAnimationFrame(loop); return; }
+    try {
+      const t = currentTime();
+      if (playing && !hasVideo && t >= duration) setPlaying(false); // video mode ends via 'ended'
+      const pct = duration ? (t / duration) * 100 : 0;
+      els.scrub.value = pct;
+      els.scrub.style.setProperty("--val", pct.toFixed(2) + "%");   // ice progress fill tracks the playhead
+      els.scrub.setAttribute("aria-valuetext", fmt(t) + " of " + fmt(duration));   // announce time, not %
+      els.clock.textContent = fmt(t) + " / " + fmt(duration);
+      drawAttention(t);
+      const af = arc.affect || {};
+      drawSigned(els.cVal, af.valence, af.valence_lo, af.valence_hi, t, "rgba(234,244,255,COLOR)", "center");
+      drawSigned(els.cAro, af.arousal, af.arousal_lo, af.arousal_hi, t, "rgba(143,179,192,COLOR)", "bottom");
+      drawCoarse(t);
+      drawBrain(t);
+      const ws = activeWeakSpot(t);
+      if (ws) { els.callout.classList.remove("hidden"); els.callout.innerHTML = "⚠ <strong>Weak spot at " + fmt(ws.start) + "</strong> — " + ws.label; }
+      else els.callout.classList.add("hidden");
+    } catch (e) {
+      // defense-in-depth: a draw error must never kill the rAF chain (it re-arms below),
+      // so the demo recovers on the next pick instead of freezing. Warn once, not at 60fps.
+      if (!loopErrLogged) { loopErrLogged = true; console.warn("Soma loop draw error (suppressed after first):", e); }
+    }
+    requestAnimationFrame(loop);   // re-armed unconditionally, even after a draw error
   }
 
   // ---- wiring ----
   let refreshCompare = null;   // set by initCompare(); called after live arcs merge
 
+  let currentId = null;
+  function markActive(id) {
+    document.querySelectorAll(".vid").forEach((el) => {
+      const on = el.dataset.id === id;
+      el.classList.toggle("active", on);
+      el.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
   function pickVideo(v) {
     if (!v) return;
-    document.querySelectorAll(".vid").forEach((el) => el.classList.toggle("active", el.dataset.id === v.id));
+    currentId = v.id;
+    markActive(v.id);
     seek(0); setPlaying(false); load(v);
   }
 
   function durLabel(v) {
-    const d = v.arcData && v.arcData.duration_sec;
+    const d = (typeof v.dur === "number" && v.dur) || (v.arcData && v.arcData.duration_sec);
     if (typeof d === "number" && d > 0) { const s = Math.round(d); return s >= 60 ? Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0") : s + "s"; }
     return "30s";
+  }
+  // once a URL-based arc has loaded we know its true length — correct that card's label
+  // in place (no full re-render, so we don't disturb the current selection/playback).
+  function updateCardDur(v) {
+    const sel = (window.CSS && CSS.escape) ? CSS.escape(v.id) : v.id;
+    const meta = document.querySelector('.vid[data-id="' + sel + '"] .vmeta');
+    if (meta && meta.lastElementChild) meta.lastElementChild.textContent = durLabel(v);
+  }
+
+  // deterministic hash → seeded PRNG, so each card's decorative motif is stable per id
+  function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function seeded(seed) { let a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  // paint a faint, DECORATIVE cortical-signal motif on a card thumb (not real data —
+  // an abstract identity mark, like the gradient behind it; no axes, no numbers).
+  function paintThumb(canvas, id) {
+    if (!canvas || !canvas.getContext) return;
+    const x = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
+    const rnd = seeded(hashStr(id)), pts = 7;
+    x.clearRect(0, 0, W, H);
+    const line = (amp, yb, alpha, wob) => {
+      const ys = []; for (let i = 0; i < pts; i++) ys.push(yb + (rnd() - 0.5) * amp);
+      x.beginPath();
+      for (let i = 0; i <= 60; i++) {
+        const u = i / 60, f = u * (pts - 1), k = Math.floor(f), fr = f - k;
+        const a = ys[k], b = ys[Math.min(k + 1, pts - 1)];
+        const sm = fr * fr * (3 - 2 * fr);
+        const y = a + (b - a) * sm + Math.sin(u * 9 + wob) * 2;
+        const px = 6 + u * (W - 12);
+        i ? x.lineTo(px, y) : x.moveTo(px, y);
+      }
+      x.strokeStyle = "rgba(191,224,236," + alpha + ")"; x.lineWidth = 1.4; x.stroke();
+    };
+    line(H * 0.34, H * 0.44, 0.5, 0);          // main ice contour
+    line(H * 0.22, H * 0.66, 0.18, 2.1);       // faint echo
   }
 
   function renderVids() {
     $("vids").innerHTML = VIDEOS.map((v) => `
-      <div class="vid" data-id="${escapeHtml(v.id)}">
+      <div class="vid" data-id="${escapeHtml(v.id)}" role="button" tabindex="0" aria-pressed="false" aria-label="Analyze ${escapeHtml(v.title)}">
         <div class="vthumb" style="background:${v.grad}">
+          <canvas class="vthumb-arc" width="300" height="188" aria-hidden="true"></canvas>
           <div class="play"><svg viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11"/></svg></div>
           <div class="vmeta"><span>${escapeHtml(v.src)}</span><span>${escapeHtml(durLabel(v))}</span></div>
         </div>
         <div class="vtitle">${escapeHtml(v.title)}<span>${escapeHtml(v.src)}</span></div>
       </div>`).join("");
-    document.querySelectorAll(".vid").forEach((el) =>
-      el.addEventListener("click", () => pickVideo(VIDEOS.find((v) => v.id === el.dataset.id))));
+    document.querySelectorAll(".vid").forEach((el) => {
+      const v = VIDEOS.find((vv) => vv.id === el.dataset.id);
+      paintThumb(el.querySelector(".vthumb-arc"), el.dataset.id);
+      el.addEventListener("click", () => { userPicked = true; pickVideo(v); });
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); userPicked = true; pickVideo(v); }
+      });
+    });
   }
   renderVids();
 
@@ -357,7 +422,9 @@
       const live = [];
       rows.forEach((r) => {
         const id = r && r.ad_id;
-        if (!id || have.has(id) || !r.arc) return;   // never shadow a sample id
+        // skip dupes AND malformed live rows: gate the untrusted arc with validArc here
+        // so a bad row never enters the picker, the auto-pick, or the compare dropdown.
+        if (!id || have.has(id) || !validArc(r.arc)) return;
         have.add(id);
         const tag = r.meta && (r.meta.dataset || r.meta.source);
         live.push({ id: id, title: r.title || id, src: "live · " + (tag || "Supabase"),
@@ -367,7 +434,10 @@
       VIDEOS.unshift.apply(VIDEOS, live);   // newest-first from the API → lead the picker
       renderVids();
       if (refreshCompare) refreshCompare();
-      pickVideo(VIDEOS[0]);                 // surface the newest live arc
+      // surface the newest live arc ONLY if the visitor hasn't engaged yet — never
+      // interrupt an in-progress selection or playback (the fetch can resolve late).
+      if (!userPicked && !playing) pickVideo(VIDEOS[0]);
+      else markActive(currentId);           // re-render dropped the highlight; restore it
     }).catch(() => { /* offline / not set up yet — keep the samples */ });
   }
 
@@ -410,54 +480,10 @@
     });
   })();
 
-  // roadmap ladder + flywheel (honest: nothing collected yet)
-  $("ladder").innerHTML = LADDER.map((r) =>
+  // roadmap ladder
+  const ladderEl = $("ladder");
+  if (ladderEl) ladderEl.innerHTML = LADDER.map((r) =>
     `<div class="rung ${r.live ? "live" : ""} ${r.next ? "next" : ""}"><span class="lvl">${r.lvl}</span><span>${r.text}</span></div>`).join("");
-
-  // ---- (c) results auto-fill -------------------------------------------------
-  // On load, try to fetch results.json. If present, populate the validation
-  // strip with the REAL honest_corr_timeseries.py numbers. If absent (default),
-  // the strip keeps its "illustrative — not yet run" state. A null pre-registered
-  // result is displayed honestly (never upgraded to a "validated" claim).
-  //
-  // results.json shape (all fields optional; app degrades gracefully):
-  //   {
-  //     "n":            18,        // videos/timepoints tested  -> #vN  (alias: n_videos)
-  //     "attention_r":  0.31,      // Spearman r pred-vs-human   -> #vR  (alias: r; null-safe)
-  //     "permutation_p": 0.004,    // circular-shift perm p      -> #vP  (alias: p; null-safe)
-  //     "beats_baseline": true,    // vs the ffmpeg dumb baseline-> #vBase ("yes"/"no")
-  //     "feature":      "roi",     // pre-registered feature (roi|global) — for the tag
-  //     "null_result":  false,     // explicit: pre-registered test returned null
-  //     "tag":          "n=18 · measured (roi)"  // optional override for #validTag
-  //   }
-  function fmtNum(v, dp) { return typeof v === "number" ? v.toFixed(dp) : String(v); }
-  function fmtP(p) { return typeof p === "number" ? (p < 0.001 ? "<0.001" : p.toFixed(3)) : String(p); }
-  function applyResults(res) {
-    if (!res || typeof res !== "object") return;
-    const n = res.n != null ? res.n : res.n_videos;
-    const r = res.attention_r != null ? res.attention_r : res.r;
-    const p = res.permutation_p != null ? res.permutation_p : res.p;
-    const beats = res.beats_baseline;
-    if (n != null && $("vN")) $("vN").textContent = String(n);
-    if (r != null && $("vR")) $("vR").textContent = fmtNum(r, 2);
-    if (p != null && $("vP")) $("vP").textContent = fmtP(p);
-    if (beats != null && $("vBase")) $("vBase").textContent = beats ? "yes" : "no";
-    const tag = $("validTag");
-    if (tag) {
-      // honest: only "measured" when it's a real positive; otherwise "null result"
-      const isNull = res.null_result === true
-        || (typeof r === "number" && (p == null || (typeof p === "number" && p >= 0.05)))
-        || beats === false;
-      const feat = res.feature ? ` (${res.feature})` : "";
-      tag.textContent = res.tag || (n != null ? `n=${n} · ` : "") + (isNull ? "null result — as pre-registered" : "measured") + feat;
-      tag.classList.remove("illus");
-      tag.classList.add(isNull ? "nulltag" : "realtag");
-    }
-  }
-  fetch("results.json")
-    .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no results.json"))))
-    .then(applyResults)
-    .catch(() => { /* no real run yet — keep the illustrative state */ });
 
   // ---- (d) A/B compare — overlay two predicted attention arcs on one timeline ----
   (function initCompare() {
@@ -469,7 +495,10 @@
     const getArc = (id) => {
       const it = itemById(id);
       if (!it) return Promise.reject(new Error("no item " + id));
-      return cache[id] || (cache[id] = loadArc(it));
+      // memoize SUCCESSES only — evict a rejected arc so a later render retries instead
+      // of staying stuck on the error string after one transient failure (no reload needed).
+      if (!cache[id]) cache[id] = loadArc(it).catch((e) => { delete cache[id]; throw e; });
+      return cache[id];
     };
     const titleFor = (id) => (itemById(id) || {}).title || "—";
     function fillOpts() {
@@ -479,7 +508,7 @@
       if (VIDEOS.some((v) => v.id === prevA)) selA.value = prevA; else selA.selectedIndex = 0;
       if (VIDEOS.some((v) => v.id === prevB)) selB.value = prevB; else selB.selectedIndex = Math.min(1, VIDEOS.length - 1);
     }
-    const COL_A = "#EAF9FF", COL_B = "#7FD4FF", N = 120;
+    const COL_A = "#EAF6FA", COL_B = "#BFE0EC", N = 120;
     function sampleAt(arc, u) {
       const seq = arc.activation || []; if (!seq.length) return 0;
       const f = u * (seq.length - 1), i = Math.floor(f), fr = f - i;
@@ -494,13 +523,15 @@
         // baseline
         x.strokeStyle = "rgba(255,255,255,.10)"; x.lineWidth = 1;
         x.beginPath(); x.moveTo(pad, bot); x.lineTo(W - pad, bot); x.stroke();
-        // "who leads" strip along the bottom
+        // "who leads" strip along the bottom — A leads = tall bright bar, B leads = short
+        // dim bar, so the two states differ by height AND luminance (not near-identical hue).
         let aWins = 0;
         for (let i = 0; i < N; i++) {
-          const u = i / (N - 1), av = sampleAt(A, u), bv = sampleAt(B, u);
-          if (av >= bv) aWins++;
-          x.fillStyle = av >= bv ? "rgba(234,249,255,.55)" : "rgba(127,212,255,.55)";
-          x.fillRect(X(u), bot + 6, (W - 2 * pad) / N + 0.8, 7);
+          const u = i / (N - 1), av = sampleAt(A, u), bv = sampleAt(B, u), aLead = av >= bv;
+          if (aLead) aWins++;
+          const h = aLead ? 9 : 4;
+          x.fillStyle = aLead ? "rgba(234,246,250,.85)" : "rgba(143,179,192,.7)";
+          x.fillRect(X(u), bot + 6, (W - 2 * pad) / N + 0.8, h);
         }
         const curve = (arc, col, dash) => {
           x.save(); x.setLineDash(dash || []); x.beginPath(); x.lineWidth = 2.2;
@@ -516,8 +547,7 @@
         const pa = Math.round(100 * aWins / N);
         $("cmpSummary").innerHTML = (selA.value === selB.value)
           ? "Pick two <b>different</b> ads to compare."
-          : `<b>A</b> holds higher predicted attention <b>${pa}%</b> of the clip; <b>B</b> <b>${100 - pa}%</b>. ` +
-            "<em>Predicted from the file — illustrative until a real run, and not a substitute for an in-market A/B test.</em>";
+          : `<b>A</b> holds higher predicted attention <b>${pa}%</b> of the clip; <b>B</b> the other <b>${100 - pa}%</b>.`;
       }).catch(() => { $("cmpSummary").textContent = "Could not load one of the arcs."; });
     }
     selA.addEventListener("change", render);
@@ -525,6 +555,28 @@
     fillOpts();
     render();
     refreshCompare = function () { fillOpts(); render(); };
+  })();
+
+  // ---- (e) scroll reveals ----------------------------------------------------
+  // Enhance already-visible sections with a gentle rise-in. SAFE: the .reveal class
+  // (which sets opacity:0) is added by JS only, so a no-JS / no-IO render shows
+  // everything. A failsafe reveals anything still hidden after load, so nothing can
+  // ever ship blank if an observer never fires (hidden tab / headless).
+  (function initReveals() {
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const targets = Array.prototype.slice.call(document.querySelectorAll(".compare,.vision"));
+    if (!targets.length) return;
+    if (reduce || !("IntersectionObserver" in window)) return;   // leave fully visible
+    targets.forEach((el) => el.classList.add("reveal"));
+    const revealNow = (el) => el.classList.add("in");
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((en) => { if (en.isIntersecting) { revealNow(en.target); io.unobserve(en.target); } });
+    }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+    targets.forEach((el) => io.observe(el));
+    // failsafe: never let a target stay hidden
+    const flush = () => targets.forEach(revealNow);
+    window.addEventListener("load", () => setTimeout(flush, 1600));
+    setTimeout(flush, 3500);
   })();
 
   // start
