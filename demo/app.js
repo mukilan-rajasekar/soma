@@ -6,13 +6,15 @@
  * previews the path toward named emotions.
  */
 (function () {
-  // ---- sample ads (illustrative; each points at a static arc file) ----
+  // ---- ads (hero1-3 are illustrative samples; real1 is a REAL frozen-TRIBE run) ----
   const VIDEOS = [
-    { id: "hero1", title: "Skincare launch", src: "DTC", arc: "arcs/sample_arc.json",
+    { id: "real1", title: "Real TRIBE run · TVSum clip", src: "real · global · unvalidated", arc: "arcs/real_esJrBWj2d8.json",
+      grad: "linear-gradient(140deg,#1c2e3a,#0a0f16 60%,#05070b)" },
+    { id: "hero1", title: "Skincare launch", src: "DTC · sample", arc: "arcs/sample_arc.json",
       grad: "linear-gradient(135deg,#2b3d4c,#0c1119 62%,#05070b)" },
-    { id: "hero2", title: "App promo", src: "performance", arc: "arcs/hero2.json",
+    { id: "hero2", title: "App promo", src: "performance · sample", arc: "arcs/hero2.json",
       grad: "linear-gradient(120deg,#20313e,#0a0f16 58%,#05070b)" },
-    { id: "hero3", title: "Snack brand", src: "social", arc: "arcs/hero3.json",
+    { id: "hero3", title: "Snack brand", src: "social · sample", arc: "arcs/hero3.json",
       grad: "linear-gradient(150deg,#354a58,#0d141c 60%,#05070b)" },
   ];
 
@@ -52,26 +54,44 @@
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  // ---- brain nodes (illustrative fire-blob viz tied to attention) ----
-  const NODES = [];
-  (function seedBrain() {
-    const cx = 150, cy = 112, rx = 116, ry = 82, n = 44;
-    // deterministic scatter (no Math.random needed at draw time)
-    for (let i = 0; i < n; i++) {
-      const ang = (i * 2.399963); // golden angle
-      const rr = Math.sqrt((i + 0.5) / n);
-      NODES.push({ x: cx + Math.cos(ang) * rx * rr * 0.92, y: cy + Math.sin(ang) * ry * rr * 0.92,
-        ph: (i % 7) * 0.9, off: ((i % 5) - 2) * 0.12, r: 1.6 + (i % 4) * 0.6 });
-    }
-  })();
-  const BLOB = "M150,26 C205,26 262,52 268,106 C272,144 250,190 196,200 C150,208 96,204 58,176 C24,152 28,102 44,72 C64,36 100,26 150,26 Z";
-  function fireColor(a) {
-    a = Math.max(0, Math.min(1, a));
-    const s = [[8,12,18],[22,42,60],[70,120,152],[150,215,240],[240,252,255]];
-    const x = a * (s.length - 1), i = Math.floor(x), f = x - i;
-    const c1 = s[i], c2 = s[Math.min(i + 1, s.length - 1)];
-    const m = (k) => Math.round(c1[k] + (c2[k] - c1[k]) * f);
-    return `rgb(${m(0)},${m(1)},${m(2)})`;
+  // ---- cortical read-out: a lateral hemisphere silhouette whose regional heatmap
+  // warms with the predicted-activation scalar. Illustrative decoration — regional
+  // emphasis is driven off ONE global value, so NO per-region numbers are ever printed.
+  const CORTEX_PATH = "M262,120 C262,80 232,52 190,46 C168,43 150,42 132,44 C96,48 60,64 46,96 C38,114 40,128 54,138 C64,145 78,146 92,150 C98,160 108,172 126,176 C150,182 178,180 200,170 C226,158 250,150 262,120 Z";
+  const SULCI = [
+    "M62,102 C98,90 150,88 196,98 C224,104 244,108 256,114",
+    "M66,124 C104,120 150,124 198,130 C222,133 240,134 252,131",
+    "M94,150 C122,150 150,152 182,149",
+  ];
+  // occipital leads, orbitofrontal trails — a coherent front-to-back sweep, not 44 random pulses
+  const HOTSPOTS = [
+    { cx: 232, cy: 116, r: 60, w: 1.05, ph: 0.0 },   // occipital · visual
+    { cx: 150, cy: 150, r: 58, w: 0.92, ph: 1.3 },   // superior-temporal
+    { cx: 74,  cy: 120, r: 56, w: 0.80, ph: 2.1 },   // orbitofrontal · affect
+  ];
+  let brainBuilt = false, brainEls = null;
+  function setupBrain() {
+    // built ONCE; drawBrain() then only animates attributes (no per-frame innerHTML/filter reparse)
+    const defs = HOTSPOTS.map((h, i) =>
+      `<radialGradient id="hs${i}" cx="50%" cy="50%" r="50%">` +
+        `<stop offset="0%" stop-color="#EAF6FA" stop-opacity=".9"/>` +
+        `<stop offset="45%" stop-color="#BFE0EC" stop-opacity=".35"/>` +
+        `<stop offset="100%" stop-color="#BFE0EC" stop-opacity="0"/></radialGradient>`).join("");
+    const spots = HOTSPOTS.map((h, i) =>
+      `<circle id="hsC${i}" cx="${h.cx}" cy="${h.cy}" r="${h.r}" fill="url(#hs${i})" opacity="0"/>`).join("");
+    const sulci = SULCI.map((d) => `<path d="${d}" fill="none" stroke="#BFE0EC" stroke-width="1" opacity=".08"/>`).join("");
+    els.brain.innerHTML =
+      `<defs>${defs}<clipPath id="brClip"><path d="${CORTEX_PATH}"/></clipPath></defs>` +
+      `<path id="brGlow" d="${CORTEX_PATH}" fill="none" stroke="#BFE0EC" stroke-width="7" opacity="0"/>` +
+      `<path id="brShell" d="${CORTEX_PATH}" fill="rgba(143,179,192,.06)" stroke="#8FB3C0" stroke-width="1.1" stroke-opacity=".55"/>` +
+      sulci +
+      `<g clip-path="url(#brClip)">${spots}</g>`;
+    brainEls = {
+      glow: els.brain.querySelector("#brGlow"),
+      shell: els.brain.querySelector("#brShell"),
+      spots: HOTSPOTS.map((h, i) => els.brain.querySelector("#hsC" + i)),
+    };
+    brainBuilt = true;
   }
 
   // ---- load ----
@@ -273,16 +293,15 @@
   }
 
   function drawBrain(t) {
-    const a = valAt(arc.activation, t);
-    let s = `<path d="${BLOB}" fill="rgba(20,26,52,.5)" stroke="${fireColor(a * 0.7 + 0.15)}" stroke-width="1.2" opacity=".7"/>`;
-    NODES.forEach((n) => {
-      const local = Math.max(0, Math.min(1, a + n.off + 0.1 * Math.sin(t * 2 + n.ph)));
-      const col = fireColor(local), R = n.r * (0.8 + local * 1.3);
-      s += `<circle cx="${n.x}" cy="${n.y}" r="${(R * 3).toFixed(1)}" fill="${col}" opacity="${(0.05 + local * 0.13).toFixed(2)}"/>`;
-      s += `<circle cx="${n.x}" cy="${n.y}" r="${R.toFixed(1)}" fill="${col}" opacity="${(0.35 + local * 0.55).toFixed(2)}"/>`;
+    if (!brainBuilt) setupBrain();
+    const a = Math.max(0, Math.min(1, valAt(arc.activation, t)));
+    // shell always visible (floor .06 clears the panel bg); brightens + halos as activation rises
+    brainEls.shell.setAttribute("fill", `rgba(143,179,192,${(0.06 + a * 0.12).toFixed(3)})`);
+    brainEls.glow.setAttribute("opacity", (a * 0.4).toFixed(3));
+    HOTSPOTS.forEach((h, i) => {
+      const v = Math.max(0, Math.min(1, a * h.w + 0.06 * Math.sin(t * 1.1 + h.ph)));
+      brainEls.spots[i].setAttribute("opacity", v.toFixed(3));
     });
-    s += `<text class="roi" x="66" y="140">visual</text><text class="roi" x="196" y="92">auditory</text><text class="roi" x="124" y="188">assoc.</text>`;
-    els.brain.innerHTML = s;
     els.brainT.textContent = t.toFixed(1) + "s";
   }
 
@@ -326,7 +345,7 @@
       drawCoarse(t);
       drawBrain(t);
       const ws = activeWeakSpot(t);
-      if (ws) { els.callout.classList.remove("hidden"); els.callout.innerHTML = "⚠ <strong>Weak spot at " + fmt(ws.start) + "</strong> — " + ws.label; }
+      if (ws) { els.callout.classList.remove("hidden"); els.callout.innerHTML = '<svg class="cico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.2v3.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".6" fill="currentColor"/></svg><strong>Weak spot at ' + fmt(ws.start) + "</strong> — " + ws.label; }
       else els.callout.classList.add("hidden");
     } catch (e) {
       // defense-in-depth: a draw error must never kill the rAF chain (it re-arms below),
@@ -390,21 +409,18 @@
     const x = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
     const rnd = seeded(hashStr(id)), pts = 7;
     x.clearRect(0, 0, W, H);
-    const line = (amp, yb, alpha, wob) => {
-      const ys = []; for (let i = 0; i < pts; i++) ys.push(yb + (rnd() - 0.5) * amp);
-      x.beginPath();
-      for (let i = 0; i <= 60; i++) {
-        const u = i / 60, f = u * (pts - 1), k = Math.floor(f), fr = f - k;
-        const a = ys[k], b = ys[Math.min(k + 1, pts - 1)];
-        const sm = fr * fr * (3 - 2 * fr);
-        const y = a + (b - a) * sm + Math.sin(u * 9 + wob) * 2;
-        const px = 6 + u * (W - 12);
-        i ? x.lineTo(px, y) : x.moveTo(px, y);
-      }
-      x.strokeStyle = "rgba(191,224,236," + alpha + ")"; x.lineWidth = 1.4; x.stroke();
-    };
-    line(H * 0.34, H * 0.44, 0.5, 0);          // main ice contour
-    line(H * 0.22, H * 0.66, 0.18, 2.1);       // faint echo
+    // one clean deterministic sparkline (no double-echo, no sine wobble → less gimmicky)
+    const ys = []; for (let i = 0; i < pts; i++) ys.push(H * 0.46 + (rnd() - 0.5) * H * 0.34);
+    x.beginPath();
+    for (let i = 0; i <= 60; i++) {
+      const u = i / 60, f = u * (pts - 1), k = Math.floor(f), fr = f - k;
+      const a = ys[k], b = ys[Math.min(k + 1, pts - 1)];
+      const sm = fr * fr * (3 - 2 * fr);
+      const y = a + (b - a) * sm;
+      const px = 6 + u * (W - 12);
+      i ? x.lineTo(px, y) : x.moveTo(px, y);
+    }
+    x.strokeStyle = "rgba(191,224,236,.55)"; x.lineWidth = 1.5; x.stroke();
   }
 
   function renderVids() {

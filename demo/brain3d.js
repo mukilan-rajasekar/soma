@@ -18,10 +18,6 @@
  * prefers-reduced-motion and to no camera-flight on mobile.
  */
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const ASSETS = './assets/';
 
@@ -42,12 +38,12 @@ const CH = [
   { id: 'occ',    cam: [ 0.04, -2.14,  0.17], target: [0.00, -0.45, -0.02], fov: 27, region: [ 0.00, -0.92, -0.06] },
   { id: 'sts',    cam: [ 2.15, -0.05,  0.02], target: [0.40, -0.05, -0.24], fov: 27, region: [ 0.66, -0.05, -0.34] },
   { id: 'dmn',    cam: [ 0.10, -1.85,  1.28], target: [0.00, -0.28,  0.30], fov: 27, region: [ 0.00, -0.52,  0.42] },
-  { id: 'affect', cam: [ 0.04,  2.09, -0.68], target: [0.00,  0.40, -0.30], fov: 27, region: [ 0.00,  0.66, -0.46] },
+  { id: 'affect', cam: [ 0.04,  2.30, -0.05], target: [0.00,  0.40, -0.20], fov: 27, region: [ 0.00,  0.66, -0.46] },
 ];
 const N = CH.length;
 
 // ============================================================================
-let renderer, scene, camera, composer, bloom, clock;
+let renderer, scene, camera, clock;
 let brainGroup, cortexMat;
 let running = false, inView = true;
 let progress = 0, target = 0;      // 0..1 along the whole tour
@@ -114,7 +110,8 @@ const CORTEX_FS = `
     float gy = smoothstep(0.10, 0.95, 1.0 - vSulc);
     vec3 base = mix(uBaseLo, uBaseHi, gy);
     float diff = max(dot(N, normalize(uLightDir)), 0.0);
-    float lit = uAmbient + 0.80 * diff;
+    float head = max(dot(N, V), 0.0);          // camera-relative fill: back-of-head views never collapse to black
+    float lit = uAmbient + 0.55 * diff + 0.25 * head;
     vec3 grey = base * lit;
     grey += vec3(0.30, 0.40, 0.55) * fres * uRimGain;   // cool rim traces the silhouette
     // heatmap activation blob (one region hot at a time): focal core, folds show through
@@ -143,7 +140,7 @@ async function init() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
-  renderer.setClearColor(0x000000, 1);       // pure black stage
+  renderer.setClearColor(0x060608, 1);       // near-black (not pure 0) so translucent edges never composite to a hard black
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(27, 1, 0.01, 100);
@@ -164,19 +161,23 @@ async function init() {
   brainGroup = new THREE.Group();
 
   // translucent, hollow glass cortex — see-through face-on, defined at the rim/folds.
-  // DoubleSide + depthWrite:false lets the far wall read faintly through the near one.
+  // FrontSide + depthWrite:FALSE is the combination that fixes BOTH problems:
+  //  • FrontSide culls the back wall → no hollow see-through-to-black → no "black flashes"
+  //  • depthWrite:false → the mesh writes no depth → no z-fighting between folds → no
+  //    continuous shimmer as the camera turns (depthWrite:true was causing that flicker).
+  // Front faces blend in fixed geometry order (stable under camera motion), giving a calm
+  // translucent surface that stays ethereal at low alpha without strobing.
   cortexMat = new THREE.ShaderMaterial({
     vertexShader: CORTEX_VS, fragmentShader: CORTEX_FS,
-    side: THREE.DoubleSide, transparent: true, depthWrite: false,
+    side: THREE.FrontSide, transparent: true, depthWrite: false,
     uniforms: {
       uLightDir: { value: new THREE.Vector3(0.35, 0.78, 0.55).normalize() },
-      uAmbient: { value: 0.42 },                // a touch more fill so darks aren't jet-black mid-motion
+      uAmbient: { value: 0.42 },
       uBaseLo: { value: new THREE.Color(0.05, 0.055, 0.075) },    // deep sulcus
       uBaseHi: { value: new THREE.Color(0.82, 0.85, 0.92) },      // gyral crown
       uRimGain: { value: 0.55 },
-      uBaseAlpha: { value: 0.17 },              // slightly less see-through, so the hollow centre
-                                                // doesn't strobe to pure black as the camera flies
-      uEdgeAlpha: { value: 0.90 },              // opaque silhouette
+      uBaseAlpha: { value: 0.32 },              // translucent / ethereal
+      uEdgeAlpha: { value: 0.90 },              // defined silhouette
       uRegion: { value: new THREE.Vector3(0, 0, 0) },
       uAct: { value: 0 }, uRadius: { value: 0.58 },
     },
@@ -186,14 +187,11 @@ async function init() {
   brainGroup.add(cortex);
   scene.add(brainGroup);
 
-  // ---- post: whisper of bloom, thresholded so ONLY the hot cores glow ----
-  composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
-  const size = stageSize();
-  bloom = new UnrealBloomPass(new THREE.Vector2(size.w, size.h), MOBILE ? 0.22 : 0.26, 0.5, 0.85);
-  composer.addPass(bloom);
-  composer.addPass(new OutputPass());
-
+  // No post-processing: render the scene straight to the canvas. The EffectComposer +
+  // UnrealBloom chain (multi render-target downsample/blur) was the one constant across
+  // every material we tried, and an intermittently-black composite target is the classic
+  // cause of "random black flashes". Direct rendering removes that entire failure surface;
+  // the bloom was only a faint whisper, so the look barely changes.
   clock = new THREE.Clock();
   resize();
   target = progress = computeProgress();      // snap to restored scroll before first paint
@@ -256,11 +254,23 @@ function computeProgress() {
 function onScroll() { target = computeProgress(); if (!running) start(); }
 
 // ---- camera pose interpolation (arcs around the brain, never through it) -----
+// slerp two UNIT vectors → CONSTANT angular velocity. nlerp (lerp+normalize) of
+// near-antipodal dirs whips through the mid-arc: at the tour's 163°–169° legs the
+// normalized midpoint swings ~4–5× the segment average in a sliver of scroll — that
+// whip is the "fast end-spin" AND (front-lit → near-black back face in a couple frames)
+// the black flash. slerp removes the spike entirely; max arc 163° (sin≈0.29), no blow-up.
+function slerpDir(out, a, b, t) {
+  const d = Math.max(-1, Math.min(1, a.dot(b)));
+  const th = Math.acos(d);
+  if (th < 1e-3) return out.copy(a).lerp(b, t).normalize();     // ~parallel: plain lerp is fine
+  const s = Math.sin(th), w0 = Math.sin((1 - t) * th) / s, w1 = Math.sin(t * th) / s;
+  return out.set(a.x * w0 + b.x * w1, a.y * w0 + b.y * w1, a.z * w0 + b.z * w1);  // stays unit length
+}
 function applyCamera(p) {
   const seg = Math.min(Math.max(p, 0), 1) * (N - 1);
   const i = Math.min(Math.floor(seg), N - 2);
   const t = smooth(seg - i);
-  _dir.copy(camDir[i]).lerp(camDir[i + 1], t).normalize();     // normalized ⇒ stays outside surface
+  slerpDir(_dir, camDir[i], camDir[i + 1], t);                  // constant-rate arc, no mid-swing whip
   const rad = camRad[i] + (camRad[i + 1] - camRad[i]) * t;
   _pos.copy(_dir).multiplyScalar(rad);
   _tgt.copy(camTgt[i]).lerp(camTgt[i + 1], t);
@@ -282,9 +292,10 @@ function updatePanels(force) {
   setRegion(a);
 }
 function setRegion(i) {
+  // relocate the hot patch; do NOT reset actEase — frame() eases uAct toward the new
+  // target so the heatmap travels/fades smoothly instead of blinking off at each boundary.
   const c = CH[i];
-  if (c.region) { cortexMat.uniforms.uRegion.value.set(...c.region); actEase = 0; }  // re-bloom at the new patch
-  else { actEase = 0; }
+  if (c.region) cortexMat.uniforms.uRegion.value.set(...c.region);
 }
 
 // ---- main loop ---------------------------------------------------------------
@@ -314,7 +325,7 @@ function frame() {
   actEase += (wantAct - actEase) * (1 - Math.pow(0.02, dt));
   cortexMat.uniforms.uAct.value = actEase * (0.92 + 0.08 * Math.sin(time * 1.5));
 
-  composer.render();
+  renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 
@@ -327,8 +338,6 @@ function resize() {
   const { w, h } = stageSize();
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP));
   renderer.setSize(w, h, false);
-  composer.setSize(w, h);
-  if (bloom) bloom.setSize(w, h);
   camera.aspect = w / h; camera.updateProjectionMatrix();
   if (!running) renderOnce();
 }
@@ -336,10 +345,10 @@ function resize() {
 // ---- lifecycle ---------------------------------------------------------------
 function start() { if (running || !inView || REDUCE || document.hidden) return; running = true; clock.getDelta(); requestAnimationFrame(frame); }
 function renderOnce() {
-  if (!composer) return;
+  if (!renderer) return;
   applyCamera(progress);
   cortexMat.uniforms.uAct.value = CH[activeCh].region ? 1 : 0;   // static frame: region simply lit
-  composer.render();
+  renderer.render(scene, camera);
 }
 
 function wireStaticScroll() {

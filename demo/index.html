@@ -70,7 +70,7 @@
   <div class="wrap">
     <section class="console" id="console">
       <div class="cbar">
-        <span class="d"></span><span class="d"></span><span class="d"></span>
+        <span class="stat" aria-hidden="true"></span>
         <span>soma · analyze</span><span class="lbl">demo</span>
       </div>
 
@@ -128,7 +128,7 @@
         </div>
 
         <div class="uploadbox" id="uploadBox">
-          <div class="uploadbox-h">⤴ Upload your own ad</div>
+          <div class="uploadbox-h"><svg class="upico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.2V2.4M5.2 5.2 8 2.4 10.8 5.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 10.5v2.2a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Upload your own ad</div>
           <p class="uploadbox-s">Drop a video (mp4 / mov / webm, ≤&nbsp;150&nbsp;MB). We run it through the brain and send back the arc — concierge for now, minutes not days.</p>
           <div class="uploadbox-row">
             <label class="filepick" id="filePick">
@@ -213,7 +213,7 @@
       var modules = 'noModule' in HTMLScriptElement.prototype;   // proxy for import-map support
       if (ok && modules) {
         root.classList.add('brain3d-on');
-        import('./brain3d.js').catch(function (err) {
+        import('./brain3d.js?v=8').catch(function (err) {   /* bump on brain3d edits so the ES module never serves stale from cache */
           console.warn('[brain3d] load failed, keeping 2D fallback:', err);
           root.classList.remove('brain3d-on');
           root.classList.add('brain3d-failed');
