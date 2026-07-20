@@ -10,6 +10,10 @@
   const VIDEOS = [
     { id: "real1", title: "Real TRIBE run · TVSum clip", src: "real · TRIBE v2", arc: "arcs/real_esJrBWj2d8.json",
       grad: "linear-gradient(140deg,#1c2e3a,#0a0f16 60%,#05070b)" },
+    { id: "real2", title: "Real run · TVSum clip", src: "real · TRIBE v2", arc: "arcs/real_EE-bNr36nyA.json",
+      grad: "linear-gradient(140deg,#22303a,#0a0f16 60%,#05070b)" },
+    { id: "real3", title: "Real run · TVSum clip", src: "real · TRIBE v2", arc: "arcs/real_3eYKfiOEJNs.json",
+      grad: "linear-gradient(150deg,#1e2c36,#0b1017 60%,#05070b)" },
     { id: "hero1", title: "Skincare launch", src: "DTC · sample", arc: "arcs/sample_arc.json",
       grad: "linear-gradient(135deg,#2b3d4c,#0c1119 62%,#05070b)" },
     { id: "hero2", title: "App promo", src: "performance · sample", arc: "arcs/hero2.json",
