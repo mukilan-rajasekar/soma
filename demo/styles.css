@@ -352,6 +352,9 @@ canvas#cmpCanvas{width:100%;height:auto;display:block;border-radius:16px;cursor:
    FOOTER
    ========================================================================== */
 footer{text-align:center;padding:32px 0 48px;font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.03em;line-height:1.95}
+footer .foot-links{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-bottom:16px;font-size:12px}
+footer .foot-links a{color:var(--dim);text-decoration:none;transition:color .16s var(--ease)}
+footer .foot-links a:hover{color:var(--ink)}
 
 /* ==========================================================================
    REVEAL ON SCROLL (enhances already-visible content; JS adds .in)

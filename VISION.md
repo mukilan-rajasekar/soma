@@ -61,6 +61,27 @@ generate, which a public-encoder competitor can never scrape.
 
 ---
 
+## Against the field (the one-breath version)
+
+Everyone else measures reactions from **recruited humans** (panels, webcams, surveys)
+or **simulates** them by prompting an LLM to role-play a person. Soma predicts the
+**actual cortical response from the file** — no panel, no webcam, no survey — and is
+the only one that draws a **visible line between validated and hypothesis.**
+
+| Camp | Who | How they get the signal | Our line (true today) |
+|---|---|---|---|
+| Panel · neuro/biometric | Realeyes, Neurons Inc | webcam facial-coding, eye-tracking, some EEG on recruited viewers | From the *file*, minutes not days, cheap enough to test every variant — a predicted brain state, not a facial proxy. |
+| Panel · survey/emotion | System1, Nielsen | recruited panels rate ads, tied to norms | Built for a few hero spots at brand budgets; we serve the high-volume low end they ignore. |
+| Synthetic · LLM personas | Aaru, Simile | prompt an LLM to role-play a consumer | No biology — predicts what a person would *say* (agreeable-answer bias), not how a brain responds. |
+| Same model, different bet | **VidCognition** | *also* Meta TRIBE v2 → per-second "brain engagement" | Same public eye; we differ on **honesty** (we show validated-vs-hypothesis and run the held-out test; they present it as fact) and **buyer** (performance teams + a data flywheel, not a creator hook-score). |
+
+**The wedge is the signal source, not the arc's shape** — incumbents already ship
+per-second curves; we change where the signal comes from. We do **not** claim to be
+more accurate, or that the arc predicts retention — those are earned on the roadmap,
+never asserted. Full breakdown + the four interview-killer answers: **`COMPETITORS.md`**.
+
+---
+
 ## The road to "this level" (R0 → R4)
 
 Each rung is *earned by a held-out test*, never asserted. (Mirrors `ROADMAP.md`.)
