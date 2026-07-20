@@ -54,42 +54,65 @@
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  // ---- cortical read-out: a lateral hemisphere silhouette whose regional heatmap
-  // warms with the predicted-activation scalar. Illustrative decoration — regional
-  // emphasis is driven off ONE global value, so NO per-region numbers are ever printed.
+  // ---- cortical read-out: a lateral hemisphere outline over a vertex mesh, plus a live
+  // magnitude readout + activation colorbar. The ENTIRE mesh warms UNIFORMLY off ONE global
+  // scalar (valAt(arc.activation, t)); nothing is per-region and NO per-region numbers are
+  // ever printed — the only value shown is that single whole-cortex magnitude.
   const CORTEX_PATH = "M262,120 C262,80 232,52 190,46 C168,43 150,42 132,44 C96,48 60,64 46,96 C38,114 40,128 54,138 C64,145 78,146 92,150 C98,160 108,172 126,176 C150,182 178,180 200,170 C226,158 250,150 262,120 Z";
   const SULCI = [
     "M62,102 C98,90 150,88 196,98 C224,104 244,108 256,114",
     "M66,124 C104,120 150,124 198,130 C222,133 240,134 252,131",
     "M94,150 C122,150 150,152 182,149",
   ];
-  // occipital leads, orbitofrontal trails — a coherent front-to-back sweep, not 44 random pulses
-  const HOTSPOTS = [
-    { cx: 232, cy: 116, r: 60, w: 1.05, ph: 0.0 },   // occipital · visual
-    { cx: 150, cy: 150, r: 58, w: 0.92, ph: 1.3 },   // superior-temporal
-    { cx: 74,  cy: 120, r: 56, w: 0.80, ph: 2.1 },   // orbitofrontal · affect
-  ];
   let brainBuilt = false, brainEls = null;
+  // deterministic vertex mesh: a grid of dots clipped to the cortex outline — evokes the
+  // fsaverage vertex surface (technical, not an abstract blob). Each dot's baseline alpha is
+  // fixed decorative texture; the whole GROUP's opacity is what tracks activation, so every
+  // "vertex" brightens together off the single global magnitude (never per-region).
+  function meshDots() {
+    let out = "";
+    for (let gy = 50; gy <= 180; gy += 10) {
+      for (let gx = 30; gx <= 258; gx += 10) {
+        const seed = ((gx * 73856093) ^ (gy * 19349663)) >>> 0;
+        const a = 0.30 + (seed % 1000) / 1000 * 0.6;                 // fixed per-dot texture
+        const r = (1.0 + ((seed >> 10) % 100) / 100 * 0.8).toFixed(2);
+        out += `<circle cx="${gx}" cy="${gy}" r="${r}" fill="#BFE0EC" fill-opacity="${a.toFixed(2)}"/>`;
+      }
+    }
+    return out;
+  }
   function setupBrain() {
-    // built ONCE; drawBrain() then only animates attributes (no per-frame innerHTML/filter reparse)
-    const defs = HOTSPOTS.map((h, i) =>
-      `<radialGradient id="hs${i}" cx="50%" cy="50%" r="50%">` +
-        `<stop offset="0%" stop-color="#EAF6FA" stop-opacity=".9"/>` +
-        `<stop offset="45%" stop-color="#BFE0EC" stop-opacity=".35"/>` +
-        `<stop offset="100%" stop-color="#BFE0EC" stop-opacity="0"/></radialGradient>`).join("");
-    const spots = HOTSPOTS.map((h, i) =>
-      `<circle id="hsC${i}" cx="${h.cx}" cy="${h.cy}" r="${h.r}" fill="url(#hs${i})" opacity="0"/>`).join("");
-    const sulci = SULCI.map((d) => `<path d="${d}" fill="none" stroke="#BFE0EC" stroke-width="1" opacity=".08"/>`).join("");
+    // built ONCE; drawBrain() then only sets a few attributes/textContent (no per-frame reparse)
+    const sulci = SULCI.map((d) => `<path d="${d}" fill="none" stroke="#8FB3C0" stroke-width="1" opacity=".14"/>`).join("");
     els.brain.innerHTML =
-      `<defs>${defs}<clipPath id="brClip"><path d="${CORTEX_PATH}"/></clipPath></defs>` +
+      `<defs>` +
+        `<clipPath id="brClip"><path d="${CORTEX_PATH}"/></clipPath>` +
+        `<linearGradient id="brBarGrad" x1="0" y1="1" x2="0" y2="0">` +
+          `<stop offset="0" stop-color="#20242a"/><stop offset=".45" stop-color="#8FB3C0"/><stop offset="1" stop-color="#EAF6FA"/>` +
+        `</linearGradient>` +
+      `</defs>` +
+      // live whole-cortex magnitude readout (0–1) + running peak
+      `<text id="brMag" x="14" y="30" fill="#EAF6FA" font-family="ui-monospace,monospace" font-size="21" font-weight="600">0.00</text>` +
+      `<text x="14" y="43" fill="#7C7C82" font-family="ui-monospace,monospace" font-size="8" letter-spacing=".8">GLOBAL ACTIVATION · NORM</text>` +
+      `<text id="brPk" x="252" y="24" text-anchor="end" fill="#8FB3C0" font-family="ui-monospace,monospace" font-size="9">PK 0.00</text>` +
+      // cortex glow + outline + sulci + vertex mesh
       `<path id="brGlow" d="${CORTEX_PATH}" fill="none" stroke="#BFE0EC" stroke-width="7" opacity="0"/>` +
-      `<path id="brShell" d="${CORTEX_PATH}" fill="rgba(143,179,192,.06)" stroke="#8FB3C0" stroke-width="1.1" stroke-opacity=".55"/>` +
+      `<path id="brShell" d="${CORTEX_PATH}" fill="rgba(143,179,192,.05)" stroke="#8FB3C0" stroke-width="1.1" stroke-opacity=".6"/>` +
       sulci +
-      `<g clip-path="url(#brClip)">${spots}</g>`;
+      `<g id="brMesh" clip-path="url(#brClip)" opacity="0.12">${meshDots()}</g>` +
+      // activation colorbar + moving marker
+      `<rect x="270" y="56" width="6" height="122" rx="3" fill="url(#brBarGrad)" opacity=".72"/>` +
+      `<rect x="270" y="56" width="6" height="122" rx="3" fill="none" stroke="#8FB3C0" stroke-opacity=".3"/>` +
+      `<text x="266" y="59" text-anchor="end" fill="#7C7C82" font-family="ui-monospace,monospace" font-size="8">1.0</text>` +
+      `<text x="266" y="181" text-anchor="end" fill="#7C7C82" font-family="ui-monospace,monospace" font-size="8">0</text>` +
+      `<rect id="brMark" x="267" y="176" width="12" height="2.2" rx="1" fill="#EAF6FA"/>`;
     brainEls = {
       glow: els.brain.querySelector("#brGlow"),
       shell: els.brain.querySelector("#brShell"),
-      spots: HOTSPOTS.map((h, i) => els.brain.querySelector("#hsC" + i)),
+      mesh: els.brain.querySelector("#brMesh"),
+      mark: els.brain.querySelector("#brMark"),
+      mag: els.brain.querySelector("#brMag"),
+      pk: els.brain.querySelector("#brPk"),
     };
     brainBuilt = true;
   }
@@ -137,6 +160,7 @@
   function init() {
     const ts = arc.timestamps || [];
     duration = arc.duration_sec || ts[ts.length - 1] || 0;
+    computeStats();  // descriptive per-lane metrics (peak / mean / min) for the read-out overlays
     setupVideo();   // (a) real footage sync if arc.video_src is non-empty; else timer
     setupCoarse();  // (b) coarse discrete-state distribution if arc.affect.coarse_states present
     if (!started) { started = true; startLoop(); } // one loop, not one-per-pick (gated + re-armable)
@@ -191,54 +215,130 @@
     if (hasVideo && els.video) { try { els.video.currentTime = t; } catch (e) {} }
   }
 
-  // ---- geometry helpers ----
-  function xAt(c, t) { const pad = 8; return pad + (t / duration) * (c.width - 2 * pad); }
+  // ---- geometry + instrument helpers ----
+  const PADL = 30, PADR = 12;                 // left gutter holds the y-axis tick labels
+  function xAt(c, t) { return PADL + (duration ? t / duration : 0) * (c.width - PADL - PADR); }
+  function timeTicks() {                       // evenly-spaced time gridlines (0..duration)
+    if (!duration) return [];
+    const n = 4, out = [];
+    for (let i = 0; i <= n; i++) out.push((duration * i) / n);
+    return out;
+  }
+  // per-lane summary stats, computed ONCE per clip. Honest: peak/mean/min are plain
+  // descriptive statistics of the very same scalar the curve plots — nothing fabricated,
+  // nothing per-region.
+  let arcStats = null;
+  function statOf(arr) {
+    if (!Array.isArray(arr) || !arr.length) return null;
+    let mn = Infinity, mx = -Infinity, s = 0, ai = 0;
+    for (let i = 0; i < arr.length; i++) { const v = arr[i]; if (v < mn) mn = v; if (v > mx) { mx = v; ai = i; } s += v; }
+    return { min: mn, max: mx, mean: s / arr.length, argmax: ai };
+  }
+  function computeStats() {
+    const af = arc.affect || {};
+    arcStats = { att: statOf(arc.activation), val: statOf(af.valence), aro: statOf(af.arousal) };
+  }
+  // faint instrument grid: horizontal y-gridlines + tick labels, vertical time gridlines + labels
+  function drawGrid(x, c, W, top, bot, yTicks, Yfn) {
+    x.save();
+    x.font = "9px ui-monospace, monospace"; x.lineWidth = 1;
+    x.textBaseline = "middle"; x.textAlign = "right";
+    yTicks.forEach((tk) => {
+      const py = Yfn(tk.v);
+      x.strokeStyle = "rgba(255,255,255,.055)";
+      x.beginPath(); x.moveTo(PADL, py); x.lineTo(W - PADR, py); x.stroke();
+      x.fillStyle = "rgba(124,124,130,.85)"; x.fillText(tk.label, PADL - 6, py);
+    });
+    x.textAlign = "center"; x.textBaseline = "alphabetic";
+    timeTicks().forEach((tt) => {
+      const px = xAt(c, tt);
+      x.strokeStyle = "rgba(255,255,255,.035)";
+      x.beginPath(); x.moveTo(px, top); x.lineTo(px, bot); x.stroke();
+      x.fillStyle = "rgba(124,124,130,.7)"; x.fillText(fmt(tt), px, bot + 12);
+    });
+    x.restore();
+  }
+  // live NOW / PEAK / mean readout, top-right of a lane
+  function drawStats(x, W, cur, s) {
+    if (!s) return;
+    x.save();
+    x.font = "9px ui-monospace, monospace"; x.textAlign = "right"; x.textBaseline = "top";
+    x.fillStyle = "rgba(191,224,236,.85)";
+    x.fillText("NOW " + cur.toFixed(2) + "   PK " + s.max.toFixed(2) + "   μ " + s.mean.toFixed(2), W - PADR, 2);
+    x.restore();
+  }
 
   function drawAttention(t) {
-    const c = els.cAtt, x = c.getContext("2d"), W = c.width, H = c.height, pad = 8, top = 10, bot = H - 14;
+    const c = els.cAtt, x = c.getContext("2d"), W = c.width, H = c.height, top = 14, bot = H - 22;
     const xs = arc.timestamps, ys = arc.activation;
     x.clearRect(0, 0, W, H);
-    const Y = (v) => bot - v * (bot - top);
+    const Y = (v) => bot - clamp01(v) * (bot - top);
+    drawGrid(x, c, W, top, bot, [{ v: 1, label: "1.0" }, { v: 0.5, label: "0.5" }, { v: 0, label: "0" }], Y);
+    // weak-spot warning bands
     (arc.weak_spots || []).forEach((w) => {
-      x.fillStyle = "rgba(255,122,122,0.10)";   // faint red = weak-spot warning band
+      x.fillStyle = "rgba(255,122,122,0.09)";
       x.fillRect(xAt(c, w.start), top, xAt(c, w.end) - xAt(c, w.start), bot - top);
     });
+    // area fill under the curve
+    x.beginPath();
+    xs.forEach((tt, i) => { const px = xAt(c, tt), py = Y(ys[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); });
+    x.lineTo(xAt(c, xs[xs.length - 1]), bot); x.lineTo(xAt(c, xs[0]), bot); x.closePath();
+    x.fillStyle = "rgba(191,224,236,.06)"; x.fill();
+    // ice line
     const grad = x.createLinearGradient(0, 0, W, 0);
-    grad.addColorStop(0, "#8FB3C0"); grad.addColorStop(0.5, "#EAF6FA"); grad.addColorStop(1, "#8FB3C0");   // ice ramp
+    grad.addColorStop(0, "#8FB3C0"); grad.addColorStop(0.5, "#EAF6FA"); grad.addColorStop(1, "#8FB3C0");
     x.save();
-    x.beginPath(); x.lineWidth = 2.2; x.strokeStyle = grad;
-    x.shadowColor = "rgba(191,224,236,.6)"; x.shadowBlur = 12;   // ice glow
+    x.beginPath(); x.lineWidth = 2.1; x.strokeStyle = grad;
+    x.shadowColor = "rgba(191,224,236,.5)"; x.shadowBlur = 9;
     xs.forEach((tt, i) => { const px = xAt(c, tt), py = Y(ys[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); });
     x.stroke();
     x.restore();
-    x.lineTo(xAt(c, xs[xs.length - 1]), bot); x.lineTo(xAt(c, xs[0]), bot); x.closePath();
-    x.fillStyle = "rgba(191,224,236,.08)"; x.fill();
+    // peak marker (drops a stem to the highest predicted sample)
+    const s = arcStats && arcStats.att;
+    if (s) {
+      const pkx = xAt(c, xs[s.argmax]), pky = Y(s.max);
+      x.strokeStyle = "rgba(191,224,236,.32)"; x.lineWidth = 1;
+      x.beginPath(); x.moveTo(pkx, top); x.lineTo(pkx, pky); x.stroke();
+      x.fillStyle = "rgba(191,224,236,.9)"; x.beginPath(); x.arc(pkx, pky, 2.3, 0, 7); x.fill();
+    }
+    // playhead + current-sample dot + live metrics
     playhead(x, c, t, top, bot);
+    const cur = clamp01(valAt(ys, t));
+    x.fillStyle = "#EAF6FA"; x.beginPath(); x.arc(xAt(c, t), Y(cur), 3, 0, 7); x.fill();
+    drawStats(x, W, cur, s);
   }
 
-  function drawSigned(canvas, seq, lo, hi, t, colorCss, mode) {
+  function drawSigned(canvas, seq, lo, hi, t, colorCss, mode, statKey) {
     // mode 'center' => baseline mid (valence, range ~[-1,1]); 'bottom' => baseline bottom (arousal, [0,1])
-    const c = canvas, x = c.getContext("2d"), W = c.width, H = c.height, top = 10, bot = H - 12;
+    const c = canvas, x = c.getContext("2d"), W = c.width, H = c.height, top = 14, bot = H - 20;
     x.clearRect(0, 0, W, H);
     if (!seq) { return; }   // no affect track on this clip → leave the lane clean
     const base = mode === "center" ? (top + bot) / 2 : bot;
     const scale = mode === "center" ? (bot - top) / 2 : (bot - top);
     const Y = (v) => base - v * scale;
-    // baseline
-    x.strokeStyle = "rgba(255,255,255,.12)"; x.lineWidth = 1;
-    x.beginPath(); x.moveTo(8, base); x.lineTo(W - 8, base); x.stroke();
+    const yTicks = mode === "center"
+      ? [{ v: 1, label: "+1" }, { v: 0, label: "0" }, { v: -1, label: "−1" }]
+      : [{ v: 1, label: "1.0" }, { v: 0.5, label: "0.5" }, { v: 0, label: "0" }];
+    drawGrid(x, c, W, top, bot, yTicks, Y);
+    // emphasized zero/baseline
+    x.strokeStyle = "rgba(255,255,255,.2)"; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(PADL, base); x.lineTo(W - PADR, base); x.stroke();
     // uncertainty band
     if (lo && hi) {
       x.beginPath();
       arc.timestamps.forEach((tt, i) => { const px = xAt(c, tt), py = Y(hi[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); });
       for (let i = arc.timestamps.length - 1; i >= 0; i--) x.lineTo(xAt(c, arc.timestamps[i]), Y(lo[i]));
-      x.closePath(); x.fillStyle = colorCss.replace("COLOR", ".14"); x.fill();
+      x.closePath(); x.fillStyle = colorCss.replace("COLOR", ".13"); x.fill();
     }
     // line
-    x.beginPath(); x.lineWidth = 2.2; x.strokeStyle = colorCss.replace("COLOR", "1");
+    x.beginPath(); x.lineWidth = 2.1; x.strokeStyle = colorCss.replace("COLOR", "1");
     arc.timestamps.forEach((tt, i) => { const px = xAt(c, tt), py = Y(seq[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); });
     x.stroke();
+    // playhead + current-sample dot + live metrics
     playhead(x, c, t, top, bot);
+    const cur = valAt(seq, t);
+    x.fillStyle = colorCss.replace("COLOR", "1"); x.beginPath(); x.arc(xAt(c, t), Y(cur), 3, 0, 7); x.fill();
+    drawStats(x, W, cur, arcStats && arcStats[statKey]);
   }
 
   function playhead(x, c, t, top, bot) {
@@ -294,14 +394,15 @@
 
   function drawBrain(t) {
     if (!brainBuilt) setupBrain();
-    const a = Math.max(0, Math.min(1, valAt(arc.activation, t)));
-    // shell always visible (floor .06 clears the panel bg); brightens + halos as activation rises
-    brainEls.shell.setAttribute("fill", `rgba(143,179,192,${(0.06 + a * 0.12).toFixed(3)})`);
-    brainEls.glow.setAttribute("opacity", (a * 0.4).toFixed(3));
-    HOTSPOTS.forEach((h, i) => {
-      const v = Math.max(0, Math.min(1, a * h.w + 0.06 * Math.sin(t * 1.1 + h.ph)));
-      brainEls.spots[i].setAttribute("opacity", v.toFixed(3));
-    });
+    const a = clamp01(valAt(arc.activation, t));
+    // shell always visible (floor clears the panel bg); the whole mesh brightens uniformly
+    brainEls.shell.setAttribute("fill", `rgba(143,179,192,${(0.05 + a * 0.1).toFixed(3)})`);
+    brainEls.glow.setAttribute("opacity", (a * 0.35).toFixed(3));
+    brainEls.mesh.setAttribute("opacity", (0.12 + a * 0.8).toFixed(3));   // uniform — one global value
+    brainEls.mark.setAttribute("y", (176 - a * 120).toFixed(1));          // colorbar marker: 0 bottom → 1 top
+    brainEls.mag.textContent = a.toFixed(2);
+    const s = arcStats && arcStats.att;
+    if (s) brainEls.pk.textContent = "PK " + s.max.toFixed(2);
     els.brainT.textContent = t.toFixed(1) + "s";
   }
 
@@ -340,8 +441,8 @@
       els.clock.textContent = fmt(t) + " / " + fmt(duration);
       drawAttention(t);
       const af = arc.affect || {};
-      drawSigned(els.cVal, af.valence, af.valence_lo, af.valence_hi, t, "rgba(234,244,255,COLOR)", "center");
-      drawSigned(els.cAro, af.arousal, af.arousal_lo, af.arousal_hi, t, "rgba(143,179,192,COLOR)", "bottom");
+      drawSigned(els.cVal, af.valence, af.valence_lo, af.valence_hi, t, "rgba(234,244,255,COLOR)", "center", "val");
+      drawSigned(els.cAro, af.arousal, af.arousal_lo, af.arousal_hi, t, "rgba(143,179,192,COLOR)", "bottom", "aro");
       drawCoarse(t);
       drawBrain(t);
       const ws = activeWeakSpot(t);
