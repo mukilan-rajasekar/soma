@@ -233,12 +233,12 @@
   <section class="blk">
     <div class="eyebrow">03 · the model</div>
     <h2>TRIBE v2 predicts that response without a scanner.</h2>
-    <p class="body">In 2025, Meta released TRIBE, a model that won the Algonauts brain-encoding benchmark. Give it a video and it predicts the cortical response that video would produce, at one-second resolution across about 20,000 points on the cortical surface. It learned the mapping from real 7-tesla fMRI recordings of people watching video.</p>
+    <p class="body">In 2025, Meta released TRIBE — the model that won the Algonauts 2025 brain-encoding challenge, 1st of 263 teams — and then TRIBE v2, the larger successor we run. Give it a video and it predicts the cortical response that video would produce, at one-second resolution across about 20,000 points on the cortical surface. It learned the mapping from real 3-tesla fMRI recordings of people watching video.</p>
     <p class="body">The model is public. Anyone can download the same weights. That cuts two ways for us: the science is reproducible, and the model by itself is not a moat for anyone. We build the read-out on top of it, and we say plainly that the encoder is Meta's, not ours.</p>
 
     <div class="note warn">
-      <div class="nh"><h3>About that 92%</h3><span class="tier g">video → activation: validated</span></div>
-      <p>Meta reports roughly <b>92% correlation</b> between TRIBE's predictions and real fMRI. Read it precisely: that is the accuracy of <b>video&nbsp;→&nbsp;brain&nbsp;activation</b>. It says nothing about whether brain activation predicts whether someone keeps watching. Some tools quote the 92% as if it validated an engagement score. It does not. That next step is a separate question, and it is the one we are testing.</p>
+      <div class="nh"><h3>About that &ldquo;92%&rdquo;</h3><span class="tier g">video → activation: validated</span></div>
+      <p>You'll see a &ldquo;<b>92% correlation with fMRI</b>&rdquo; figure quoted by other brain-AI tools and attributed to Meta. We can't source it to any Meta publication, so we don't use it. Meta's TRIBE actually reports a mean correlation of about <b>0.21</b> across ~1,000 cortical regions on held-out data — roughly half of the measurable ceiling — with TRIBE v2 several-fold better again. Either way, that number is the accuracy of <b>video&nbsp;→&nbsp;brain&nbsp;activation</b>: it says nothing about whether activation predicts whether someone keeps watching. That next step is a separate question, and it is the one we test in the open.</p>
     </div>
   </section>
 

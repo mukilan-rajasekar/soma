@@ -150,6 +150,9 @@
   }
   function bail(label, e) {
     failed = true;
+    // a failed load must not leave the previous arc's honesty badge stranded over the error
+    // frame (it would assert a lane state no longer shown).
+    document.querySelectorAll(".headbadge").forEach((b) => b.remove());
     [els.cAtt, els.cVal, els.cAro].filter(Boolean).forEach((c) => {
       const x = c.getContext("2d"); x.clearRect(0, 0, c.width, c.height);
       x.fillStyle = "#ff7a7a"; x.font = "13px ui-monospace,monospace";
@@ -161,6 +164,10 @@
     const ts = arc.timestamps || [];
     duration = arc.duration_sec || ts[ts.length - 1] || 0;
     computeStats();  // descriptive per-lane metrics (peak / mean / min) for the read-out overlays
+    // when head_apply.py has written a trained-head lane, the demoted arithmetic arc rides
+    // along as arc.baseline — drawn faint under the headline head arc (honest before/after).
+    arc._baseline = (arc.baseline && Array.isArray(arc.baseline.activation)) ? arc.baseline.activation : null;
+    setHeadBadge();  // (c) head-arc honesty badge on the attention lane (no-op if absent)
     setupVideo();   // (a) real footage sync if arc.video_src is non-empty; else timer
     setupCoarse();  // (b) coarse discrete-state distribution if arc.affect.coarse_states present
     if (!started) { started = true; startLoop(); } // one loop, not one-per-pick (gated + re-armable)
@@ -238,6 +245,34 @@
     const af = arc.affect || {};
     arcStats = { att: statOf(arc.activation), val: statOf(af.valence), aro: statOf(af.arousal) };
   }
+  // (c) head-arc honesty badges. When head_apply.py has written trained-head lanes, surface
+  // each lane's badge under its title (attention + valence + arousal). Absent => nothing
+  // shown (sample cards + pre-head arcs unaffected). It NEVER asserts validation: any status
+  // that is not the validated tier ("learned-hypothesis") shows in warning red, so a smoke /
+  // unvalidated / poisoned head can't be mistaken for a validated result.
+  function setLaneBadge(canvasEl, txt, st) {
+    const lane = canvasEl && canvasEl.closest && canvasEl.closest(".lane");
+    const h = lane && lane.querySelector(".lane-h");
+    const nameEl = (h && h.querySelector(".name")) || h;
+    if (!nameEl) return;
+    let b = nameEl.querySelector(".headbadge");
+    if (!txt) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement("small"); b.className = "headbadge"; nameEl.appendChild(b); }
+    b.textContent = txt;
+    b.style.cssText = "display:block;margin-top:5px;font:11px/1.35 ui-monospace,monospace;" +
+      "max-width:62ch;letter-spacing:.2px;opacity:.9;color:" +
+      ((st === "learned-hypothesis") ? "#8FB3C0" : "#ff9a9a");
+  }
+  function setHeadBadge() {
+    const laneA = arc.lanes && arc.lanes.attention;
+    setLaneBadge(els.cAtt, arc.attention_badge || (laneA && laneA.badge) || "",
+      arc.attention_status || (laneA && laneA.status) || "");
+    const af = arc.affect || {}, lv = arc.lanes && arc.lanes.valence, la = arc.lanes && arc.lanes.arousal;
+    setLaneBadge(els.cVal, af.valence_badge || (lv && lv.badge) || "",
+      af.valence_status || (lv && lv.status) || "");
+    setLaneBadge(els.cAro, af.arousal_badge || (la && la.badge) || "",
+      af.arousal_status || (la && la.status) || "");
+  }
   // faint instrument grid: horizontal y-gridlines + tick labels, vertical time gridlines + labels
   function drawGrid(x, c, W, top, bot, yTicks, Yfn) {
     x.save();
@@ -284,6 +319,14 @@
     xs.forEach((tt, i) => { const px = xAt(c, tt), py = Y(ys[i]); i ? x.lineTo(px, py) : x.moveTo(px, py); });
     x.lineTo(xAt(c, xs[xs.length - 1]), bot); x.lineTo(xAt(c, xs[0]), bot); x.closePath();
     x.fillStyle = "rgba(191,224,236,.06)"; x.fill();
+    // demoted arithmetic baseline (present only once a trained-head arc replaced it as the
+    // headline) — faint dashed grey so the honest before/after is visible, not hidden.
+    if (arc._baseline && arc._baseline.length === xs.length) {
+      x.save(); x.setLineDash([5, 4]); x.lineWidth = 1.1; x.strokeStyle = "rgba(124,124,130,.55)";
+      x.beginPath();
+      xs.forEach((tt, i) => { const px = xAt(c, tt), py = Y(clamp01(arc._baseline[i])); i ? x.lineTo(px, py) : x.moveTo(px, py); });
+      x.stroke(); x.restore();
+    }
     // ice line
     const grad = x.createLinearGradient(0, 0, W, 0);
     grad.addColorStop(0, "#8FB3C0"); grad.addColorStop(0.5, "#EAF6FA"); grad.addColorStop(1, "#8FB3C0");
@@ -485,6 +528,28 @@
     currentId = v.id;
     markActive(v.id);
     seek(0); setPlaying(false); load(v);
+    setSampleWatermark(v);
+  }
+
+  // Honesty guard: illustrative/sample cards animate the SAME authoritative NOW/PK/μ overlays
+  // as the real run, so mark the stage plainly when one is active (real1 = the only real run).
+  function setSampleWatermark(v) {
+    const stage = document.getElementById("console");
+    if (!stage) return;
+    const isSample = /sample/i.test((v && v.src) || "") || (v && v.id) !== "real1";
+    let wm = stage.querySelector(".sample-wm");
+    if (!isSample) { if (wm) wm.remove(); return; }
+    if (!wm) {
+      wm = document.createElement("div");
+      wm.className = "sample-wm";
+      wm.textContent = "◆ ILLUSTRATIVE SAMPLE — synthetic data, not model output";
+      wm.style.cssText = "position:absolute;top:10px;left:50%;transform:translateX(-50%);" +
+        "z-index:6;pointer-events:none;font:11px/1 ui-monospace,monospace;letter-spacing:.4px;" +
+        "color:#ffce6b;background:rgba(20,15,4,.74);border:1px solid rgba(255,203,92,.45);" +
+        "padding:5px 11px;border-radius:999px;white-space:nowrap";
+      if (getComputedStyle(stage).position === "static") stage.style.position = "relative";
+      stage.appendChild(wm);
+    }
   }
 
   function durLabel(v) {
@@ -724,7 +789,8 @@
     setTimeout(flush, 3500);
   })();
 
-  // start — open on a complete sample read-out (all three lanes populated)
-  pickVideo(VIDEOS.find(function (v) { return v.id === "hero1"; }) || VIDEOS[0]);
+  // start — open on the REAL TRIBE run (honesty: never default to a synthetic/illustrative
+  // card; a first impression of authoritative overlays on sample data reads as fabricated).
+  pickVideo(VIDEOS.find(function (v) { return v.id === "real1"; }) || VIDEOS[0]);
   mergeLiveArcs();   // fold in any live Supabase arcs (async; no-op if unconfigured)
 })();
