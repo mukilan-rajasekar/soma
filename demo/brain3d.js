@@ -48,8 +48,10 @@ let brainGroup, cortexMat;
 let running = false, inView = true;
 let progress = 0, target = 0;      // 0..1 along the whole tour
 let activeCh = 0, actEase = 0;     // heatmap activation envelope (0..1)
+let lastRegionCh = -1;             // last chapter whose heatmap region was set (avoid per-frame reset)
 let lastBare = true;               // true = at the very top: bare brain, no bubble
-const panels = [];
+const panels = [];                 // .chapter scroll containers (is-active drives the scrim)
+const panelBoxes = [];             // the .panel bubble inside each chapter (JS drives its opacity)
 let tourEl = null, stageEl = null;
 let lenis = null;
 
@@ -134,7 +136,7 @@ async function init() {
   if (!canvas) throw new Error('no #brainCanvas');
   tourEl = document.getElementById('brain-tour');
   stageEl = document.getElementById('brainStage');
-  document.querySelectorAll('#brain-tour .chapter').forEach(el => panels.push(el));
+  document.querySelectorAll('#brain-tour .chapter').forEach(el => { panels.push(el); panelBoxes.push(el.querySelector('.panel')); });
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: !MOBILE, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP));
@@ -282,14 +284,41 @@ function applyCamera(p) {
 function smooth(t) { return t * t * (3 - 2 * t); }             // smoothstep ease
 
 // ---- panels + active chapter -------------------------------------------------
+// Panels crossfade off the REAL scroll position (`target`), never the damped camera
+// `progress`. That is the whole fix for "cards load in weird / rushed / inconsistent
+// up vs down": a panel's opacity is now a pure, continuous function of where it physically
+// sits in the viewport, so it is (a) identical scrolling both ways, (b) locked 1:1 to the
+// scrollbar (can't lag behind the eased camera and pop in late), and (c) impossible to
+// flicker at a boundary — there is no class toggle mid-transition to restart, just a value.
+// P_HOLD = full-opacity dead-band around each chapter centre; P_FADE = crossfade width
+// (in chapter units); P_HYST = dead-band for the binary scrim/heatmap so they don't twitch.
+const P_HOLD = 0.30, P_FADE = 0.56, P_HYST = 0.12;
 function updatePanels(force) {
-  const a = Math.round(progress * (N - 1));
-  const bare = progress < 0.02;            // very top: no bubble, just the empty brain
-  if (a === activeCh && bare === lastBare && !force) return;
+  const pos = Math.min(Math.max(target, 0), 1);
+  const f = pos * (N - 1);                  // continuous chapter coordinate, 0..N-1
+  const bare = pos < 0.02;                  // very top: no bubble, just the empty brain
+  // Hysteretic dominant chapter — drives ONLY the binary scrim + heatmap region. The
+  // dead-band keeps them from switching when scroll settles right on a .5 boundary.
+  const near = Math.round(f);
+  if (near !== activeCh && Math.abs(f - activeCh) > 0.5 + P_HYST) activeCh = near;
+  // Hero (i=0) rises up out of the bare top instead of being present at scrollY 0.
+  // Start the ramp exactly at the bare cutoff (0.02) so opacity is continuous through it.
+  const enter = Math.max(0, Math.min(1, (pos - 0.02) / 0.05));
+  for (let i = 0; i < panelBoxes.length; i++) {
+    const box = panelBoxes[i]; if (!box) continue;
+    let op;
+    if (REDUCE) { op = (!bare && i === activeCh) ? 1 : 0; }   // reduced-motion: snap, no fade
+    else {
+      op = Math.max(0, Math.min(1, 1 - (Math.abs(f - i) - P_HOLD) / P_FADE));
+      if (i === 0) op *= enter;
+      if (bare) op = 0;
+    }
+    box.style.opacity = op.toFixed(3);
+    box.style.transform = (REDUCE || op > 0.999) ? 'none' : 'translateY(' + ((1 - op) * 8).toFixed(1) + 'px)';
+    panels[i].classList.toggle('is-active', !bare && i === activeCh);
+  }
+  if (activeCh !== lastRegionCh) { setRegion(activeCh); lastRegionCh = activeCh; }
   lastBare = bare;
-  activeCh = a;
-  panels.forEach((el, i) => el.classList.toggle('is-active', !bare && i === a));
-  setRegion(a);
 }
 function setRegion(i) {
   // relocate the hot patch; do NOT reset actEase — frame() eases uAct toward the new

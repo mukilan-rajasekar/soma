@@ -229,7 +229,7 @@
       var modules = 'noModule' in HTMLScriptElement.prototype;   // proxy for import-map support
       if (ok && modules) {
         root.classList.add('brain3d-on');
-        import('./brain3d.js?v=8').catch(function (err) {   /* bump on brain3d edits so the ES module never serves stale from cache */
+        import('./brain3d.js?v=9').catch(function (err) {   /* bump on brain3d edits so the ES module never serves stale from cache */
           console.warn('[brain3d] load failed, keeping 2D fallback:', err);
           root.classList.remove('brain3d-on');
           root.classList.add('brain3d-failed');

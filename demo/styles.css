@@ -161,7 +161,11 @@ h1 .grad{color:var(--ice)}                    /* emphasis = ice accent, never a 
   background:radial-gradient(70% 80% at 78% 50%,rgba(0,0,0,.42),rgba(0,0,0,0) 70%)}
 .brain3d-on .chapter[data-ch="0"]::before{background:radial-gradient(64% 78% at 26% 46%,rgba(0,0,0,.44),rgba(0,0,0,0) 72%)}
 .brain3d-on .chapter.is-active::before{opacity:1}
-.brain3d-on .panel{opacity:0;transform:translateY(26px);transition:opacity .55s var(--ease),transform .55s var(--ease);pointer-events:auto}
+/* opacity + transform are driven inline per-frame by brain3d.js (updatePanels), keyed to the
+   real scroll position — so NO CSS transition here (it would smear/lag the per-frame values).
+   These are just the pre-JS / fallback resting state; the is-active rule keeps the no-inline
+   path visible if the module ever toggles is-active without having painted a frame yet. */
+.brain3d-on .panel{opacity:0;transform:translateY(10px);pointer-events:auto;will-change:opacity,transform}
 .brain3d-on .chapter.is-active .panel{opacity:1;transform:none}
 
 /* ---- HUD: one subtle grounding label over the brain (instrument chrome removed) ---- */
