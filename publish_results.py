@@ -30,6 +30,9 @@ USAGE
         --out demo/results.json
     # if you also ran incremental_validity.py and the brain beat the dumb baseline:
     python publish_results.py --results validation/results.csv --beats-baseline yes
+    # standalone: publish the ad-outcome backtest so the science page's "does it rank
+    # real ads?" block hydrates (SIGNAL or NULL — never fabricated):
+    python publish_results.py --ad-backtest validation/ad_backtest.json
 """
 import argparse
 import json
@@ -91,6 +94,47 @@ def _beats_from_incremental(path, alpha):
     return bool(p_comb < alpha and abs(med_pr) > MIN_EFFECT_R)
 
 
+def publish_ad_backtest(in_path, out_path):
+    """Sanitize validation/ad_backtest.json -> demo/ad_backtest.json (the fields the science
+    page shows). Passes the SIGNAL/NULL verdict through verbatim — a null is shown, not hidden.
+    Runs standalone: no results.csv needed."""
+    if not os.path.exists(in_path):
+        raise SystemExit(f"No ad-backtest at {in_path}. Run ad_backtest.py on REAL ads first.")
+    with open(in_path) as f:
+        d = json.load(f)
+    prim = d.get("primary", {}) or {}
+    signal = bool(d.get("signal"))
+    payload = {
+        "signal": signal,
+        "n_ads": d.get("n_ads"),
+        "n_with_baseline": d.get("n_with_baseline"),
+        "score": d.get("score"),
+        "partial_r": prim.get("partial_r"),
+        "perm_p": prim.get("perm_p"),
+        "raw_r": prim.get("raw_r"),
+        "verdict": d.get("verdict"),
+        "tag": f"n={d.get('n_ads')} ads · {'SIGNAL' if signal else 'NULL'} "
+               f"({d.get('score')}, over ffmpeg)",
+        "_provenance": {
+            "source": os.path.basename(in_path),
+            "min_effect_r": d.get("min_effect_r"),
+            "n_perm": d.get("n_perm"),
+            "covariates": d.get("covariates"),
+            "note": "cross-sectional partial Spearman across ads; outcome is a PROXY "
+                    "(TikTok rank / ad longevity / partner CPA); the scorer is applied "
+                    "out-of-distribution; n = ads, not seconds. Pre-registered primary = "
+                    "mean summary; no best-of-N.",
+        },
+    }
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    with open(out_path, "w") as f:
+        json.dump(payload, f, indent=2)
+    print(f"[wrote] {out_path}  ({'SIGNAL' if signal else 'NULL'}, n={payload['n_ads']} ads, "
+          f"partial r={payload['partial_r']}, p={payload['perm_p']})")
+    print("  The science page's 'does it rank real ads?' block hydrates from this on load.")
+    print("  Reminder: publish ONLY from a REAL ad run; a NULL is honest and is shown as such.")
+
+
 def summarize(rows, alpha=0.05):
     """Median r + combined signed-Stouffer p (and Fisher p) across videos."""
     rs = [r for _, r, _ in rows]
@@ -121,7 +165,16 @@ def main():
                          "partial r > 0.1). Overrides --beats-baseline.")
     ap.add_argument("--alpha", type=float, default=0.05)
     ap.add_argument("--out", default="demo/results.json")
+    ap.add_argument("--ad-backtest", default=None,
+                    help="validation/ad_backtest.json from ad_backtest.py; publishes a "
+                         "sanitized demo/ad_backtest.json that the science page hydrates. "
+                         "Standalone mode — no results.csv required.")
+    ap.add_argument("--ad-backtest-out", default="demo/ad_backtest.json")
     args = ap.parse_args()
+
+    if args.ad_backtest:                    # standalone: publish only the ad backtest
+        publish_ad_backtest(args.ad_backtest, args.ad_backtest_out)
+        return
 
     if not os.path.exists(args.results):
         raise SystemExit(f"No results at {args.results}. Run honest_corr_timeseries.py "

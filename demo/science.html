@@ -337,9 +337,9 @@
     </div>
 
     <div class="note">
-      <div class="nh"><h3>The next test: does it rank real <i>ads</i>?</h3><span class="tier a">cross-sectional · not yet run</span></div>
+      <div class="nh"><h3>The next test: does it rank real <i>ads</i>?</h3><span class="tier a" id="adbt-badge">cross-sectional · not yet run</span></div>
       <p>TVSum measures interest inside one clip. The question a marketer actually asks is different: given a set of <b>real ads that really ran</b>, does our score pick the winner? So we run the same honest yardstick across ads — take ~15–30 ads with a known real outcome (a partner&rsquo;s own CPA / ThruPlay, or a public proxy like TikTok Top-Ads rank), score each one, and check whether our score ranks them by performance <b>after removing loudness, cuts, and length</b> — so we can&rsquo;t win just by re-detecting &ldquo;short and loud.&rdquo; Pre-registered primary, permutation null, effect floor, and the null gets reported like any other.</p>
-      <p>This is the test that turns &ldquo;we can predict your winning ad&rdquo; from a hope into a number — and <b>until that number clears the bar, we don&rsquo;t make the claim.</b> <span style="opacity:.6">(Result: pending the first real-ad run.)</span></p>
+      <p>This is the test that turns &ldquo;we can predict your winning ad&rdquo; from a hope into a number — and <b>until that number clears the bar, we don&rsquo;t make the claim.</b> <span style="opacity:.6" id="adbt-result">(Result: pending the first real-ad run.)</span></p>
     </div>
   </section>
 
@@ -476,5 +476,35 @@
       Built on Meta's public TRIBE v2 encoder. The encoder is validated; the read-out on top is ours, and under test.
     </div>
   </footer>
+<script>
+// Hydrate the ad-backtest block from ad_backtest.json IF a real run has been published
+// (publish_results.py --ad-backtest). No file => leave "pending". A NULL result is shown
+// honestly, never hidden. Signal stays amber (a hypothesis), never green (not validated).
+(function () {
+  fetch('ad_backtest.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d) return;
+      var res = document.getElementById('adbt-result');
+      var badge = document.getElementById('adbt-badge');
+      var pr = (d.partial_r == null) ? '?' : Number(d.partial_r).toFixed(2);
+      var pp = (d.perm_p == null) ? '?' : Number(d.perm_p).toFixed(3);
+      var n = (d.n_ads == null) ? '?' : d.n_ads;
+      var score = d.score || 'neural';
+      if (d.signal) {
+        if (res) res.textContent = 'Result (n=' + n + ' ads): the ' + score +
+          ' score ranks real ads over the loudness/cuts/length baseline — partial r ≈ ' +
+          pr + ', p = ' + pp + '. Early, proxy outcome, out-of-distribution — a hypothesis, not a validated engagement model.';
+        if (badge) { badge.textContent = 'cross-sectional · early signal · n=' + n; badge.className = 'tier a'; }
+      } else {
+        if (res) res.textContent = 'Result (n=' + n + ' ads): NULL — the ' + score +
+          ' score does not beat the loudness/cuts/length baseline (partial r ≈ ' + pr +
+          ', p = ' + pp + '). Reported plainly; the claim waits.';
+        if (badge) { badge.textContent = 'cross-sectional · null · n=' + n; badge.className = 'tier r'; }
+      }
+    })
+    .catch(function () { /* leave the pending text as-is */ });
+})();
+</script>
 </body>
 </html>
