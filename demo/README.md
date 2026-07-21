@@ -10,9 +10,11 @@ fetched from Supabase at runtime — see below).
   a scroll flythrough. **Decoration, not prediction data** (watermarked as such). Degrades
   3D → 2D (`scrollbrain.js`) → static frame on no-WebGL / reduced-motion.
 - **Read-out console** (`app.js`) — pick an ad, then three time-synced lanes on one
-  playhead: **attention** (amber *predicted · validating* badge), **valence** + **arousal**
-  (red *hypothesis* badges), plus an optional coarse-affect lane. A left cortical read-out
-  animates with the activation scalar. Weak-spot callouts pin to the timeline.
+  playhead: **attention**, **valence** + **arousal** (each lane titled with a plain-English
+  subtitle), plus an optional coarse-affect lane. A left cortical read-out animates with the
+  activation scalar. Weak-spot callouts pin to the timeline. The amber *predicted · validating*
+  / red *hypothesis* per-lane badges render **only for trained-head arcs** (`head_apply.py`
+  output) — the shipped sample/real cards carry no badge fields, so they show none.
 - **Upload box** — a **real** concierge intake: a visitor's video goes to a private
   Supabase Storage bucket + an `uploads` queue row (see `../supabase/`). Not a stub.
 - **A/B compare**, a **roadmap** ladder, and a link to **`waitlist.html`** (early access,
@@ -21,10 +23,13 @@ fetched from Supabase at runtime — see below).
 
 ## Honesty labels this demo carries (do not quietly remove)
 
-- **Per-lane evidence badges** encode the tier the console reads at: attention =
-  amber *predicted · validating* (the activation→attention step is our hypothesis,
-  being tested vs TVSum); valence/arousal = red *hypothesis* (an unvalidated cortical
-  proxy, not a decoder). Never relabel the arc as established "interest/engagement."
+- **Validated-vs-hypothesis tiers** are conveyed by the lane subtitles + the `science.html`
+  / `faq.html` pages: attention is *predicted · validating* (the activation→attention step is
+  our hypothesis, being tested vs TVSum); valence/arousal are *hypothesis* (an unvalidated
+  cortical proxy, not a decoder). The matching amber/red **per-lane evidence badges** render
+  only when an arc carries badge fields — i.e. trained-head arcs from `head_apply.py`, not the
+  shipped sample/real cards. Never relabel the arc as established "interest/engagement." (The
+  shipped console does not render a results/validation number strip.)
 - The 3D hero + the 2D background brain are **decoration** and say so (watermark/comment).
 - Weak-spot callouts are model **predictions**, not measured eye-tracking or panel data.
 - The console SVG is an **illustrative regional view**, not a per-vertex render.

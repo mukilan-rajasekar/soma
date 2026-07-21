@@ -65,7 +65,7 @@ earned by held-out tests, never asserted.
 | **Human panel — neuro/biometric** | Realeyes, Neurons Inc | webcam facial-coding, eye-tracking/gaze, some EEG, on recruited viewers | We predict the cortical response *from the file* — no viewers to recruit, minutes not days, and we predict the brain state, not a facial proxy for it. |
 | **Human panel — survey/emotion** | System1, Nielsen | recruited panels rate ads (facial + self-report), tied to large normative DBs | Built for a handful of hero spots at brand budgets. We serve the high-volume, low-cost end they ignore. |
 | **Synthetic / LLM personas** | Aaru, Simile | prompt an LLM to role-play a consumer and self-report | No biology — predicts what a person might *say* (biased toward agreeable answers), not how a brain responds. We predict the actual neural signal. |
-| **Same model, different bet** | **VidCognition** | *also* Meta TRIBE v2 → per-second "brain engagement" | Same public eye, different lens: they overclaim (present activation→engagement as fact); we ship the visible validated-vs-hypothesis boundary and actually run the held-out validation. Different buyer, too. |
+| **Same model, different bet** | **VidCognition** | *also* Meta TRIBE v2 → per-second "brain engagement" | Same public eye, different lens: they overclaim (present activation→engagement as fact); we ship the visible validated-vs-hypothesis boundary and actually run the held-out validation. Same DTC/performance buyer — the fork is epistemics + the proprietary ad×outcome data flywheel, not the buyer. |
 
 ---
 
@@ -142,7 +142,7 @@ earned by held-out tests, never asserted.
   funnel; a public `/science` page and a hook-grader tool.
 - **Why they matter most:** same **public base model** we use. Neither of us owns the
   eye — so on the model axis we are even. Which means the entire contest is **lens +
-  epistemics + buyer**, exactly where we choose to compete.
+  epistemics + the data flywheel**, exactly where we choose to compete.
 - **How Soma differs — three real forks:**
   1. **Epistemics.** VidCognition presents the activation→engagement step as settled
      fact ("ACC activation correlates with low early drop-off," "amygdala activation
@@ -152,10 +152,13 @@ earned by held-out tests, never asserted.
      about whether their engagement score predicts completion. This is the exact
      reverse-inference trap we refuse: dressing an unvalidated heuristic as a result.
      Soma shows the tier and runs the held-out test (TVSum/LIRIS).
-  2. **Buyer & job.** They sell creators a "brain engagement score" (a
-     viral-ish index) to grade hooks. We sell **performance/DTC teams** a decision
-     instrument tied to real media spend — with A/B variant compare and a data
-     flywheel. Different buyer, different willingness to pay, different retention.
+  2. **Same buyer, different epistemics + data.** VidCognition targets the **same
+     DTC/performance-marketing buyer** we do — their site carries DTC/performance
+     testimonials and pricing tiers "for DTC teams." So the fork is **not** buyer or
+     willingness to pay: it's the **epistemics** (the visible validated-vs-hypothesis
+     boundary + the held-out test) and the proprietary **ad×outcome data flywheel** tied
+     to real media spend, with A/B variant compare. They grade hooks with a "brain
+     engagement score"; we sell a decision instrument that sharpens as partners run it.
   3. **Disclosure posture.** We proactively disclose the negative prior (whole-cortex
      global drive does *not* predict YouTube most-replayed); they cherry-pick the
      flattering number. To a skeptical expert, disclosed limitations read as *more*

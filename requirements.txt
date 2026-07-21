@@ -38,3 +38,4 @@ matplotlib              # the forest plot in honest_corr_timeseries.py
 nilearn                 # Destrieux fsaverage5 atlas -> ROI masks (build_roi_mask.py)
 opencv-python-headless  # per-second luminance/cuts/motion in baseline_extract.py
 imageio-ffmpeg          # audio loudness + synthetic mp4 muxing (baseline/tests)
+h5py>=3.0  # read the real TVSum v7.3 (HDF5) .mat; scipy only handles v7

@@ -21,8 +21,12 @@ results.**
 
 ### A1. Provision the GPU (F1)
 Full trimodal (video+audio+text) needs ~28–32 GB VRAM → **A100-40GB** (or L40S).
-Rent by the hour on RunPod / Lambda / Vast (~$1–2/hr). Trimodal also needs **gated
-LLaMA-3.2** access on Hugging Face — request it now.
+Rent by the hour on RunPod / Lambda / Vast (~$1–2/hr). Trimodal also needs (a) gated
+**`meta-llama/Llama-3.2-3B`** (the *base* model — the exact text embedder the checkpoint was
+trained with) access on Hugging Face — request it now at
+<https://huggingface.co/meta-llama/Llama-3.2-3B>; and (b) `pip install -U uv` (the text branch
+transcribes dialogue itself via `uvx whisperx` — no transcript needed). **Full trimodal how-to +
+provenance: see `TRIMODAL.md`.**
 ```bash
 # on the box, ONCE:
 pip install -U "numpy>=1.26,<2.1" scipy pandas nilearn   # neuralset needs numpy<2.1
@@ -56,9 +60,14 @@ trusting anything. (This is the day's #1 de-risk: if the model doesn't run, noth
 else matters.)
 
 Your Day-2 decision was **full trimodal** (adds the text/LLaMA branch). Add
-`--modality trimodal` **once gated LLaMA-3.2 access is confirmed** — do it as an
+`--modality trimodal` **once gated Llama-3.2-3B access is confirmed** — do it as an
 upgrade after `av` is proven end-to-end, not as the first thing you fight on the
-box. `--modality video` (audio dropped) is the last-resort de-risk on a 24 GB card.
+box. Write it to a **separate** `--out ./data/arcs_trimodal` so you can compare av vs
+trimodal on the same clips (they're both per-second `(T,20484)` → line up second-by-second;
+report **both**, don't cherry-pick). `--modality trimodal` pre-flights `uvx` + Llama access at
+startup and builds the real text events (fixed 2026-07-20 — it used to set the text feature but
+still build AV-only events). `--modality video` (audio dropped) is the last-resort de-risk on a
+24 GB card. Colab equivalent: the **T1/T3/T4** trimodal cells in `colab_run.ipynb`.
 
 ### A2b. Weight & code durability (F1) — snapshot on this first session
 The first successful GPU run downloads the **~1 GB `facebook/tribev2` checkpoint into `./cache`**.
@@ -112,6 +121,36 @@ null? Report all rows. A null is a legitimate pre-registered outcome.
 Only if you have any real per-video retention: fill `engagement.csv`
 (`id,retention_pct`) and run `python honest_corr.py --outcomes retention_pct`.
 Expect underpowered; report transparently.
+
+### A8. COGNIMUSE affect track — the leave-one-movie-out affect head (F2)
+The attention track above (A4–A6) validates `roi`/`global` against TVSum. The **affect** head
+(valence/arousal) is validated separately on **COGNIMUSE**, now **7 films**: batch-1 CHI/FNE/GLA +
+batch-2 BMI/CRA/DEP/LOR (more movies → a stronger leave-one-movie-out test).
+
+```bash
+# 1. Build the human targets from the COGNIMUSE .dat annotations (once):
+make cognimuse COG="path/to/Emotion Annotation"      # -> data/cognimuse/human_affect_<code>.csv
+
+# 2. Cut each film to its annotation window. CRITICAL: pass --story-end so the clip ENDS at the
+#    last STORY frame, not the file's end (the file's tail is 3-9 min of end credits the
+#    annotation never rated -> a silent per-second misalignment). Values: data/cognimuse/story_end.csv.
+#    `make cognimuse-films` hardcodes --out data/clips_cognimuse AND omits --story-end, so call the
+#    script directly, once per batch:
+.venv/bin/python cognimuse_films.py --films-dir ~/cog_films_batch1 --affect-dir data/cognimuse \
+    --out data/clips_cognimuse        --story-end "CHI=6345,FNE=5538,GLA=9845"
+.venv/bin/python cognimuse_films.py --films-dir ~/cog_films_batch2 --affect-dir data/cognimuse \
+    --out data/clips_cognimuse_batch2 --story-end "BMI=7718,CRA=6628,DEP=8687,LOR=11535"
+# Verify each clip's LAST frame is a story shot, not a credit card. See COGNIMUSE-ALIGNMENT-FIX.md.
+```
+
+3. **Upload all 7 clips to `MyDrive/soma/clips`** (same flat folder Cell 2B reads; delete any stale
+   same-named clip first — Drive allows dup names). Run the Colab notebook → `preds_<code>.npy`.
+4. Drop `preds_<code>.npy` into `data/arcs/`, then fit the head:
+```bash
+make affect-head-save TARGET=data/cognimuse   # leave-one-movie-out valence/arousal head
+```
+Report every movie, including a null — same honesty rule as A6. (Note: GLA's source is the Extended
+cut; CHI/CRA have soft story/credit boundaries — see the caveats in COGNIMUSE-ALIGNMENT-FIX.md.)
 
 ---
 

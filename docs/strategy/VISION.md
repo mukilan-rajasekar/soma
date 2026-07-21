@@ -35,8 +35,8 @@ independent of how far the science ladder has climbed.
 
 ## Why it can exist now
 
-Meta open-sourced **TRIBE v2**, a benchmark-winning model that predicts the brain's
-response to any video. That's the expensive part (the "eye"), and it's public.
+Meta open-sourced **TRIBE v2** — the successor to Meta's Algonauts-2025-winning
+TRIBE — that predicts the brain's response to any video. That's the expensive part (the "eye"), and it's public.
 **Meta built the eye; Soma builds the lens** — a targeted read-out that turns the
 generic brain-response firehose into the handful of signals advertisers act on,
 plus the proprietary ad-outcome data that sharpens the lens over time.
@@ -73,7 +73,7 @@ the only one that draws a **visible line between validated and hypothesis.**
 | Panel · neuro/biometric | Realeyes, Neurons Inc | webcam facial-coding, eye-tracking, some EEG on recruited viewers | From the *file*, minutes not days, cheap enough to test every variant — a predicted brain state, not a facial proxy. |
 | Panel · survey/emotion | System1, Nielsen | recruited panels rate ads, tied to norms | Built for a few hero spots at brand budgets; we serve the high-volume low end they ignore. |
 | Synthetic · LLM personas | Aaru, Simile | prompt an LLM to role-play a consumer | No biology — predicts what a person would *say* (agreeable-answer bias), not how a brain responds. |
-| Same model, different bet | **VidCognition** | *also* Meta TRIBE v2 → per-second "brain engagement" | Same public eye; we differ on **honesty** (we show validated-vs-hypothesis and run the held-out test; they present it as fact) and **buyer** (performance teams + a data flywheel, not a creator hook-score). |
+| Same model, different bet | **VidCognition** | *also* Meta TRIBE v2 → per-second "brain engagement" | Same public eye, **same DTC/performance buyer** — we differ on **honesty** (we show the validated-vs-hypothesis boundary and actually run the held-out test; they present it as fact) and the proprietary **ad×outcome data flywheel** a public-encoder rival can't scrape. |
 
 **The wedge is the signal source, not the arc's shape** — incumbents already ship
 per-second curves; we change where the signal comes from. We do **not** claim to be
@@ -100,10 +100,14 @@ Each rung is *earned by a held-out test*, never asserted. (Mirrors `ROADMAP.md`.
 - **R4 — named emotions:** "amusement," "tension," "warmth," each rung earned by a
   held-out test, never before.
 
-**Blocker to clear in parallel:** TRIBE's license is non-commercial (verify exact
-terms). The frozen encoder powers R&D + the demo, but the paid pipeline needs a
-written commercial license from Meta *or* a differently-licensed encoder. This is a
-product-architecture constraint, not an afterthought.
+**Blocker to clear in parallel:** TRIBE's weights *and* code are both CC-BY-NC-4.0 —
+non-commercial. The frozen encoder powers R&D + the demo, but the paid pipeline needs a
+written commercial license from Meta — for which Meta publishes **no path**, so it's a
+**hope Meta may decline**, not an option we can count on — *or* a differently-licensed
+encoder. And even a hypothetical commercial TRIBE license wouldn't clear the required
+Llama-3.2-3B text branch, which carries the **Llama 3.2 Community License** ("Built with
+Llama" attribution, a "Llama" name prefix on derivatives, AUP compliance, and a separate
+Meta license above 700M MAU). This is a product-architecture constraint, not an afterthought.
 
 ---
 

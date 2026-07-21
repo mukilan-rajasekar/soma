@@ -25,9 +25,14 @@ the output drops straight into `honest_corr_timeseries.py` and the demo player.
   Colab spends its GPU minutes *only* on the brain-math. Results write to Drive, so runs
   **resume** across disconnects — a wiped machine or a hit quota never costs you a redo, and
   small batches stack up (3 today + 3 tomorrow). This is what stretches the free quota furthest.
-  - **Honesty:** the trim is always from `t=0`. The validator lines the brain arc up with the
-    human arc by *video second*, so a first-N-seconds excerpt compares cleanly against the same
-    window; trimming from the middle would silently desync the grids — so don't.
+  - **Honesty:** for TVSum the trim is always from `t=0`. The validator lines the brain arc up
+    with the human arc by *video second*, so a first-N-seconds excerpt compares cleanly against the
+    same window; trimming from the middle would silently desync the grids — so don't.
+  - **COGNIMUSE clips are the opposite end** and easy to get wrong: the annotation covers the last
+    ~30 min of each film's STORY, so `cognimuse_films.py` cuts a window ENDING at the last story
+    frame (via `--story-end`, not the file's end — the file's tail is 3–9 min of end credits the
+    annotation never rated). See `COGNIMUSE-ALIGNMENT-FIX.md`. Same rule holds: clip-second t must
+    equal annotation-second t, so verify a re-cut clip's last frame is a story shot, not a credit.
 
 ## Before you start
 
@@ -37,7 +42,10 @@ the output drops straight into `honest_corr_timeseries.py` and the demo player.
    clips also go through Cell 2B.
 3. **HuggingFace:** `facebook/tribev2` is **public — no license/access request needed**. A
    free HF token is optional (avoids rate limits); the audio+video config never touches the
-   gated LLaMA path.
+   gated LLaMA path. **Trimodal** (audio+video+**text**) is the full-strength upgrade and DOES
+   need gated **`meta-llama/Llama-3.2-3B`** access + `uv`/whisperx — it lives in the **T1/T3/T4
+   cells** below and is documented in `TRIMODAL.md`. (Transcription is built into tribev2 — the
+   text branch makes its own transcript with whisperx; you supply nothing.)
 4. (Optional, for the a-priori ROI test) run `build_roi_mask.py` locally, upload the
    resulting boolean `.npy` (length 20484) to Drive/Colab, and set `ROI_MASK_PATH`.
 
@@ -65,6 +73,15 @@ the output drops straight into `honest_corr_timeseries.py` and the demo player.
    logged and the batch continues.
 5. **Cell 5 — zip + download.** Zips `OUT_DIR` and downloads it. Results are also already
    in your Drive.
+
+### Trimodal cells (T1 / T3 / T4 — the optional full-strength upgrade)
+
+After Cell 5 there's a **TRIMODAL** block that runs the model at full strength (audio + video +
+**text/dialogue**). Requires an **A100** + gated **`meta-llama/Llama-3.2-3B`** access. Run order in
+a fresh session: **Cell 1 → restart → T1** (installs `uv`/whisperx, HF login; wait for `[OK]`) **→
+Cell 2B → T3** (loads `model_tri` with `features_to_use=['audio','video','text']`) **→ T4** (writes
+to a **separate** `MyDrive/soma/arcs_trimodal/`). It never touches your AV `arcs/`, so you can
+compare av vs trimodal on the same clips. Full details + Llama-access steps: **`TRIMODAL.md`**.
 
 ## Honesty notes (do not remove)
 

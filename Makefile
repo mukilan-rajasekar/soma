@@ -15,7 +15,7 @@ ROOT := $(subst $(space),\$(space),$(MKFILE_DIR))
 PY ?= $(ROOT)/.venv/bin/python
 
 .DEFAULT_GOAL := help
-.PHONY: help synth dryrun test demo baseline publish pipeline pipeline-demo report ingest trim head head-demo
+.PHONY: help synth dryrun test demo baseline publish pipeline pipeline-demo report ingest trim head head-demo head-save head-apply affect-head affect-head-demo affect-head-save cognimuse cognimuse-films veatic studyforrest studyforrest-film ad-backtest all
 
 help:  ## show this help
 	@echo "Soma make targets:"
@@ -28,6 +28,10 @@ help:  ## show this help
 	@echo "  make pipeline   run the CPU analysis chain on ./data (DEMO=1 to publish)"
 	@echo "  make head       train the read-out head on ./data (needs real preds + roi_*.npy masks)"
 	@echo "  make head-demo  smoke-test train_head.py on the synthetic fixtures (no GPU)"
+	@echo "  make head-save  fit the attention head on ALL of ./data + save a reusable inference head"
+	@echo "  make head-apply score ./data/arcs with saved head(s): HEADS=validation/head_attn.json"
+	@echo "  make ad-backtest does the neural score predict real ad rank over ffmpeg? (./data/ads; SCORE=arc|head)"
+	@echo "  make all        full CPU chain incl. head-apply on ./data (extract on Colab first; DEMO=1 publishes)"
 	@echo "  make report     rebuild validation/report.html from validation CSVs"
 	@echo "  make publish    publish a REAL run into demo/results.json (never synthetic)"
 	@echo "  make demo       serve the static demo player at http://localhost:8000"
@@ -38,7 +42,10 @@ synth:  ## generate synthetic fixtures under tests/synth/
 dryrun:  ## run the whole analysis pipeline on the synthetic fixtures
 	$(PY) $(ROOT)/tests/dry_run.py
 
-test: synth dryrun  ## generate fixtures then run the end-to-end dry run
+test: synth dryrun  ## generate fixtures, run the end-to-end dry run + the reader guards
+	$(PY) $(ROOT)/tests/test_mat_readers.py
+	$(PY) $(ROOT)/tests/test_cognimuse.py
+	$(PY) $(ROOT)/tests/test_datasets.py
 
 baseline:  ## extract dumb baseline (loudness/cuts/luminance/motion) from the synth clip
 	$(PY) $(ROOT)/baseline_extract.py \
@@ -99,3 +106,63 @@ report:  ## rebuild validation/report.html from existing validation CSVs
 	$(PY) $(ROOT)/make_report.py --results $(ROOT)/validation/results.csv \
 		--affect $(ROOT)/validation/affect_results.csv \
 		--incremental $(ROOT)/validation/incremental.csv --out $(ROOT)/validation/report.html
+
+head-null:  ## rigorous empirical shuffle-null check for the head (run before trusting a head signal)
+	$(PY) $(ROOT)/head_null_test.py --preds-dir $(ROOT)/data/arcs --arc-dir $(ROOT)/data/arcs --human-dir $(ROOT)/data/tvsum --masks-dir $(ROOT)/data --n-shuffles 30
+
+affect-head:  ## train the affect (valence/arousal) head on ./data (needs LIRIS + preds + affect masks)
+	$(PY) $(ROOT)/affect_head.py --preds-dir $(ROOT)/data/arcs --target-dir $(ROOT)/data/liris --masks-dir $(ROOT)/data --out $(ROOT)/validation/affect_head
+
+affect-head-demo:  ## smoke-test affect_head.py on the synthetic emotion fixtures (no GPU)
+	$(PY) $(ROOT)/tests/make_synthetic_data.py >/dev/null
+	$(PY) $(ROOT)/affect_head.py --preds-dir $(ROOT)/tests/synth --target-dir $(ROOT)/tests/synth/liris --masks-dir $(ROOT)/tests/synth --out $(ROOT)/tests/synth/affect_head
+
+head-save:  ## fit the attention head on ALL of ./data and save a reusable inference head (validation/head_attn.json)
+	$(PY) $(ROOT)/train_head.py --preds-dir $(ROOT)/data/arcs --arc-dir $(ROOT)/data/arcs \
+		--human-dir $(ROOT)/data/tvsum --masks-dir $(ROOT)/data --n-perm 5000 \
+		--fit-all --save $(ROOT)/validation/head_attn.json --dataset TVSum --out $(ROOT)/validation/head
+
+cognimuse:  ## COGNIMUSE affect .dat -> human_affect_<id>.csv (make cognimuse COG="path/to/Emotion Annotation")
+	@test -n "$(COG)" || (echo 'Usage: make cognimuse COG="path/to/Emotion Annotation" [TRACK=experienced]' && exit 1)
+	$(PY) $(ROOT)/cognimuse_prep.py --cog-dir "$(COG)" --track $(or $(TRACK),experienced) \
+		--out $(ROOT)/data/cognimuse
+
+cognimuse-films:  ## cut your COGNIMUSE films to the annotated segment (make cognimuse-films FILMS=~/cog_films [DRY=1])
+	@test -n "$(FILMS)" || (echo 'Usage: make cognimuse-films FILMS="dir with your film files" [DRY=1]' && exit 1)
+	$(PY) $(ROOT)/cognimuse_films.py --films-dir "$(FILMS)" --affect-dir $(ROOT)/data/cognimuse \
+		--out $(ROOT)/data/clips_cognimuse $(if $(DRY),--dry-run,)
+
+veatic:  ## VEATIC per-frame VA -> human_affect + staged clips (make veatic VEATIC=~/VEATIC [IDS=0-19])
+	@test -n "$(VEATIC)" || (echo 'Usage: make veatic VEATIC="extracted VEATIC bundle" [IDS=0-19]' && exit 1)
+	$(PY) $(ROOT)/veatic_prep.py --veatic-dir "$(VEATIC)" $(if $(IDS),--ids $(IDS),) \
+		--out $(ROOT)/data/veatic --stage-clips --clips-out $(ROOT)/data/clips_veatic
+
+studyforrest:  ## StudyForrest emotion annotations -> human_affect_forrestgump.csv (auto-downloads the 9 AV observers)
+	$(PY) $(ROOT)/studyforrest_prep.py --download --raw-dir $(ROOT)/data/studyforrest_raw \
+		--out $(ROOT)/data/studyforrest
+
+studyforrest-film:  ## cut your Forrest Gump to the research cut (make studyforrest-film FILM=~/forrest_25fps.mkv [DRY=1])
+	@test -n "$(FILM)" || (echo 'Usage: make studyforrest-film FILM=~/ForrestGump_25fps.mkv [DRY=1]' && exit 1)
+	$(PY) $(ROOT)/studyforrest_film.py --film "$(FILM)" --out $(ROOT)/data/clips_studyforrest \
+		$(if $(DRY),--dry-run,)
+
+affect-head-save:  ## fit + save valence/arousal inference heads (TARGET=dir with human_affect_*.csv; default data/cognimuse)
+	$(PY) $(ROOT)/affect_head.py --preds-dir $(ROOT)/data/arcs \
+		--target-dir $(or $(TARGET),$(ROOT)/data/cognimuse) \
+		--masks-dir $(ROOT)/data --out $(ROOT)/validation/affect_head --save-dir $(ROOT)/validation
+
+head-apply:  ## score ./data/arcs with saved head(s): make head-apply HEADS=validation/head_attn.json
+	$(PY) $(ROOT)/head_apply.py --preds-dir $(ROOT)/data/arcs --arc-dir $(ROOT)/data/arcs \
+		--head $(or $(HEADS),$(ROOT)/validation/head_attn.json)
+
+ad-backtest:  ## backtest neural score vs REAL ad rank on ./data/ads (SCORE=arc|head HEAD=validation/head_attn.json)
+	$(PY) $(ROOT)/ad_backtest.py --manifest $(ROOT)/data/ads/ad_manifest.csv \
+		--score $(or $(SCORE),arc) $(if $(HEAD),--head $(HEAD),) \
+		--preds-dir $(ROOT)/data/ads/arcs --arc-dir $(ROOT)/data/ads/arcs \
+		--baseline-dir $(ROOT)/data/ads/baseline
+
+all:  ## full CPU chain incl. head-apply on ./data (Colab extract first). HEADS=... DEMO=1 to publish.
+	$(PY) $(ROOT)/run_pipeline.py --arc-dir $(ROOT)/data/arcs --human-dir $(ROOT)/data/tvsum \
+		--baseline-dir $(ROOT)/data/baseline --arc-json-dir $(ROOT)/data/arcs \
+		--liris-dir $(ROOT)/data/liris --heads $(or $(HEADS),$(ROOT)/validation/head_attn.json) \
+		--out-dir $(ROOT)/validation $(if $(DEMO),--demo,--no-demo)
