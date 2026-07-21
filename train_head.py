@@ -265,6 +265,33 @@ def run(videos, n_perm, shuffle, seed):
     return rows
 
 
+def fit_all(videos, alphas=ALPHAS):
+    """Fit the ridge on ALL videos (no held-out) for the SAVED inference head.
+
+    This is the ONLY place a final all-data model is fit — the leave-one-video-out
+    driver in run() is validation. alpha is chosen by the same nested-LOVO selector used
+    inside each fold, so the saved head's regularization matches how it was scored.
+    Returns (w, b, alpha).
+    """
+    alpha = pick_alpha(videos, alphas)
+    X, y = _train_rows(videos, shuffle=False, rng=None)
+    w, b = ridge_fit(X, y, alpha)
+    return w, b, alpha
+
+
+def leak_check(videos, n_perm, seed):
+    """Run the shuffle-target negative control and return 'pass' iff the across-video
+    aggregate collapses (no leakage). Stamped into the saved head so a head that secretly
+    fits noise can never be badged as validated downstream."""
+    rows = run(videos, n_perm, True, seed)
+    if not rows:
+        return "unknown"
+    _, pc = stouffer([r["perm_p"] for r in rows], [r["r_head"] for r in rows])
+    med = float(np.nanmedian([r["r_head"] for r in rows]))
+    leaked = (not np.isnan(pc)) and pc < 0.05 and med > 0
+    return "FAIL" if leaked else "pass"
+
+
 def report(rows, feats, shuffle, out):
     print("=" * 82)
     print("TRAINED READ-OUT HEAD  (ridge on frozen-TRIBE a-priori ROI features, "
@@ -308,8 +335,16 @@ def report(rows, feats, shuffle, out):
               "out-of-sample beyond the circular-shift null. Reported as the pre-registered "
               "outcome; the learned-head bet moves to proprietary ad-outcome data.")
     elif not beats:
-        print("  VERDICT: head tracks human interest, but does NOT beat the untrained arc "
-              "(delta_r ~ 0). The arithmetic arc is sufficient at this n; no incremental win.")
+        if not np.isnan(med_delta) and med_delta > 0.05:
+            # tracks AND numerically exceeds the arc, but the paired test is underpowered:
+            # report the real delta and paired p rather than the false "delta ~ 0".
+            print(f"  VERDICT: head tracks human interest AND numerically beats the untrained "
+                  f"arc (median delta_r={_fmt(med_delta)}), but the paired test is "
+                  f"p={_fmt(p_paired, 3)} — TRENDING, not significant at n={len(rows)} videos "
+                  "(underpowered). More videos needed to confirm the incremental win.")
+        else:
+            print("  VERDICT: head tracks human interest, but does NOT beat the untrained arc "
+                  "(delta_r ~ 0). The arithmetic arc is sufficient at this n; no incremental win.")
     else:
         print(f"  VERDICT: head tracks AND beats the untrained arc (median delta_r="
               f"{_fmt(med_delta)}, paired p={_fmt(p_paired, 3)}). NOTE: only {len(rows)} "
@@ -376,6 +411,13 @@ def main():
                          "held-out r must collapse to ~0")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default=None, help="output prefix (writes <out>.csv)")
+    ap.add_argument("--fit-all", dest="fit_all", action="store_true",
+                    help="after LOVO validation, fit the ridge on ALL videos and save a "
+                         "reusable inference head (requires --save)")
+    ap.add_argument("--save", default=None,
+                    help="path to write the saved inference head JSON (implies --fit-all)")
+    ap.add_argument("--dataset", default="TVSum",
+                    help="training-proxy name stamped into the saved head's honest badge")
     args = ap.parse_args()
 
     masks = load_masks(args.masks_dir)
@@ -398,7 +440,38 @@ def main():
     rows = run(videos, args.n_perm, args.shuffle_target, args.seed)
     if not rows:
         raise SystemExit("No videos produced a result (too few aligned shots).")
-    report(rows, feature_names(masks), args.shuffle_target, args.out)
+    summ = report(rows, feature_names(masks), args.shuffle_target, args.out)
+
+    # --- save a reusable inference head (the "score a NEW ad" path) ---------------
+    if (args.save or args.fit_all) and args.shuffle_target:
+        print("\n[note] --save/--fit-all ignored under --shuffle-target: this is the negative "
+              "control run, which deliberately fits no reusable head.")
+    if (args.save or args.fit_all) and not args.shuffle_target:
+        import datetime
+        import head_io
+        if not args.save:
+            raise SystemExit("--fit-all needs --save PATH to write the head to.")
+        leak = leak_check(videos, args.n_perm, args.seed)
+        w, b, alpha = fit_all(videos)
+        # record which baseline column video_data actually used (roi_mag preferred; the
+        # arithmetic global_mag is the documented fallback) so apply reads the same one.
+        sample_arc = next(iter(glob.glob(os.path.join(args.arc_dir, "arc_*.csv"))), None)
+        baseline_col = "global_mag"
+        if sample_arc:
+            with open(sample_arc) as fh:
+                if "roi_mag" in fh.readline():
+                    baseline_col = "roi_mag"
+        stamp = dict(median_r=summ["median_r_head"], stouffer_p=summ["stouffer_p"],
+                     paired_p=summ["paired_p"], n_videos=len(videos), leak_check=leak,
+                     dataset=args.dataset, date=datetime.date.today().isoformat())
+        head_io.save_head(args.save, "attention", w, b, alpha, masks, baseline_col,
+                          args.shot_sec, stamp)
+        print(f"\n[saved] inference head -> {args.save}  (kind=attention, "
+              f"n={len(videos)}, median r={_fmt(summ['median_r_head'])}, "
+              f"leak_check={leak}, alpha={alpha:g})")
+        if leak != "pass":
+            print("  !! leak_check != 'pass' — head is stamped POISONED; head_apply will "
+                  "refuse to apply it. Investigate leakage before trusting any result.")
 
 
 if __name__ == "__main__":

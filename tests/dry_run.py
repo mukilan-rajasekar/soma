@@ -197,6 +197,93 @@ def main():
     check("head negative control does NOT leak (shuffled Stouffer p>=0.05)",
           sp is not None and sp >= 0.05, f"Stouffer p={sp}")
 
+    print("\n9. affect_head (learned valence/arousal head: detects planted affect, null quiet)")
+    ahout = os.path.join(SYN, "affect_head")
+    r = run([PY, "affect_head.py", "--preds-dir", SYN, "--target-dir", os.path.join(SYN, "liris"),
+             "--masks-dir", SYN, "--n-perm", "2000", "--out", ahout])
+    print(r.stdout[-500:])
+    # Robust, deterministic checks: detects the planted signal on a signal video and stays
+    # quiet on the null video. (Single-shuffle collapse is NOT asserted here: at n=3 with the
+    # signal planted directly in the ROI features it's too noisy — the empirical shuffle null
+    # in head_null_test.py is the real leakage check, run on real data.)
+    for dim in ("valence", "arousal"):
+        ac = f"{ahout}_{dim}.csv"   # cols: video,n,alpha,r_head,perm_p,r_roi,delta_r
+        check(f"affect_head {dim} csv written", os.path.exists(ac))
+        if os.path.exists(ac):
+            H = {rr.split(",")[0]: rr.split(",") for rr in open(ac).read().splitlines()[1:]}
+            def ag(vid, idx):
+                try: return float(H[vid][idx])
+                except Exception: return None
+            ps, pn = ag("synth_sig1", 4), ag("synth_null", 4)
+            check(f"affect_head {dim} DETECTS planted signal (sig1 perm_p<0.05)",
+                  ps is not None and ps < 0.05, f"perm_p={ps}")
+            check(f"affect_head {dim} QUIET on null video (perm_p>=0.05)",
+                  pn is not None and pn >= 0.05, f"perm_p={pn}")
+
+    print("\n10. head_io / head_apply (the inference path: fit-all -> save -> score a NEW clip)")
+    import head_io
+    import head_apply
+    headjson = os.path.join(SYN, "head_attn.json")
+    r = run([PY, "train_head.py", "--preds-dir", SYN, "--arc-dir", ARCS,
+             "--human-dir", HUMAN, "--masks-dir", SYN, "--n-perm", "1500", "--seed", "0",
+             "--fit-all", "--save", headjson, "--dataset", "SYNTH"])
+    check("saved head written", os.path.exists(headjson))
+    if os.path.exists(headjson):
+        head = head_io.load_head(headjson)
+        nmask = len(head["masks"])
+        check("saved head weights match feature layout (2/mask + baseline)",
+              head["_w"].shape[0] == 2 * nmask + 1, f"w={head['_w'].shape[0]} nmask={nmask}")
+        status, _badge = head_io.badge_text(head)
+        # 3 synthetic videos => n<8 => the badge MUST read 'smoke', never 'validated'
+        check("head badge is honest at n=3 (smoke, not validated)", status == "smoke",
+              f"status={status}")
+        # apply the head to a signal clip and check the arc json gains a headline head lane
+        APPLIED = os.path.join(SYN, "applied")
+        r2 = run([PY, "head_apply.py", "--preds-dir", SYN, "--arc-dir", ARCS,
+                  "--out-dir", APPLIED, "--head", headjson])
+        aj = os.path.join(APPLIED, "arc_synth_sig1.json")
+        check("head_apply wrote arc json", os.path.exists(aj))
+        if os.path.exists(aj):
+            a = json.load(open(aj))
+            la = (a.get("lanes") or {}).get("attention") or {}
+            check("head lane present with status+badge",
+                  la.get("source") == "head" and bool(la.get("badge")), f"lane={la.get('status')}")
+            check("headline activation replaced by head arc",
+                  isinstance(a.get("activation"), list)
+                  and len(a["activation"]) == len(a.get("timestamps", [])) and len(a["activation"]) > 0)
+            check("arithmetic arc demoted to labeled baseline (not deleted)",
+                  isinstance(a.get("baseline", {}).get("activation"), list))
+            # the head arc must be a GENUINE transform, not an echo of the arithmetic baseline
+            # (guards against a no-op/identity regression that the structural checks miss)
+            base, act = a.get("baseline", {}).get("activation"), a.get("activation")
+            if isinstance(base, list) and isinstance(act, list) and len(base) == len(act):
+                check("head arc differs from the arithmetic baseline (not an echo)",
+                      any(abs(float(x) - float(y)) > 1e-6 for x, y in zip(act, base)))
+            check("head arc is non-degenerate (not a constant series)",
+                  isinstance(act, list) and len({round(float(x), 4) for x in act}) > 1)
+            # written arc json must be STRICT-parseable (no literal NaN token from a stamp)
+            import json as _json
+            try:
+                _json.loads(open(aj).read())
+                check("applied arc json is strict-parseable (no NaN token)", True)
+            except ValueError as _e:
+                check("applied arc json is strict-parseable (no NaN token)", False, str(_e))
+        # determinism: applying the same head twice yields identical predictions
+        preds = np.load(os.path.join(SYN, "preds_synth_sig1.npy")).astype(float)
+        bt, bv = head_apply._baseline_series(head, "synth_sig1", preds, ARCS)
+        p1 = head_io.apply_head(head, preds, bt, bv)["per_sec"]
+        p2 = head_io.apply_head(head, preds, bt, bv)["per_sec"]
+        check("head apply is deterministic",
+              np.allclose(np.nan_to_num(p1), np.nan_to_num(p2)))
+        # SAFETY: a poisoned head (leak_check != pass) must be REFUSED by head_apply
+        poisoned = json.load(open(headjson)); poisoned["stamp"]["leak_check"] = "FAIL"
+        pjson = os.path.join(SYN, "head_poisoned.json")
+        json.dump(poisoned, open(pjson, "w"))
+        rp = run([PY, "head_apply.py", "--preds-dir", SYN, "--arc-dir", ARCS,
+                  "--out-dir", os.path.join(SYN, "applied_poison"), "--head", pjson])
+        check("poisoned head is REFUSED (non-zero exit)", rp.returncode != 0,
+              f"rc={rp.returncode}")
+
     print("\n" + "=" * 60)
     if FAILS:
         print(f"DRY RUN: {len(FAILS)} FAIL(S): {FAILS}")

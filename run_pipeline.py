@@ -74,6 +74,10 @@ def main():
     ap.add_argument("--liris-dir", default="data/liris",
                     help="liris_<id>.csv (optional; affect ground-truth)")
     ap.add_argument("--feature", choices=["roi", "global"], default="roi")
+    ap.add_argument("--heads", default=None,
+                    help="comma-separated saved head JSON(s) from train_head/affect_head "
+                         "--save; applied to arc_<id>.json so the demo shows the head arc "
+                         "(needs preds_<id>.npy in --arc-dir). Optional.")
     ap.add_argument("--n-perm", type=int, default=5000)
     ap.add_argument("--out-dir", default="validation")
     ap.add_argument("--demo", dest="demo", action="store_true",
@@ -136,6 +140,21 @@ def main():
             required=False)
     else:
         print("\n[skip] affect_validate — need arc_*.json (affect blocks) + liris_*.csv.")
+
+    # 3.5) apply trained head(s): rewrite arc_<id>.json so its headline is the LEARNED arc,
+    # not the null arithmetic one (optional — needs saved heads + the raw preds from the GPU
+    # extract step). This updates the JSONs in --arc-json-dir IN PLACE; showing them in the
+    # served demo (demo/arcs/) is a separate copy/publish step, not done here.
+    # NOTE: the nested-baseline CSV lives in --arc-dir, so read from there and write to
+    # --arc-json-dir (they are the same dir by default; --out-dir keeps them decoupled).
+    if args.heads:
+        if _has(os.path.join(args.arc_dir, "preds_*.npy")):
+            run("heads · apply trained head(s) -> arc_*.json",
+                [PY, "head_apply.py", "--preds-dir", args.arc_dir, "--arc-dir", args.arc_dir,
+                 "--out-dir", args.arc_json_dir, "--head", args.heads], required=False)
+        else:
+            print(f"\n[skip] head_apply — no preds_*.npy in {args.arc_dir} (the head arc "
+                  "needs the raw preds from the GPU extract step; see colab_README.md).")
 
     # 4) publish to demo (optional)
     if args.demo:

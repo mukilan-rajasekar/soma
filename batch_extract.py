@@ -33,8 +33,12 @@ USAGE (on the GPU box, after the model + weights are cached):
   python batch_extract.py --video-dir ./clips --out ./data/arcs \
       --roi-mask ./data/roi_mask_dmn.npy
 
-  # 'trimodal' adds the text branch - only once gated LLaMA-3.2 access is confirmed:
-  python batch_extract.py --video-dir ./clips --out ./data/arcs \
+  # 'trimodal' adds the text branch (audio+video+text) - the FULL TRIBE model.
+  # Prereqs (pre-flighted at startup): `pip install -U uv` (the text branch
+  # transcribes dialogue with `uvx whisperx`) AND gated meta-llama/Llama-3.2-3B
+  # access on a logged-in HF token (`huggingface-cli login`). Cache to a SEPARATE
+  # --out so you can compare av vs trimodal per clip.
+  python batch_extract.py --video-dir ./clips --out ./data/arcs_trimodal \
       --roi-mask ./data/roi_mask_dmn.npy --modality trimodal
 """
 import argparse
@@ -81,20 +85,33 @@ def _log_clip_error(err_log, vid, exc):
     print(f"    [ERROR] {vid}: {exc!r} — full traceback in {err_log}; batch continues")
 
 
-def build_events(video_path):
-    """The working manual event-build path from the notebook (no transcription).
+def build_events(video_path, trimodal=False):
+    """Build the events df for one clip. ``trimodal`` toggles the text branch.
 
-    Contract for the ``neuralset.events.transforms`` pipeline (pinned so a
-    neuralset bump can't silently change the event schema):
+    This mirrors ``tribev2.demo_utils.get_audio_and_text_events`` EXACTLY (that is
+    the model authors' reference build); the ``av`` path is its ``audio_only=True``
+    branch, ``trimodal`` is its ``audio_only=False`` branch. Pinned here so a
+    neuralset/tribev2 bump can't silently change the event schema.
 
     INPUT  — a single-row events df describing the whole clip:
              ``{type: 'Video', filepath: <str>, start: 0, timeline: 'default',
              subject: 'default'}`` (standardized via ``standardize_events``).
     STEPS  — ``ExtractAudioFromVideo`` adds Audio events derived from the video,
-             then ``ChunkEvents`` splits the Audio and Video streams into
-             ~30-60s spans (max_duration=60, min_duration=30).
-    OUTPUT — a standardized events df (re-run through ``standardize_events``) of
-             the chunked Audio+Video spans, ready for ``model.predict``.
+             then ``ChunkEvents`` splits the Audio and Video streams into ~30-60s
+             spans. If ``trimodal`` is set, the TEXT branch is then built:
+             ``ExtractWordsFromAudio`` transcribes each Audio span with whisperx
+             (``uvx whisperx --model large-v3`` + WAV2VEC2 word-alignment; caches a
+             ``<audio>.tsv`` so a re-run skips it), producing word-level ``Word``
+             events, then ``AddText`` / ``AddSentenceToWords`` /
+             ``AddContextToWords`` / ``RemoveMissing`` attach the running text +
+             sentence context the LLaMA-3.2-3B text extractor consumes.
+    OUTPUT — a standardized events df ready for ``model.predict``.
+
+    trimodal PREREQS (fail loudly at predict time if unmet, so pre-flight them):
+      * ``uv`` on PATH — ``ExtractWordsFromAudio`` shells out to ``uvx whisperx``
+        (``pip install -U uv``; first clip pulls whisperx + the large-v3/w2v models).
+      * gated ``meta-llama/Llama-3.2-3B`` access + a logged-in HF token — the text
+        feature extractor downloads it (``huggingface-cli login``).
 
     The EXACT output columns can be captured from the events smoke test
     (``tests/test_build_events.py``); pin them there rather than assuming here.
@@ -108,6 +125,21 @@ def build_events(video_path):
         ChunkEvents(event_type_to_chunk="Audio", max_duration=60, min_duration=30),
         ChunkEvents(event_type_to_chunk="Video", max_duration=60, min_duration=30),
     ]
+    if trimodal:
+        # Text branch — imported only when needed (ExtractWordsFromAudio lives in
+        # tribev2, the rest in neuralset). Identical order + kwargs to the authors'
+        # get_audio_and_text_events(audio_only=False).
+        from tribev2.eventstransforms import ExtractWordsFromAudio
+        from neuralset.events.transforms import (
+            AddText, AddSentenceToWords, AddContextToWords, RemoveMissing,
+        )
+        transforms += [
+            ExtractWordsFromAudio(),
+            AddText(),
+            AddSentenceToWords(max_unmatched_ratio=0.05),
+            AddContextToWords(sentence_only=False, max_context_len=1024, split_field=""),
+            RemoveMissing(),
+        ]
     initial = {
         "type": "Video",
         "filepath": str(video_path),
@@ -273,6 +305,35 @@ def main():
         config_update={"data": {"features_to_use": features}},
     )
 
+    trimodal = args.modality == "trimodal"
+    if trimodal:
+        # Fail LOUD now, not 40 min into a batch: the text branch needs `uvx`
+        # (whisperx) reachable and gated LLaMA-3.2-3B access on the logged-in token.
+        import shutil as _sh
+        if _sh.which("uvx") is None:
+            sys.exit("[trimodal] `uvx` not found — the text branch transcribes via "
+                     "`uvx whisperx`. Install it: pip install -U uv  (first clip then "
+                     "pulls whisperx + the large-v3 model).")
+        try:
+            from huggingface_hub import auth_check
+        except Exception:
+            auth_check = None
+        if auth_check is not None:
+            try:
+                auth_check("meta-llama/Llama-3.2-3B")
+                print("[trimodal] pre-flight ok: uvx present + Llama-3.2-3B access confirmed.")
+            except Exception as e:  # GatedRepoError / no token — a REAL block, so stop now
+                sys.exit(f"[trimodal] cannot access meta-llama/Llama-3.2-3B ({e!r}). "
+                         "Request access at https://huggingface.co/meta-llama/Llama-3.2-3B "
+                         "and run `huggingface-cli login` with a token that has it. "
+                         "(Set HF_HUB_OFFLINE=1 only if it is already fully cached.)")
+        else:
+            # Old huggingface_hub without auth_check: don't false-block; the text extractor
+            # will surface a clear GatedRepoError at predict time if access is missing.
+            print("[trimodal] pre-flight: uvx present. (huggingface_hub has no auth_check — "
+                  "skipping the access probe; ensure `huggingface-cli login` has "
+                  "meta-llama/Llama-3.2-3B access.)")
+
     videos = sorted(glob.glob(os.path.join(args.video_dir, args.glob)))
     if not videos:
         sys.exit(f"No videos match {os.path.join(args.video_dir, args.glob)!r}")
@@ -291,7 +352,7 @@ def main():
                 preds = np.load(npy)
             else:
                 print(f"  [predict] {vid} ...")
-                events = build_events(vp)
+                events = build_events(vp, trimodal=trimodal)
                 preds, _segments = model.predict(events=events)
                 preds = np.asarray(preds, float)
                 np.save(npy, preds.astype(np.float32))  # float32 halves disk/IO; z-scored BOLD needs no more (matches Colab Cell 4)

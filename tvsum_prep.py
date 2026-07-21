@@ -32,28 +32,67 @@ import os
 import numpy as np
 
 
-def load_tvsum_mat(path):
-    """Yield (video_id, user_anno[nframes, n_annot], length_sec, nframes)."""
+def _orient(anno, nframes):
+    """Orient a 2-D annotation block to (nframes, n_annotators): frame axis is the long one."""
+    anno = np.asarray(anno, float)
+    if anno.ndim == 1:
+        anno = anno[:, None]
+    if anno.shape[0] < anno.shape[1] and anno.shape[1] == nframes:
+        anno = anno.T
+    elif anno.shape[0] != nframes and anno.shape[1] == nframes:
+        anno = anno.T
+    return anno
+
+
+def _load_tvsum_scipy(path):
+    """v5 / v7 .mat via scipy (the synthetic test fixtures use this format)."""
     from scipy.io import loadmat
     mat = loadmat(path, squeeze_me=True, struct_as_record=False)
     if "tvsum50" not in mat:
         raise SystemExit(f"{path!r} has no 'tvsum50' variable. Keys: "
                          f"{[k for k in mat if not k.startswith('__')]}")
-    entries = np.atleast_1d(mat["tvsum50"])
-    for s in entries:
-        vid = str(s.video)
+    for s in np.atleast_1d(mat["tvsum50"]):
         anno = np.asarray(s.user_anno, float)
-        nframes = int(getattr(s, "nframes", anno.shape[0]
-                              if anno.ndim == 2 else len(anno)))
+        nframes = int(getattr(s, "nframes", anno.shape[0] if anno.ndim == 2 else len(anno)))
         length = float(getattr(s, "length", 0.0)) or None
-        # Orient to (nframes, n_annotators): the frame axis is the long one.
-        if anno.ndim == 1:
-            anno = anno[:, None]
-        if anno.shape[0] < anno.shape[1] and anno.shape[1] == nframes:
-            anno = anno.T
-        elif anno.shape[0] != nframes and anno.shape[1] == nframes:
-            anno = anno.T
-        yield vid, anno, length, nframes
+        yield str(s.video), _orient(anno, nframes), length, nframes
+
+
+def _load_tvsum_h5(path):
+    """v7.3 .mat (HDF5) via h5py — the REAL TVSum release ships in THIS format.
+
+    Struct-array fields are stored as (50,1) arrays of HDF5 object references; each
+    entry must be dereferenced through the file. user_anno comes back as
+    (n_annotators, nframes) here (transposed vs the scipy path), which _orient fixes.
+    """
+    import h5py
+    with h5py.File(path, "r") as f:
+        if "tvsum50" not in f:
+            raise SystemExit(f"{path!r} has no 'tvsum50' group. Keys: {list(f.keys())}")
+        g = f["tvsum50"]
+        for i in range(g["video"].shape[0]):
+            vid = "".join(chr(int(c)) for c in np.asarray(f[g["video"][i, 0]]).flatten())
+            anno = np.asarray(f[g["user_anno"][i, 0]], float)
+            nframes = int(np.asarray(f[g["nframes"][i, 0]]).flatten()[0])
+            length = float(np.asarray(f[g["length"][i, 0]]).flatten()[0]) or None
+            yield vid, _orient(anno, nframes), length, nframes
+
+
+def load_tvsum_mat(path):
+    """Yield (video_id, user_anno[nframes, n_annot], length_sec, nframes).
+
+    Dispatches on format: the REAL TVSum release is MATLAB v7.3 (HDF5, needs h5py); the
+    synthetic fixtures are v7 (scipy). This is the fix for the real-data 'Please use HDF
+    reader for matlab v7.3 files' crash that the synthetic v7 .mat had masked.
+    """
+    with open(path, "rb") as fh:
+        head = fh.read(128)
+    # v7.3 = HDF5. Real MATLAB writes a "MATLAB 7.3 MAT-file" userblock ahead of the HDF5
+    # payload; a raw HDF5 file starts with the HDF5 signature. Either -> h5py. v5/v7 -> scipy.
+    if head[:19] == b"MATLAB 7.3 MAT-file" or head[:8] == b"\x89HDF\r\n\x1a\n":
+        yield from _load_tvsum_h5(path)
+    else:
+        yield from _load_tvsum_scipy(path)
 
 
 def frames_to_shots(anno, fps, shot_sec):
