@@ -88,8 +88,28 @@ AROUSAL_REGIONS = [
     "G_and_S_cingul-Mid-Ant",     # mid-anterior cingulate
 ]
 
+# The MESSAGE lane — the a-priori LANGUAGE / semantic-association system (the
+# fronto-temporo-parietal language network, the cortex TRIBE's TEXT branch drives).
+# Pre-registered a-priori set, expressed as Destrieux region-name substrings
+# (matched case-insensitively against both hemispheres), mirroring the DMN/DAN
+# pattern exactly. HONESTY: the arc read out of this ROI is "predicted SEMANTIC-
+# INTEGRATION LOAD" — a HYPOTHESIS. It is NEVER "the viewer understood the
+# message" (no comprehension validation exists yet — see message_extract.py). This
+# system partially OVERLAPS the DMN (STS / pMTG / angular are in both); that is
+# expected — language and DMN share association cortex — and is not double-dipping
+# because the mask is fixed a-priori, before seeing any result.
+LANGUAGE_REGIONS = [
+    "G_front_inf-Triangul",       # inferior frontal gyrus, pars triangularis (Broca)
+    "G_front_inf-Opercular",      # inferior frontal gyrus, pars opercularis (Broca)
+    "Pole_temporal",              # temporal pole / anterior temporal lobe (ATL)
+    "S_temporal_sup",             # superior temporal sulcus (lexico-semantic)
+    "G_temporal_middle",          # posterior middle temporal gyrus (pMTG)
+    "G_pariet_inf-Angular",       # angular gyrus (inferior parietal semantic hub)
+]
+
 NETWORKS = {"dmn": DMN_REGIONS, "dan": DORSAL_ATTN_REGIONS,
-            "valence": VALENCE_REGIONS, "arousal": AROUSAL_REGIONS}
+            "valence": VALENCE_REGIONS, "arousal": AROUSAL_REGIONS,
+            "language": LANGUAGE_REGIONS}
 
 # --- Schaefer-1000 / Yeo-7 placeholder mapping (for the --n-units 1000 case) ---
 # The Schaefer 2018 1000-parcel atlas ships with a Yeo-7 network label baked into
@@ -100,17 +120,25 @@ NETWORKS = {"dmn": DMN_REGIONS, "dan": DORSAL_ATTN_REGIONS,
 #   dan      -> DorsAttn       (dorsal attention)
 #   valence  -> Limbic         (OFC + temporal pole live here; NOT vmPFC-specific)
 #   arousal  -> SalVentAttn    (anterior insula + ACC salience ~ arousal proxy)
+#   language -> Default+Cont   (Yeo-7 has NO language network; the fronto-temporo-
+#                               parietal language system splits across Default
+#                               (temporal/angular) + Cont (frontal control) — the
+#                               LOOSEST proxy in this file, use the surface path)
 # HONESTY: the valence/arousal->Yeo mappings are looser than the surface ROIs
 # (a whole Yeo network, not hand-picked OFC/insula labels). Treat any 1000-parcel
-# affect arc as EVEN MORE hypothesis-grade than the surface one. This path is a
-# documented PLACEHOLDER: it is NOT yet smoke-tested against real 1000-parcel preds
-# (our synthetic fixtures are all fsaverage5/20484), so verify the parcel order and
-# label tokens on a real Schaefer preds batch before trusting it.
+# affect arc as EVEN MORE hypothesis-grade than the surface one. The language->Yeo
+# mapping is looser STILL (a union of TWO whole networks, because Yeo-7 has no
+# dedicated language parcellation) — strongly prefer the surface Destrieux path for
+# the message lane. This whole path is a documented PLACEHOLDER: it is NOT yet
+# smoke-tested against real 1000-parcel preds (our synthetic fixtures are all
+# fsaverage5/20484), so verify the parcel order and label tokens on a real Schaefer
+# preds batch before trusting it.
 YEO7_FOR_NETWORK = {
     "dmn": ["Default"],
     "dan": ["DorsAttn"],
     "valence": ["Limbic"],
     "arousal": ["SalVentAttn"],
+    "language": ["Default", "Cont"],
 }
 
 

@@ -15,7 +15,7 @@ ROOT := $(subst $(space),\$(space),$(MKFILE_DIR))
 PY ?= $(ROOT)/.venv/bin/python
 
 .DEFAULT_GOAL := help
-.PHONY: help synth dryrun test demo baseline publish pipeline pipeline-demo report ingest trim head head-demo head-save head-apply affect-head affect-head-demo affect-head-save cognimuse cognimuse-films veatic studyforrest studyforrest-film ad-backtest all
+.PHONY: help synth dryrun test demo baseline publish pipeline pipeline-demo report ingest trim head head-demo head-save head-apply affect-head affect-head-demo affect-head-save cognimuse cognimuse-films veatic studyforrest studyforrest-film ad-backtest temporal-readout all
 
 help:  ## show this help
 	@echo "Soma make targets:"
@@ -31,6 +31,7 @@ help:  ## show this help
 	@echo "  make head-save  fit the attention head on ALL of ./data + save a reusable inference head"
 	@echo "  make head-apply score ./data/arcs with saved head(s): HEADS=validation/head_attn.json"
 	@echo "  make ad-backtest does the neural score predict real ad rank over ffmpeg? (./data/ads; SCORE=arc|head)"
+	@echo "  make temporal-readout does the SHAPE of the neural arc predict ad outcome? (./data/ads; SOURCE=arc|preds)"
 	@echo "  make all        full CPU chain incl. head-apply on ./data (extract on Colab first; DEMO=1 publishes)"
 	@echo "  make report     rebuild validation/report.html from validation CSVs"
 	@echo "  make publish    publish a REAL run into demo/results.json (never synthetic)"
@@ -160,6 +161,14 @@ ad-backtest:  ## backtest neural score vs REAL ad rank on ./data/ads (SCORE=arc|
 		--score $(or $(SCORE),arc) $(if $(HEAD),--head $(HEAD),) \
 		--preds-dir $(ROOT)/data/ads/arcs --arc-dir $(ROOT)/data/ads/arcs \
 		--baseline-dir $(ROOT)/data/ads/baseline
+
+temporal-readout:  ## does the SHAPE of the neural arc predict ad outcome over ffmpeg? (./data/ads; SOURCE=arc|preds, SERIES=global_mag|roi_mag)
+	$(PY) $(ROOT)/temporal_readout.py --manifest $(ROOT)/data/ads/ad_manifest.csv \
+		--source $(or $(SOURCE),arc) --series-col $(or $(SERIES),global_mag) \
+		--arc-dir $(ROOT)/data/ads/arcs --preds-dir $(ROOT)/data/ads/arcs \
+		--baseline-dir $(ROOT)/data/ads/baseline \
+		--out $(ROOT)/validation/temporal_readout.csv \
+		--json-out $(ROOT)/validation/temporal_readout.json
 
 all:  ## full CPU chain incl. head-apply on ./data (Colab extract first). HEADS=... DEMO=1 to publish.
 	$(PY) $(ROOT)/run_pipeline.py --arc-dir $(ROOT)/data/arcs --human-dir $(ROOT)/data/tvsum \
