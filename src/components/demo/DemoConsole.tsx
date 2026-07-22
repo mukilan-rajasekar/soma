@@ -22,7 +22,7 @@ import {
   type Arc,
   type ArcStats,
 } from "@/lib/arc";
-import { coarseColor, drawAttention, drawCoarse, drawSigned } from "@/lib/arc-draw";
+import { coarseColor, drawAttention, drawCoarse, drawSigned, pal } from "@/lib/arc-draw";
 import BrainSvg, { type BrainHandle } from "./BrainSvg";
 import Transport from "./Transport";
 import Picker, { VIDEOS, isSample, type VideoItem } from "./Picker";
@@ -32,15 +32,15 @@ import { loadArc, mergeLiveArcs } from "./live";
 type LaneBadge = { text: string; color: string } | null;
 
 // honesty badge: any status that is NOT the validated tier ("learned-hypothesis")
-// shows in warning red, so a smoke / unvalidated / poisoned head can't be mistaken
-// for a validated result.
+// shows in warning error-red, so a smoke / unvalidated / poisoned head can't be mistaken
+// for a validated result. Validated reads as calm neutral ink-2 (never a colour).
 function badgeFor(txt: string | undefined, status: string | undefined): LaneBadge {
   if (!txt) return null;
-  return { text: txt, color: status === "learned-hypothesis" ? "#8FB3C0" : "#ff9a9a" };
+  return { text: txt, color: status === "learned-hypothesis" ? "#4a4a4a" : "#b42318" };
 }
 
 const EYE =
-  "mb-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#7C7C82]";
+  "mb-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-3";
 
 // Boot on the REAL run (honesty: never default to a synthetic/illustrative card).
 const BOOT_ID = "real1";
@@ -189,7 +189,7 @@ export default function DemoConsole() {
       const x = c.getContext("2d");
       if (!x) return;
       x.clearRect(0, 0, c.width, c.height);
-      x.fillStyle = "#ff7a7a";
+      x.fillStyle = pal().error;
       x.font = "13px ui-monospace,monospace";
       x.fillText("Could not load " + label + " — " + msg, 14, 26);
     });
@@ -239,10 +239,13 @@ export default function DemoConsole() {
     if (!a) return;
     if (cAttRef.current) drawAttention(cAttRef.current, a, t, duration, stats);
     const af = a.affect || {};
+    const P = pal();
+    // valence rides on ink; arousal on a lighter ink tint (ink-2) — attention keeps the
+    // one slate accent to itself.
     if (cValRef.current)
-      drawSigned(cValRef.current, af.valence, af.valence_lo, af.valence_hi, t, "rgba(234,244,255,COLOR)", "center", stats?.val ?? null, a, duration);
+      drawSigned(cValRef.current, af.valence, af.valence_lo, af.valence_hi, t, P.ink, "center", stats?.val ?? null, a, duration);
     if (cAroRef.current)
-      drawSigned(cAroRef.current, af.arousal, af.arousal_lo, af.arousal_hi, t, "rgba(143,179,192,COLOR)", "bottom", stats?.aro ?? null, a, duration);
+      drawSigned(cAroRef.current, af.arousal, af.arousal_lo, af.arousal_hi, t, P.ink2, "bottom", stats?.aro ?? null, a, duration);
     if (cCoarseRef.current) drawCoarse(cCoarseRef.current, a, t, duration);
     brainRef.current?.apply(clamp01(valAt(a.activation, t, duration)), stats?.att?.max ?? null);
     if (brainTRef.current) brainTRef.current.textContent = t.toFixed(1) + "s";
@@ -380,16 +383,16 @@ export default function DemoConsole() {
   };
 
   return (
-    <main className="fixed inset-0 overflow-y-auto bg-[#08090b] text-[#F5F5F7]">
+    <main className="fixed inset-0 overflow-y-auto bg-paper text-ink">
       <div className="mx-auto w-full max-w-[1080px] px-[clamp(16px,4vw,28px)] py-[clamp(18px,4vh,30px)]">
         {/* top bar */}
         <header className="mb-[clamp(16px,3vh,24px)] flex items-center justify-between">
-          <Link href="/" className="text-[21px] font-medium tracking-[-0.01em] text-[#F5F5F7] hover:text-[#F5F5F7]">
+          <Link href="/" className="text-wordmark text-ink hover:text-ink">
             soma
           </Link>
           <Link
             href="/"
-            className="font-mono text-[11px] uppercase tracking-[0.12em] text-[#ADADB2] transition-colors hover:text-[#F5F5F7]"
+            className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
           >
             ← back to home
           </Link>
@@ -398,18 +401,18 @@ export default function DemoConsole() {
         {/* console */}
         <div
           ref={consoleRef}
-          className="relative rounded-[24px] border border-[rgba(255,255,255,0.08)] bg-[#0C0C0E]"
+          className="relative rounded-2xl border border-line bg-paper"
         >
           {showWatermark ? (
-            <div className="pointer-events-none absolute left-1/2 top-2.5 z-[6] -translate-x-1/2 whitespace-nowrap rounded-full border border-[rgba(255,203,92,0.45)] bg-[rgba(20,15,4,0.74)] px-2.5 py-[5px] font-mono text-[11px] tracking-[0.04em] text-[#FFCB5C]">
-              ◆ ILLUSTRATIVE SAMPLE — synthetic data, not model output
+            <div className="pointer-events-none absolute left-1/2 top-2.5 z-[6] -translate-x-1/2 whitespace-nowrap rounded-full border border-line bg-fill px-2.5 py-[5px] font-mono text-[11px] tracking-[0.04em] text-ink-2 shadow-sm">
+              <span className="text-ink-3">◆</span> ILLUSTRATIVE SAMPLE — synthetic data, not model output
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2.5 border-b border-[rgba(255,255,255,0.055)] px-[clamp(16px,3vw,20px)] py-3 font-mono text-[11px] text-[#ADADB2]">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#4ADE9E]" aria-hidden="true" />
+          <div className="flex items-center gap-2.5 border-b border-line px-[clamp(16px,3vw,20px)] py-3 font-mono text-[11px] text-ink-3">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true" />
             <span>soma · analyze</span>
-            <span className="ml-auto rounded-md border border-[rgba(255,255,255,0.08)] px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-[#7C7C82]">
+            <span className="ml-auto rounded-md border border-line px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-ink-3">
               demo
             </span>
           </div>
@@ -426,23 +429,23 @@ export default function DemoConsole() {
             <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[300px_1fr]">
               {/* brain */}
               <div className="flex flex-col gap-3">
-                <div className="relative overflow-hidden rounded-[20px] border border-[rgba(255,255,255,0.08)] bg-[#141416] p-3.5">
+                <div className="relative overflow-hidden rounded-2xl border border-line bg-fill p-3.5">
                   <video
                     ref={videoRef}
                     hidden
                     playsInline
                     muted
                     preload="metadata"
-                    className="mb-2.5 block w-full rounded-xl border border-[rgba(255,255,255,0.08)] bg-black"
+                    className="mb-2.5 block w-full rounded-xl border border-line bg-ink"
                   />
-                  <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.13em] text-[#7C7C82]">
+                  <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.13em] text-ink-3">
                     <span>Predicted cortical activation</span>
-                    <b ref={brainTRef} className="font-bold tabular-nums text-[#BFE0EC]">
+                    <b ref={brainTRef} className="font-bold tabular-nums text-ink">
                       0.0s
                     </b>
                   </div>
                   <BrainSvg ref={brainRef} />
-                  <div className="mt-2.5 border-t border-[rgba(255,255,255,0.055)] pt-2.5 font-mono text-[10px] leading-[1.6] tracking-[0.02em] text-[#ADADB2]">
+                  <div className="mt-2.5 border-t border-line pt-2.5 font-mono text-[10px] leading-[1.6] tracking-[0.02em] text-ink-3">
                     Whole-cortex activation magnitude · average viewer · normalized 0&ndash;1 · 1&nbsp;Hz.
                   </div>
                 </div>
@@ -451,11 +454,11 @@ export default function DemoConsole() {
               {/* lanes */}
               <div className="flex min-w-0 flex-col gap-3">
                 {/* attention */}
-                <div className="rounded-[18px] border border-[rgba(255,255,255,0.08)] bg-[#141416] px-[15px] py-3.5">
+                <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
                   <div className="mb-2 flex items-baseline justify-between gap-3">
                     <span className="text-[14px] font-semibold tracking-[-0.01em]">
                       Attention arc
-                      <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-[#7C7C82]">
+                      <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-ink-3">
                         where the ad holds vs loses people
                       </small>
                       {!failed && attBadge ? (
@@ -472,7 +475,7 @@ export default function DemoConsole() {
                     onClick={(e) => laneClick(cAttRef.current, e)}
                     role="img"
                     aria-label="Attention arc across the clip timeline"
-                    className="block h-auto w-full cursor-crosshair rounded-xl"
+                    className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
                   />
                 </div>
 
@@ -480,7 +483,7 @@ export default function DemoConsole() {
                 <div
                   ref={calloutRef}
                   hidden
-                  className="flex items-start gap-2 rounded-[14px] border border-[rgba(255,122,122,0.4)] bg-[rgba(255,122,122,0.1)] px-3.5 py-2.5 text-[13px] text-[#ffd9d9]"
+                  className="flex items-start gap-2 rounded-xl border border-error/30 bg-error/[0.06] px-3.5 py-2.5 text-[13px] text-error"
                 >
                   <svg viewBox="0 0 16 16" aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0">
                     <path d="M8 1.8 15 14H1z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
@@ -488,17 +491,17 @@ export default function DemoConsole() {
                     <circle cx="8" cy="11.6" r=".6" fill="currentColor" />
                   </svg>
                   <span>
-                    <strong ref={calloutStrongRef} className="text-white" />
+                    <strong ref={calloutStrongRef} className="font-semibold text-error" />
                     <span ref={calloutLabelRef} />
                   </span>
                 </div>
 
                 {/* valence */}
-                <div className="rounded-[18px] border border-[rgba(255,255,255,0.08)] bg-[#141416] px-[15px] py-3.5">
+                <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
                   <div className="mb-2 flex items-baseline justify-between gap-3">
                     <span className="text-[14px] font-semibold tracking-[-0.01em]">
                       Valence · feels good ↔ bad
-                      <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-[#7C7C82]">
+                      <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-ink-3">
                         pleasant (up) / unpleasant (down)
                       </small>
                       {!failed && valBadge ? (
@@ -515,16 +518,16 @@ export default function DemoConsole() {
                     onClick={(e) => laneClick(cValRef.current, e)}
                     role="img"
                     aria-label="Valence arc across the clip timeline"
-                    className="block h-auto w-full cursor-crosshair rounded-xl"
+                    className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
                   />
                 </div>
 
                 {/* arousal */}
-                <div className="rounded-[18px] border border-[rgba(255,255,255,0.08)] bg-[#141416] px-[15px] py-3.5">
+                <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
                   <div className="mb-2 flex items-baseline justify-between gap-3">
                     <span className="text-[14px] font-semibold tracking-[-0.01em]">
                       Arousal · calm ↔ excited
-                      <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-[#7C7C82]">
+                      <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-ink-3">
                         how worked-up the moment is
                       </small>
                       {!failed && aroBadge ? (
@@ -541,17 +544,17 @@ export default function DemoConsole() {
                     onClick={(e) => laneClick(cAroRef.current, e)}
                     role="img"
                     aria-label="Arousal arc across the clip timeline"
-                    className="block h-auto w-full cursor-crosshair rounded-xl"
+                    className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
                   />
                 </div>
 
                 {/* coarse discrete-state distribution (only when present) */}
                 {!failed && hasCoarse && cs ? (
-                  <div className="rounded-[18px] border border-[rgba(255,255,255,0.08)] bg-[#141416] px-[15px] py-3.5">
+                  <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
                     <div className="mb-2 flex items-baseline justify-between gap-3">
                       <span className="text-[14px] font-semibold tracking-[-0.01em]">
                         Coarse affective states
-                        <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-[#7C7C82]">
+                        <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-ink-3">
                           probability spread over the clip
                         </small>
                       </span>
@@ -563,9 +566,9 @@ export default function DemoConsole() {
                       onClick={(e) => laneClick(cCoarseRef.current, e)}
                       role="img"
                       aria-label="Coarse affective-state probabilities across the clip"
-                      className="block h-auto w-full cursor-crosshair rounded-xl"
+                      className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
                     />
-                    <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-2 font-mono text-[10px] text-[#ADADB2]">
+                    <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-2 font-mono text-[10px] text-ink-3">
                       {cs.labels.map((lb, i) => (
                         <span key={lb + i} className="inline-flex items-center gap-1.5">
                           <i

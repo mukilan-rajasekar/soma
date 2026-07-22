@@ -22,13 +22,14 @@ export function loadArc(item: VideoItem): Promise<Arc> {
   });
 }
 
-// Deterministic teal→blue gradient from the id keeps live cards on-palette: the same ad
-// always gets the same swatch (no random color per reload).
+// Deterministic near-white gradient from the id keeps live cards on the light editorial
+// palette: the same ad always gets the same faint slate swatch (no random colour per
+// reload), matching the static sample thumbs.
 export function gradFor(id: string): string {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   const hue = 188 + (h % 42); // teal→blue band, matches the theme
-  return `linear-gradient(135deg,hsl(${hue} 30% 25%),#0b1119 60%,#05070b)`;
+  return `linear-gradient(135deg,#ffffff,hsl(${hue} 20% 95%) 60%,hsl(${hue} 16% 92%))`;
 }
 
 type LiveRow = {

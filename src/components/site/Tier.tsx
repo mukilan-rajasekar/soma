@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 
-// The evidence-tier badge, ported from the old console key. Four tiers, honest by design:
+// The evidence-tier badge, ported from the old console key. Four tiers, honest by design.
+// The badge is the ONE place semantic colour lives — the surrounding UI stays monochrome
+// + one accent, so the tier reads at a glance without tinting whole cards:
 //   validated  (green)  — proven, e.g. the TRIBE encoder vs real fMRI
 //   validating (amber)  — a hypothesis under an open, pre-registered test
 //   hypothesis (red)    — a labeled hypothesis / disclosed null, not validated
-//   neutral    (grey)   — descriptive, no claim attached
+//   neutral    (grey)   — descriptive, no claim attached (tokenised: line/fill/ink-3)
 export type TierVariant = "validated" | "validating" | "hypothesis" | "neutral";
 
 const VARIANTS: Record<TierVariant, { pill: string; dot: string }> = {
@@ -21,8 +23,8 @@ const VARIANTS: Record<TierVariant, { pill: string; dot: string }> = {
     dot: "bg-[#e0503f]",
   },
   neutral: {
-    pill: "border-[#e2e2e2] bg-[#f6f6f6] text-[#6b6b6b]",
-    dot: "bg-[#9a9a9a]",
+    pill: "border-line bg-fill text-ink-3",
+    dot: "bg-ink-3",
   },
 };
 
@@ -36,7 +38,7 @@ export default function Tier({
   const v = VARIANTS[variant];
   return (
     <span
-      className={`inline-flex items-center gap-[6px] whitespace-nowrap rounded-full border px-[9px] py-[3px] align-middle font-mono text-[10.5px] uppercase leading-none tracking-[0.05em] ${v.pill}`}
+      className={`inline-flex items-center gap-[6px] whitespace-nowrap rounded-full border px-[9px] py-[3px] align-middle text-[10.5px] font-medium uppercase leading-none tracking-[0.06em] ${v.pill}`}
     >
       <span className={`h-[6px] w-[6px] shrink-0 rounded-full ${v.dot}`} />
       {children}

@@ -20,23 +20,23 @@ function Spark({ d, mid = false }: { d: string; mid?: boolean }) {
       viewBox="0 0 120 46"
       preserveAspectRatio="none"
       aria-hidden="true"
-      className="h-[46px] w-full rounded-xl border border-[#ececec] bg-[#f5f5f5]"
+      className="h-[46px] w-full rounded-xl border border-line bg-fill"
     >
       <line
         x1="0"
         y1={mid ? 24 : 34}
         x2="120"
         y2={mid ? 24 : 34}
-        stroke="#d8d8d8"
         strokeWidth="1"
         strokeDasharray="3 4"
+        className="stroke-line-2"
       />
       <path
         d={d}
         fill="none"
-        stroke="#8FB3C0"
         strokeWidth="2.4"
         strokeLinecap="round"
+        className="stroke-accent"
       />
     </svg>
   );
@@ -130,7 +130,7 @@ const ROADMAP = [
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.14em] text-[#9a9a9a]">
+    <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-ink-3">
       {children}
     </div>
   );
@@ -143,18 +143,18 @@ export default async function SciencePage() {
     <article>
       {/* header */}
       <header className="mx-auto max-w-[920px] px-[clamp(16px,4vw,24px)] pb-8 pt-[clamp(26px,5vw,44px)]">
-        <div className="mb-4 inline-flex items-center gap-[9px] font-mono text-[11px] uppercase tracking-[0.18em] text-[#5f8b99]">
-          <span className="h-[6px] w-[6px] rounded-full bg-[#8FB3C0]" />
+        <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-accent-2">
+          <span className="h-[6px] w-[6px] rounded-full bg-accent-2" />
           The science
         </div>
-        <h1 className="max-w-[16ch] text-balance text-[clamp(30px,5.2vw,54px)] font-medium leading-[1.04] tracking-[-0.03em]">
+        <h1 className="max-w-[16ch] text-balance text-hero text-ink">
           What Soma measures, and{" "}
           <span className="font-serif font-normal italic">
             what it doesn&rsquo;t
           </span>
           .
         </h1>
-        <p className="mt-[18px] max-w-[60ch] text-pretty text-[clamp(15.5px,1.8vw,18px)] leading-[1.5] text-[#4a4a4a]">
+        <p className="mt-[18px] max-w-[60ch] text-pretty text-[clamp(16px,1.7vw,18px)] leading-[1.5] text-ink-2">
           Soma predicts how an average viewer&rsquo;s brain responds to a video
           ad, second by second, straight from the file. This page walks through
           how that works, which part is proven, and which part we are still
@@ -163,17 +163,17 @@ export default async function SciencePage() {
       </header>
 
       {/* 01 — the gap */}
-      <section className="mx-auto max-w-[920px] border-t border-[#ececec] px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
+      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
         <Eyebrow>01 · the gap</Eyebrow>
-        <h2 className="max-w-[20ch] text-balance text-[clamp(23px,3.1vw,32px)] font-medium leading-[1.1] tracking-[-0.025em]">
+        <h2 className="max-w-[20ch] text-balance text-section text-ink">
           Retention graphs tell you where. Not why.
         </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           Your analytics show the drop-off. At second 14, half the viewers are
           gone. What they cannot show is the reason. Was it the cut, the audio,
           the pacing, or a promise the ad set up and never paid off?
         </p>
-        <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           Surveys do not recover it either. People are poor witnesses to their
           own attention, so asking &ldquo;what did you find engaging?&rdquo;
           returns a story assembled after the fact, not what happened while they
@@ -183,56 +183,56 @@ export default async function SciencePage() {
       </section>
 
       {/* 02 — ground truth */}
-      <section className="mx-auto max-w-[920px] border-t border-[#ececec] px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
+      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
         <Eyebrow>02 · ground truth</Eyebrow>
-        <h2 className="max-w-[20ch] text-balance text-[clamp(23px,3.1vw,32px)] font-medium leading-[1.1] tracking-[-0.025em]">
+        <h2 className="max-w-[20ch] text-balance text-section text-ink">
           fMRI is the ground truth for brain response.
         </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           An fMRI scanner tracks blood oxygen across the brain. When a region
           works harder, it pulls in more oxygen, and the scan picks that up (the
           BOLD signal). Show someone a video in the scanner and you get a map of
           which regions responded, how strongly, and when. Not what they reported
           afterward. What their brain did during the ad.
         </p>
-        <figure className="mt-6 rounded-2xl border border-[#ececec] bg-[#fafafa] p-[clamp(16px,3vw,26px)]">
+        <figure className="mt-6 rounded-2xl border border-line bg-fill p-[clamp(16px,3vw,26px)]">
           <svg
             viewBox="0 0 640 190"
             role="img"
             aria-label="A stimulus onset followed by a delayed rise and fall in the blood-oxygen signal."
             className="block h-auto w-full"
           >
-            <line x1="60" y1="150" x2="610" y2="150" stroke="#d8d8d8" strokeWidth="1.2" />
-            <line x1="60" y1="26" x2="60" y2="150" stroke="#d8d8d8" strokeWidth="1.2" />
-            <text x="60" y="172" fill="#9a9a9a" fontFamily="ui-monospace,monospace" fontSize="11">
+            <line x1="60" y1="150" x2="610" y2="150" strokeWidth="1.2" className="stroke-line-2" />
+            <line x1="60" y1="26" x2="60" y2="150" strokeWidth="1.2" className="stroke-line-2" />
+            <text x="60" y="172" fontSize="11" className="fill-ink-3">
               time →
             </text>
-            <text x="22" y="30" fill="#9a9a9a" fontFamily="ui-monospace,monospace" fontSize="11">
+            <text x="22" y="30" fontSize="11" className="fill-ink-3">
               BOLD
             </text>
-            <line x1="150" y1="30" x2="150" y2="150" stroke="#8FB3C0" strokeWidth="1.2" strokeDasharray="3 4" opacity=".7" />
-            <circle cx="150" cy="150" r="4" fill="#8FB3C0" />
-            <text x="150" y="24" fill="#5f8b99" fontFamily="ui-monospace,monospace" fontSize="10.5" textAnchor="middle">
+            <line x1="150" y1="30" x2="150" y2="150" strokeWidth="1.2" strokeDasharray="3 4" opacity=".7" className="stroke-accent-2" />
+            <circle cx="150" cy="150" r="4" className="fill-accent-2" />
+            <text x="150" y="24" fontSize="10.5" textAnchor="middle" className="fill-accent-2">
               stimulus
             </text>
             <path
               d="M60,150 L150,150 C185,150 195,52 235,44 C275,36 300,150 360,150 C400,150 420,158 470,150 L610,150"
               fill="none"
-              stroke="#5f8b99"
               strokeWidth="2.4"
               strokeLinecap="round"
+              className="stroke-accent"
             />
-            <line x1="235" y1="44" x2="235" y2="150" stroke="#d8d8d8" strokeWidth="1" />
-            <text x="245" y="42" fill="#6b6b6b" fontFamily="ui-monospace,monospace" fontSize="10.5">
+            <line x1="235" y1="44" x2="235" y2="150" strokeWidth="1" className="stroke-line-2" />
+            <text x="245" y="42" fontSize="10.5" className="fill-ink-2">
               peak response, a few seconds later
             </text>
           </svg>
-          <figcaption className="mt-3 text-center font-mono text-[11px] leading-[1.55] text-[#9a9a9a]">
+          <figcaption className="mt-3 text-center text-[11px] leading-[1.55] text-ink-3">
             The blood-oxygen response lags the stimulus by a few seconds and then
             settles. TRIBE learns this signal from real scans.
           </figcaption>
         </figure>
-        <p className="mt-6 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-6 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           Running real fMRI is slow and costly, which is why this stayed inside
           research labs. Scanner time runs into the hundreds of dollars an hour,
           and reading the data takes training. A model that predicts the response
@@ -241,12 +241,12 @@ export default async function SciencePage() {
       </section>
 
       {/* 03 — the model */}
-      <section className="mx-auto max-w-[920px] border-t border-[#ececec] px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
+      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
         <Eyebrow>03 · the model</Eyebrow>
-        <h2 className="max-w-[22ch] text-balance text-[clamp(23px,3.1vw,32px)] font-medium leading-[1.1] tracking-[-0.025em]">
+        <h2 className="max-w-[22ch] text-balance text-section text-ink">
           TRIBE v2 predicts that response without a scanner.
         </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           In 2025, Meta released TRIBE &mdash; the model that won the Algonauts
           2025 brain-encoding challenge, 1st of 263 teams &mdash; and then TRIBE
           v2, the larger successor we run. Give it a video and it predicts the
@@ -254,32 +254,32 @@ export default async function SciencePage() {
           across about 20,000 points on the cortical surface. It learned the
           mapping from real 3-tesla fMRI recordings of people watching video.
         </p>
-        <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           The model is public. Anyone can download the same weights. That cuts
           two ways for us: the science is reproducible, and the model by itself is
           not a moat for anyone. We build the read-out on top of it, and we say
           plainly that the encoder is Meta&rsquo;s, not ours.
         </p>
-        <div className="mt-6 rounded-2xl border border-[#ecd9a8] bg-[#fdfaf1] p-[clamp(16px,3vw,22px)]">
+        <div className="mt-6 rounded-2xl border border-line bg-fill p-[clamp(16px,3vw,22px)]">
           <div className="mb-[9px] flex flex-wrap items-center gap-[10px]">
             <h3 className="text-[16.5px] font-semibold tracking-[-0.01em]">
               About that &ldquo;92%&rdquo;
             </h3>
             <Tier variant="validated">video → activation: validated</Tier>
           </div>
-          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-[#4a4a4a]">
+          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
             You&rsquo;ll see a &ldquo;
-            <strong className="font-semibold text-[#0a0a0a]">
+            <strong className="font-semibold text-ink">
               92% correlation with fMRI
             </strong>
             &rdquo; figure quoted by other brain-AI tools and attributed to Meta.
             We can&rsquo;t source it to any Meta publication, so we don&rsquo;t
             use it. Meta&rsquo;s TRIBE actually reports a mean correlation of
-            about <strong className="font-semibold text-[#0a0a0a]">0.21</strong>{" "}
+            about <strong className="font-semibold text-ink">0.21</strong>{" "}
             across ~1,000 cortical regions on held-out data &mdash; roughly half
             of the measurable ceiling &mdash; with TRIBE v2 several-fold better
             again. Either way, that number is the accuracy of{" "}
-            <strong className="font-semibold text-[#0a0a0a]">
+            <strong className="font-semibold text-ink">
               video&nbsp;→&nbsp;brain&nbsp;activation
             </strong>
             : it says nothing about whether activation predicts whether someone
@@ -290,12 +290,12 @@ export default async function SciencePage() {
       </section>
 
       {/* 04 — the chain */}
-      <section className="mx-auto max-w-[920px] border-t border-[#ececec] px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
+      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
         <Eyebrow>04 · the chain</Eyebrow>
-        <h2 className="max-w-[20ch] text-balance text-[clamp(23px,3.1vw,32px)] font-medium leading-[1.1] tracking-[-0.025em]">
+        <h2 className="max-w-[20ch] text-balance text-section text-ink">
           Three steps. Only the first is proven.
         </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           Everything Soma shows runs through the same three steps. Pulling them
           apart is the honest way to look at the product, because the three do not
           carry the same weight of evidence.
@@ -308,17 +308,17 @@ export default async function SciencePage() {
             { lab: "Attention & feeling", sub: "the arc you read" },
           ].map((n, idx, arr) => (
             <div key={n.lab} className="contents md:flex md:flex-1 md:items-center">
-              <div className="flex flex-1 flex-col gap-[6px] rounded-2xl border border-[#ececec] bg-[#fafafa] p-4">
+              <div className="flex flex-1 flex-col gap-[6px] rounded-2xl border border-line bg-fill p-4">
                 <span className="text-[14px] font-semibold tracking-[-0.01em]">
                   {n.lab}
                 </span>
-                <span className="font-mono text-[11.5px] leading-[1.4] text-[#9a9a9a]">
+                <span className="text-[11.5px] leading-[1.4] text-ink-3">
                   {n.sub}
                 </span>
               </div>
               {idx < arr.length - 1 ? (
-                <div className="flex shrink-0 items-center justify-center px-1 py-1 text-[#c8c8c8] md:w-[64px] md:flex-col md:gap-[6px]">
-                  <span className="font-mono text-[15px]">&rarr;</span>
+                <div className="flex shrink-0 items-center justify-center px-1 py-1 text-ink-3 md:w-[64px] md:flex-col md:gap-[6px]">
+                  <span className="text-[15px]">&rarr;</span>
                   {idx === 0 ? (
                     <Tier variant="validated">proven</Tier>
                   ) : idx === 1 ? (
@@ -331,17 +331,17 @@ export default async function SciencePage() {
             </div>
           ))}
         </div>
-        <p className="mt-6 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
-          <strong className="font-semibold text-[#0a0a0a]">
+        <p className="mt-6 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
+          <strong className="font-semibold text-ink">
             Step one, video to activation,
           </strong>{" "}
           is TRIBE. Benchmarked against real scans. Not ours.{" "}
-          <strong className="font-semibold text-[#0a0a0a]">
+          <strong className="font-semibold text-ink">
             Step two, activation to numbers,
           </strong>{" "}
           is arithmetic over the activation map, descriptive with no claim
           attached.{" "}
-          <strong className="font-semibold text-[#0a0a0a]">
+          <strong className="font-semibold text-ink">
             Step three, numbers to attention and feeling,
           </strong>{" "}
           is our read. It is a hypothesis, and we are validating it now against
@@ -351,12 +351,12 @@ export default async function SciencePage() {
       </section>
 
       {/* 05 — the trap */}
-      <section className="mx-auto max-w-[920px] border-t border-[#ececec] px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
+      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
         <Eyebrow>05 · the trap</Eyebrow>
-        <h2 className="max-w-[20ch] text-balance text-[clamp(23px,3.1vw,32px)] font-medium leading-[1.1] tracking-[-0.025em]">
+        <h2 className="max-w-[20ch] text-balance text-section text-ink">
           A spike is not a feeling.
         </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           The most common mistake in this field is reading a burst of activation
           as one specific emotion. The same peak could be interest, confusion,
           mild alarm, or noise. Activation on its own cannot tell you which. Only
@@ -366,22 +366,22 @@ export default async function SciencePage() {
       </section>
 
       {/* 06 — how we test it */}
-      <section className="mx-auto max-w-[920px] border-t border-[#ececec] px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
+      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
         <Eyebrow>06 · how we test it</Eyebrow>
-        <h2 className="max-w-[20ch] text-balance text-[clamp(23px,3.1vw,32px)] font-medium leading-[1.1] tracking-[-0.025em]">
+        <h2 className="max-w-[20ch] text-balance text-section text-ink">
           We test the third step in the open.
         </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           The question is whether the predicted arc tracks a real human attention
           curve. We test it inside a single video, second against second, on
           public data where the human answer already exists:{" "}
-          <strong className="font-semibold text-[#0a0a0a]">TVSum</strong>, where
+          <strong className="font-semibold text-ink">TVSum</strong>, where
           20 people rated how interesting each shot was. We line our predicted arc
           up against theirs.
         </p>
-        <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           A few guardrails keep the test honest. We compare the{" "}
-          <strong className="font-semibold text-[#0a0a0a]">
+          <strong className="font-semibold text-ink">
             shape of the change
           </strong>{" "}
           second to second, not the slow drift, so a lucky trend cannot pass as
@@ -393,16 +393,16 @@ export default async function SciencePage() {
           null result gets reported the same as a positive one.
         </p>
 
-        <div className="mt-6 rounded-2xl border border-[#f0c9c4] bg-[#fdf4f2] p-[clamp(16px,3vw,22px)]">
+        <div className="mt-6 rounded-2xl border border-line bg-fill p-[clamp(16px,3vw,22px)]">
           <div className="mb-[9px] flex flex-wrap items-center gap-[10px]">
             <h3 className="text-[16.5px] font-semibold tracking-[-0.01em]">
               The uncomfortable part, from us
             </h3>
             <Tier variant="hypothesis">disclosed prior</Tier>
           </div>
-          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-[#4a4a4a]">
+          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
             A published result found that whole-brain activation does{" "}
-            <strong className="font-semibold text-[#0a0a0a]">not</strong> predict
+            <strong className="font-semibold text-ink">not</strong> predict
             which parts of a YouTube video get replayed. So the whole-cortex
             version of our signal is a likely dead end, and we treat it as the
             baseline to beat. The narrower, region-specific test is the one still
@@ -410,70 +410,70 @@ export default async function SciencePage() {
           </p>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-[#ececec] bg-[#fafafa] p-[clamp(16px,3vw,22px)]">
+        <div className="mt-4 rounded-2xl border border-line bg-fill p-[clamp(16px,3vw,22px)]">
           <div className="mb-[9px] flex flex-wrap items-center gap-[10px]">
             <h3 className="text-[16.5px] font-semibold tracking-[-0.01em]">
               What the first run actually showed
             </h3>
             <Tier variant="validating">validating · early · n=15</Tier>
           </div>
-          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-[#4a4a4a]">
+          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
             We ran it on 15 TVSum clips. The{" "}
-            <strong className="font-semibold text-[#0a0a0a]">raw</strong> arc came
-            back <strong className="font-semibold text-[#0a0a0a]">null</strong>,
+            <strong className="font-semibold text-ink">raw</strong> arc came
+            back <strong className="font-semibold text-ink">null</strong>,
             exactly as pre-registered &mdash; and it does{" "}
-            <strong className="font-semibold text-[#0a0a0a]">not</strong> beat the
+            <strong className="font-semibold text-ink">not</strong> beat the
             loudness/cuts/brightness/motion baseline (0 of 15 clips). The raw
             arithmetic arc, on its own, is not the product.
           </p>
-          <p className="mt-3 max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-[#4a4a4a]">
+          <p className="mt-3 max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
             But a small{" "}
-            <strong className="font-semibold text-[#0a0a0a]">
+            <strong className="font-semibold text-ink">
               trained read-out
             </strong>{" "}
             over the region features <em className="italic">does</em> track the
             human interest curve, held out video by video: median rank
             correlation{" "}
-            <strong className="font-semibold text-[#0a0a0a]">
+            <strong className="font-semibold text-ink">
               r&nbsp;≈&nbsp;0.20
             </strong>{" "}
             &mdash; about 87% of the agreement humans reach with each other &mdash;
             combined{" "}
-            <strong className="font-semibold text-[#0a0a0a]">
+            <strong className="font-semibold text-ink">
               p&nbsp;=&nbsp;0.0003
             </strong>
             . And that signal{" "}
-            <strong className="font-semibold text-[#0a0a0a]">survives</strong> the
+            <strong className="font-semibold text-ink">survives</strong> the
             loudness/cuts/brightness/motion control (partial r&nbsp;≈&nbsp;0.18,
             p&nbsp;=&nbsp;0.0005), so it is not just re-deriving the edit.
           </p>
-          <p className="mt-3 max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-[#4a4a4a]">
+          <p className="mt-3 max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
             Honest limits, stated plainly: 15 videos, so any single clip is
             underpowered; TVSum measures{" "}
-            <strong className="font-semibold text-[#0a0a0a]">interest</strong>{" "}
+            <strong className="font-semibold text-ink">interest</strong>{" "}
             &mdash; a public proxy, not ad retention; and the read-out is a{" "}
-            <strong className="font-semibold text-[#0a0a0a]">
+            <strong className="font-semibold text-ink">
               learned hypothesis
             </strong>
             , not a validated engagement model. That is exactly how we report it.{" "}
-            <span className="text-[#9a9a9a]">
+            <span className="text-ink-3">
               (Frozen snapshot of the first n=15 run.)
             </span>
           </p>
         </div>
 
         {/* ad-backtest block — HYDRATED at request time. Never green. */}
-        <div className="mt-4 rounded-2xl border border-[#ececec] bg-[#fafafa] p-[clamp(16px,3vw,22px)]">
+        <div className="mt-4 rounded-2xl border border-line bg-fill p-[clamp(16px,3vw,22px)]">
           <div className="mb-[9px] flex flex-wrap items-center gap-[10px]">
             <h3 className="text-[16.5px] font-semibold tracking-[-0.01em]">
               The next test: does it rank real <em className="italic">ads</em>?
             </h3>
             <Tier variant={adbt.tier}>{adbt.badge}</Tier>
           </div>
-          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-[#4a4a4a]">
+          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
             TVSum measures interest inside one clip. The question a marketer
             actually asks is different: given a set of{" "}
-            <strong className="font-semibold text-[#0a0a0a]">
+            <strong className="font-semibold text-ink">
               real ads that really ran
             </strong>
             , does our score pick the winner? So we run the same honest yardstick
@@ -481,31 +481,31 @@ export default async function SciencePage() {
             partner&rsquo;s own CPA / ThruPlay, or a public proxy like TikTok
             Top-Ads rank), score each one, and check whether our score ranks them
             by performance{" "}
-            <strong className="font-semibold text-[#0a0a0a]">
+            <strong className="font-semibold text-ink">
               after removing loudness, cuts, and length
             </strong>{" "}
             &mdash; so we can&rsquo;t win just by re-detecting &ldquo;short and
             loud.&rdquo; Pre-registered primary, permutation null, effect floor,
             and the null gets reported like any other.
           </p>
-          <p className="mt-3 max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-[#4a4a4a]">
+          <p className="mt-3 max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
             This is the test that turns &ldquo;we can predict your winning
             ad&rdquo; from a hope into a number &mdash; and{" "}
-            <strong className="font-semibold text-[#0a0a0a]">
+            <strong className="font-semibold text-ink">
               until that number clears the bar, we don&rsquo;t make the claim.
             </strong>{" "}
-            <span className="text-[#6b6b6b]">{adbt.result}</span>
+            <span className="text-ink-2">{adbt.result}</span>
           </p>
         </div>
       </section>
 
       {/* 07 — how to read the arc */}
-      <section className="mx-auto max-w-[920px] border-t border-[#ececec] px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
+      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
         <Eyebrow>07 · how to read the arc</Eyebrow>
-        <h2 className="max-w-[22ch] text-balance text-[clamp(23px,3.1vw,32px)] font-medium leading-[1.1] tracking-[-0.025em]">
+        <h2 className="max-w-[22ch] text-balance text-section text-ink">
           A few shapes come up again and again.
         </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           Once the arc is on screen, the same handful of patterns show up across
           ads. Here is how we read them today. Each is a working interpretation we
           are still testing, not a settled rule, so each carries its evidence tier
@@ -515,7 +515,7 @@ export default async function SciencePage() {
           {READING.map((c) => (
             <article
               key={c.name}
-              className="flex flex-col gap-[10px] rounded-2xl border border-[#ececec] bg-white p-4"
+              className="flex flex-col gap-[10px] rounded-2xl border border-line bg-paper p-4"
             >
               <div className="flex items-center justify-between gap-[10px]">
                 <span className="text-[15.5px] font-semibold tracking-[-0.01em]">
@@ -525,21 +525,21 @@ export default async function SciencePage() {
               </div>
               <Spark d={c.spark} mid={c.mid} />
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-[5px]">
-                <dt className="pt-[2px] font-mono text-[9.5px] uppercase tracking-[0.08em] text-[#9a9a9a]">
+                <dt className="pt-[2px] text-[9.5px] uppercase tracking-[0.08em] text-ink-3">
                   see
                 </dt>
-                <dd className="text-[13px] leading-[1.5] text-[#4a4a4a]">
+                <dd className="text-[13px] leading-[1.5] text-ink-2">
                   {c.see}
                 </dd>
-                <dt className="pt-[2px] font-mono text-[9.5px] uppercase tracking-[0.08em] text-[#9a9a9a]">
+                <dt className="pt-[2px] text-[9.5px] uppercase tracking-[0.08em] text-ink-3">
                   read
                 </dt>
-                <dd className="text-[13px] leading-[1.5] text-[#4a4a4a]">
+                <dd className="text-[13px] leading-[1.5] text-ink-2">
                   {c.read}
                 </dd>
               </dl>
-              <div className="border-t border-[#ececec] pt-[9px] text-[11.5px] leading-[1.5] text-[#9a9a9a]">
-                <strong className="font-semibold text-[#6b6b6b]">
+              <div className="border-t border-line pt-[9px] text-[11.5px] leading-[1.5] text-ink-3">
+                <strong className="font-semibold text-ink-2">
                   Wrong if:
                 </strong>{" "}
                 {c.wrong}
@@ -550,12 +550,12 @@ export default async function SciencePage() {
       </section>
 
       {/* 08 — the roadmap */}
-      <section className="mx-auto max-w-[920px] border-t border-[#ececec] px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
+      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
         <Eyebrow>08 · the roadmap</Eyebrow>
-        <h2 className="max-w-[22ch] text-balance text-[clamp(23px,3.1vw,32px)] font-medium leading-[1.1] tracking-[-0.025em]">
+        <h2 className="max-w-[22ch] text-balance text-section text-ink">
           We add a claim only when a test reproduces it.
         </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-[#4a4a4a]">
+        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           Each rung is earned by a held-out test, not asserted. This is the order
           we climb, and we do not skip ahead.
         </p>
@@ -563,26 +563,26 @@ export default async function SciencePage() {
           {ROADMAP.map((r) => (
             <div
               key={r.k}
-              className="flex items-start gap-4 border border-[#ececec] bg-[#fafafa] p-[15px_18px] first:rounded-t-2xl last:rounded-b-2xl"
+              className="flex items-start gap-4 border border-line bg-fill p-[15px_18px] first:rounded-t-2xl last:rounded-b-2xl"
             >
-              <span className="w-[34px] shrink-0 pt-[1px] font-mono text-[12px] font-semibold text-[#5f8b99]">
+              <span className="w-[34px] shrink-0 pt-[1px] text-[12px] font-semibold text-accent-2">
                 {r.k}
               </span>
               <span
                 className={`w-[5px] self-stretch rounded-[3px] ${
-                  r.now ? "bg-[#e0a52a]" : "bg-[#d8d8d8]"
+                  r.now ? "bg-ink" : "bg-line-2"
                 }`}
               />
               <div className="flex-1">
-                <h3 className="mb-[3px] text-[15px] font-semibold">
+                <h3 className="mb-[3px] text-ui font-medium">
                   {r.h}
                   {r.now ? (
-                    <span className="ml-2 font-mono text-[9.5px] uppercase tracking-[0.1em] text-[#b47e00]">
+                    <span className="ml-2 text-[9.5px] uppercase tracking-[0.1em] text-accent-2">
                       you are here
                     </span>
                   ) : null}
                 </h3>
-                <p className="max-w-[62ch] text-[13px] leading-[1.5] text-[#9a9a9a]">
+                <p className="max-w-[62ch] text-[13px] leading-[1.5] text-ink-3">
                   {r.p}
                 </p>
               </div>
@@ -593,19 +593,19 @@ export default async function SciencePage() {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/demo"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#0a0a0a] px-5 py-[13px] text-[15px] font-semibold text-white transition-colors hover:bg-[#333]"
+            className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85"
           >
             See it on a real ad
           </Link>
           <Link
             href="/compare"
-            className="inline-flex items-center gap-2 rounded-xl border border-[#d8d8d8] px-5 py-[13px] text-[15px] font-semibold text-[#0a0a0a] transition-colors hover:border-[#0a0a0a]"
+            className="inline-flex items-center gap-2 rounded-xl border border-line-2 px-5 py-[13px] text-ui font-medium text-ink transition-colors hover:border-ink"
           >
             How Soma compares
           </Link>
           <Link
             href="/faq"
-            className="inline-flex items-center gap-2 rounded-xl border border-[#d8d8d8] px-5 py-[13px] text-[15px] font-semibold text-[#0a0a0a] transition-colors hover:border-[#0a0a0a]"
+            className="inline-flex items-center gap-2 rounded-xl border border-line-2 px-5 py-[13px] text-ui font-medium text-ink transition-colors hover:border-ink"
           >
             Read the FAQ
           </Link>

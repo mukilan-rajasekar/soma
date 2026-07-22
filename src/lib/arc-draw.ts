@@ -1,9 +1,10 @@
 // Pure Canvas-2D drawing functions for the /demo lanes, ported verbatim from the old
-// demo/app.js. The math is unchanged; the only structural change is that `duration`
-// and the precomputed `ArcStats` are passed in explicitly instead of being read off
-// module-level globals (the React player owns them in refs). Each function is a pure
-// renderer: give it a canvas + arc + time and it paints one frame. The instrument
-// colours (ice-on-dark grids, #EAF6FA playhead) assume a dark lane surface.
+// demo/app.js. The math/geometry/animation are UNCHANGED — the only thing this file
+// does differently from the dark "instrument" original is COLOUR: every lane now paints
+// on the SOMA light editorial surface (white/#fafafa plots, ink/slate lines, hairline
+// grids), resolved from the design tokens in globals.css. `duration` and the precomputed
+// `ArcStats` are passed in explicitly (the React player owns them in refs). Each function
+// is a pure renderer: give it a canvas + arc + time and it paints one frame.
 
 import type { Arc } from "./types/arc";
 import { clamp01, valAt, fmt, type ArcStats, type Stat } from "./arc";
@@ -13,6 +14,59 @@ export const PADR = 12;
 
 type Ctx = CanvasRenderingContext2D;
 type YTick = { v: number; label: string };
+
+// ── SOMA palette, resolved once from the CSS tokens in globals.css ────────────────
+// These renderers run only inside the browser rAF loop (never during SSR), so on first
+// paint we read the design tokens off :root and cache them. Canvas 2D can't consume
+// var() directly — this is the resolve-once pattern the design system prescribes. The
+// fallbacks mirror the @theme values, so a paint before styles resolve is still on
+// palette.
+export type Palette = {
+  ink: string;
+  ink2: string;
+  ink3: string;
+  line: string;
+  line2: string;
+  fill: string;
+  paper: string;
+  accent: string;
+  accent2: string;
+  error: string;
+};
+
+let _pal: Palette | null = null;
+
+export function pal(): Palette {
+  if (_pal) return _pal;
+  const cs =
+    typeof document !== "undefined"
+      ? getComputedStyle(document.documentElement)
+      : null;
+  const v = (name: string, fallback: string) =>
+    cs?.getPropertyValue(name).trim() || fallback;
+  _pal = {
+    ink: v("--color-ink", "#0a0a0a"),
+    ink2: v("--color-ink-2", "#4a4a4a"),
+    ink3: v("--color-ink-3", "#8a8a8a"),
+    line: v("--color-line", "#e2e2e2"),
+    line2: v("--color-line-2", "#d8d8d8"),
+    fill: v("--color-fill", "#fafafa"),
+    paper: v("--color-paper", "#ffffff"),
+    accent: v("--color-accent", "#3f6f7a"),
+    accent2: v("--color-accent-2", "#5f8b99"),
+    error: v("--color-error", "#b42318"),
+  };
+  return _pal;
+}
+
+// token hex (#rrggbb) → rgba() string at alpha `a`, for translucent canvas fills/bands.
+function rgba(hex: string, a: number): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
 
 // Horizontal position of time `t` (seconds) on a lane canvas.
 export function xAt(c: HTMLCanvasElement, t: number, duration: number): number {
@@ -28,8 +82,8 @@ function timeTicks(duration: number): number[] {
   return out;
 }
 
-// Faint instrument grid: horizontal y-gridlines + tick labels, vertical time
-// gridlines + time labels.
+// Hairline editorial grid: horizontal y-gridlines + tick labels, vertical time
+// gridlines + time labels — #e2e2e2 hairlines, ink-3 labels, on white.
 export function drawGrid(
   x: Ctx,
   c: HTMLCanvasElement,
@@ -40,6 +94,7 @@ export function drawGrid(
   Yfn: (v: number) => number,
   duration: number,
 ): void {
+  const P = pal();
   x.save();
   x.font = "9px ui-monospace, monospace";
   x.lineWidth = 1;
@@ -47,24 +102,24 @@ export function drawGrid(
   x.textAlign = "right";
   yTicks.forEach((tk) => {
     const py = Yfn(tk.v);
-    x.strokeStyle = "rgba(255,255,255,.055)";
+    x.strokeStyle = P.line;
     x.beginPath();
     x.moveTo(PADL, py);
     x.lineTo(W - PADR, py);
     x.stroke();
-    x.fillStyle = "rgba(124,124,130,.85)";
+    x.fillStyle = P.ink3;
     x.fillText(tk.label, PADL - 6, py);
   });
   x.textAlign = "center";
   x.textBaseline = "alphabetic";
   timeTicks(duration).forEach((tt) => {
     const px = xAt(c, tt, duration);
-    x.strokeStyle = "rgba(255,255,255,.035)";
+    x.strokeStyle = rgba(P.line, 0.6);
     x.beginPath();
     x.moveTo(px, top);
     x.lineTo(px, bot);
     x.stroke();
-    x.fillStyle = "rgba(124,124,130,.7)";
+    x.fillStyle = P.ink3;
     x.fillText(fmt(tt), px, bot + 12);
   });
   x.restore();
@@ -77,7 +132,7 @@ export function drawStats(x: Ctx, W: number, cur: number, s: Stat | null): void 
   x.font = "9px ui-monospace, monospace";
   x.textAlign = "right";
   x.textBaseline = "top";
-  x.fillStyle = "rgba(191,224,236,.85)";
+  x.fillStyle = pal().ink2;
   x.fillText(
     "NOW " + cur.toFixed(2) + "   PK " + s.max.toFixed(2) + "   μ " + s.mean.toFixed(2),
     W - PADR,
@@ -99,14 +154,15 @@ export function playhead(
   x.beginPath();
   x.moveTo(px, top - 4);
   x.lineTo(px, bot);
-  x.strokeStyle = "#EAF6FA";
+  x.strokeStyle = pal().ink;
   x.lineWidth = 1.4;
   x.stroke();
 }
 
 // ---- attention lane -------------------------------------------------------------
-// area fill + weak-spot warning bands + demoted dashed baseline + glowing ice line +
-// peak marker + playhead + current-sample dot + NOW/PK/μ overlay.
+// area fill + weak-spot warning bands + demoted dashed baseline + solid slate accent
+// line + peak marker + playhead + current-sample dot + NOW/PK/μ overlay. Attention is
+// THE single data accent (slate/teal); everything else is ink/grey.
 export function drawAttention(
   c: HTMLCanvasElement,
   arc: Arc,
@@ -116,6 +172,7 @@ export function drawAttention(
 ): void {
   const x = c.getContext("2d");
   if (!x) return;
+  const P = pal();
   const W = c.width;
   const H = c.height;
   const top = 14;
@@ -138,9 +195,9 @@ export function drawAttention(
     Y,
     duration,
   );
-  // weak-spot warning bands
+  // weak-spot warning bands — a faint error tint (matches the red weak-spot callout)
   (arc.weak_spots || []).forEach((w) => {
-    x.fillStyle = "rgba(255,122,122,0.09)";
+    x.fillStyle = rgba(P.error, 0.06);
     x.fillRect(
       xAt(c, w.start, duration),
       top,
@@ -159,7 +216,7 @@ export function drawAttention(
   x.lineTo(xAt(c, xs[xs.length - 1], duration), bot);
   x.lineTo(xAt(c, xs[0], duration), bot);
   x.closePath();
-  x.fillStyle = "rgba(191,224,236,.06)";
+  x.fillStyle = rgba(P.accent, 0.06);
   x.fill();
   // demoted arithmetic baseline (faint dashed) — present only once a trained-head arc
   // replaced it as the headline, so the honest before/after is visible not hidden.
@@ -168,7 +225,7 @@ export function drawAttention(
     x.save();
     x.setLineDash([5, 4]);
     x.lineWidth = 1.1;
-    x.strokeStyle = "rgba(124,124,130,.55)";
+    x.strokeStyle = rgba(P.ink3, 0.8);
     x.beginPath();
     xs.forEach((tt, i) => {
       const px = xAt(c, tt, duration);
@@ -179,17 +236,11 @@ export function drawAttention(
     x.stroke();
     x.restore();
   }
-  // ice line
-  const grad = x.createLinearGradient(0, 0, W, 0);
-  grad.addColorStop(0, "#8FB3C0");
-  grad.addColorStop(0.5, "#EAF6FA");
-  grad.addColorStop(1, "#8FB3C0");
+  // solid slate accent line (no gradient, no glow — clarity over drama)
   x.save();
   x.beginPath();
   x.lineWidth = 2.1;
-  x.strokeStyle = grad;
-  x.shadowColor = "rgba(191,224,236,.5)";
-  x.shadowBlur = 9;
+  x.strokeStyle = P.accent;
   xs.forEach((tt, i) => {
     const px = xAt(c, tt, duration);
     const py = Y(ys[i]);
@@ -203,13 +254,13 @@ export function drawAttention(
   if (s) {
     const pkx = xAt(c, xs[s.argmax], duration);
     const pky = Y(s.max);
-    x.strokeStyle = "rgba(191,224,236,.32)";
+    x.strokeStyle = rgba(P.accent, 0.35);
     x.lineWidth = 1;
     x.beginPath();
     x.moveTo(pkx, top);
     x.lineTo(pkx, pky);
     x.stroke();
-    x.fillStyle = "rgba(191,224,236,.9)";
+    x.fillStyle = P.accent;
     x.beginPath();
     x.arc(pkx, pky, 2.3, 0, 7);
     x.fill();
@@ -217,7 +268,7 @@ export function drawAttention(
   // playhead + current-sample dot + live metrics
   playhead(x, c, t, top, bot, duration);
   const cur = clamp01(valAt(ys, t, duration));
-  x.fillStyle = "#EAF6FA";
+  x.fillStyle = P.accent;
   x.beginPath();
   x.arc(xAt(c, t, duration), Y(cur), 3, 0, 7);
   x.fill();
@@ -226,14 +277,15 @@ export function drawAttention(
 
 // ---- signed lanes (valence & arousal) -------------------------------------------
 // mode 'center' => baseline mid (valence, ~[-1,1]); 'bottom' => baseline bottom
-// (arousal, [0,1]). `colorCss` carries a "COLOR" placeholder swapped for the alpha.
+// (arousal, [0,1]). `stroke` is the solid lane colour (ink for valence, ink-2 for
+// arousal); the uncertainty band is always a light-grey hairline fill.
 export function drawSigned(
   c: HTMLCanvasElement,
   seq: number[] | undefined,
   lo: number[] | undefined,
   hi: number[] | undefined,
   t: number,
-  colorCss: string,
+  stroke: string,
   mode: "center" | "bottom",
   stat: Stat | null,
   arc: Arc,
@@ -241,6 +293,7 @@ export function drawSigned(
 ): void {
   const x = c.getContext("2d");
   if (!x) return;
+  const P = pal();
   const W = c.width;
   const H = c.height;
   const top = 14;
@@ -264,14 +317,14 @@ export function drawSigned(
         ];
   drawGrid(x, c, W, top, bot, yTicks, Y, duration);
   // emphasized zero/baseline
-  x.strokeStyle = "rgba(255,255,255,.2)";
+  x.strokeStyle = rgba(P.ink, 0.3);
   x.lineWidth = 1;
   x.beginPath();
   x.moveTo(PADL, base);
   x.lineTo(W - PADR, base);
   x.stroke();
   const ts = arc.timestamps;
-  // uncertainty band
+  // uncertainty band — light-grey, never a coloured fill
   if (lo && hi) {
     x.beginPath();
     ts.forEach((tt, i) => {
@@ -282,13 +335,13 @@ export function drawSigned(
     });
     for (let i = ts.length - 1; i >= 0; i--) x.lineTo(xAt(c, ts[i], duration), Y(lo[i]));
     x.closePath();
-    x.fillStyle = colorCss.replace("COLOR", ".13");
+    x.fillStyle = rgba(P.line, 0.6);
     x.fill();
   }
   // line
   x.beginPath();
   x.lineWidth = 2.1;
-  x.strokeStyle = colorCss.replace("COLOR", "1");
+  x.strokeStyle = stroke;
   ts.forEach((tt, i) => {
     const px = xAt(c, tt, duration);
     const py = Y(seq[i]);
@@ -299,7 +352,7 @@ export function drawSigned(
   // playhead + current-sample dot + live metrics
   playhead(x, c, t, top, bot, duration);
   const cur = valAt(seq, t, duration);
-  x.fillStyle = colorCss.replace("COLOR", "1");
+  x.fillStyle = stroke;
   x.beginPath();
   x.arc(xAt(c, t, duration), Y(cur), 3, 0, 7);
   x.fill();
@@ -309,10 +362,11 @@ export function drawSigned(
 // ---- coarse discrete-state distribution -----------------------------------------
 // A stacked cumulative probability band over time — a whole distribution, never a
 // single confident named-emotion %. Self-guards: draws nothing if coarse_states is
-// absent/malformed. Monochrome cool-grey ramp (no rainbow) to fit the theme.
+// absent/malformed. Monochrome SLATE ramp (no rainbow) sized for a light surface:
+// darker bands read as more probability mass, lighter toward the top of the stack.
 export function coarseColor(i: number, n: number): string {
-  const l = 38 + (i / Math.max(1, n - 1)) * 46;
-  return `hsl(202 24% ${l}%)`;
+  const l = 44 + (i / Math.max(1, n - 1)) * 30; // 44% → 74% lightness, slate hue
+  return `hsl(196 22% ${l}%)`;
 }
 
 export function drawCoarse(
@@ -372,7 +426,7 @@ export function drawCoarse(
   x.beginPath();
   x.moveTo(phx, top - 2);
   x.lineTo(phx, bot);
-  x.strokeStyle = "#EAF6FA";
+  x.strokeStyle = pal().ink;
   x.lineWidth = 1.4;
   x.stroke();
 }

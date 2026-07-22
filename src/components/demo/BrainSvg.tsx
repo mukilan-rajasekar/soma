@@ -11,6 +11,18 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
+// SOMA tokens inlined as literals: SVG presentation-attribute strings can't read
+// var(), so the design tokens from globals.css are mirrored here as concrete values.
+// ink #0a0a0a · accent(slate) #3f6f7a · accent-2 #5f8b99 · ink-3 #8a8a8a · fill #fafafa.
+// The whole read-out warms toward the one slate accent as activation rises — no glow,
+// no neon; the mesh brightening IS the intensity cue on a white surface.
+const INK = "#0a0a0a";
+const ACCENT = "#3f6f7a";
+const ACCENT_RGB = "63,111,122"; // ACCENT as rgb parts, for the per-frame shell fill
+const ACCENT2 = "#5f8b99";
+const INK3 = "#8a8a8a";
+const FILL = "#fafafa";
+
 export type BrainHandle = {
   // a = clamp01(global activation) this frame; pkMax = running peak (or null).
   apply: (a: number, pkMax: number | null) => void;
@@ -36,7 +48,7 @@ function meshDots(): string {
       const seed = ((gx * 73856093) ^ (gy * 19349663)) >>> 0;
       const a = 0.3 + ((seed % 1000) / 1000) * 0.6; // fixed per-dot texture
       const r = (1.0 + (((seed >> 10) % 100) / 100) * 0.8).toFixed(2);
-      out += `<circle cx="${gx}" cy="${gy}" r="${r}" fill="#BFE0EC" fill-opacity="${a.toFixed(2)}"/>`;
+      out += `<circle cx="${gx}" cy="${gy}" r="${r}" fill="${ACCENT}" fill-opacity="${a.toFixed(2)}"/>`;
     }
   }
   return out;
@@ -61,27 +73,27 @@ const BrainSvg = forwardRef<BrainHandle>(function BrainSvg(_props, ref) {
     if (!svg) return;
     const sulci = SULCI.map(
       (d) =>
-        `<path d="${d}" fill="none" stroke="#8FB3C0" stroke-width="1" opacity=".14"/>`,
+        `<path d="${d}" fill="none" stroke="${ACCENT2}" stroke-width="1" opacity=".3"/>`,
     ).join("");
     svg.innerHTML =
       `<defs>` +
       `<clipPath id="brClip"><path d="${CORTEX_PATH}"/></clipPath>` +
       `<linearGradient id="brBarGrad" x1="0" y1="1" x2="0" y2="0">` +
-      `<stop offset="0" stop-color="#20242a"/><stop offset=".45" stop-color="#8FB3C0"/><stop offset="1" stop-color="#EAF6FA"/>` +
+      `<stop offset="0" stop-color="${FILL}"/><stop offset=".45" stop-color="${ACCENT2}"/><stop offset="1" stop-color="${ACCENT}"/>` +
       `</linearGradient>` +
       `</defs>` +
-      `<text id="brMag" x="14" y="30" fill="#EAF6FA" font-family="ui-monospace,monospace" font-size="21" font-weight="600">0.00</text>` +
-      `<text x="14" y="43" fill="#7C7C82" font-family="ui-monospace,monospace" font-size="8" letter-spacing=".8">GLOBAL ACTIVATION · NORM</text>` +
-      `<text id="brPk" x="252" y="24" text-anchor="end" fill="#8FB3C0" font-family="ui-monospace,monospace" font-size="9">PK 0.00</text>` +
-      `<path id="brGlow" d="${CORTEX_PATH}" fill="none" stroke="#BFE0EC" stroke-width="7" opacity="0"/>` +
-      `<path id="brShell" d="${CORTEX_PATH}" fill="rgba(143,179,192,.05)" stroke="#8FB3C0" stroke-width="1.1" stroke-opacity=".6"/>` +
+      `<text id="brMag" x="14" y="30" fill="${INK}" font-family="ui-monospace,monospace" font-size="21" font-weight="600">0.00</text>` +
+      `<text x="14" y="43" fill="${INK3}" font-family="ui-monospace,monospace" font-size="8" letter-spacing=".8">GLOBAL ACTIVATION · NORM</text>` +
+      `<text id="brPk" x="252" y="24" text-anchor="end" fill="${ACCENT}" font-family="ui-monospace,monospace" font-size="9">PK 0.00</text>` +
+      `<path id="brGlow" d="${CORTEX_PATH}" fill="none" stroke="${ACCENT2}" stroke-width="7" opacity="0"/>` +
+      `<path id="brShell" d="${CORTEX_PATH}" fill="rgba(${ACCENT_RGB},.05)" stroke="${ACCENT}" stroke-width="1.1" stroke-opacity=".6"/>` +
       sulci +
       `<g id="brMesh" clip-path="url(#brClip)" opacity="0.12">${meshDots()}</g>` +
       `<rect x="270" y="56" width="6" height="122" rx="3" fill="url(#brBarGrad)" opacity=".72"/>` +
-      `<rect x="270" y="56" width="6" height="122" rx="3" fill="none" stroke="#8FB3C0" stroke-opacity=".3"/>` +
-      `<text x="266" y="59" text-anchor="end" fill="#7C7C82" font-family="ui-monospace,monospace" font-size="8">1.0</text>` +
-      `<text x="266" y="181" text-anchor="end" fill="#7C7C82" font-family="ui-monospace,monospace" font-size="8">0</text>` +
-      `<rect id="brMark" x="267" y="176" width="12" height="2.2" rx="1" fill="#EAF6FA"/>`;
+      `<rect x="270" y="56" width="6" height="122" rx="3" fill="none" stroke="${ACCENT}" stroke-opacity=".3"/>` +
+      `<text x="266" y="59" text-anchor="end" fill="${INK3}" font-family="ui-monospace,monospace" font-size="8">1.0</text>` +
+      `<text x="266" y="181" text-anchor="end" fill="${INK3}" font-family="ui-monospace,monospace" font-size="8">0</text>` +
+      `<rect id="brMark" x="267" y="176" width="12" height="2.2" rx="1" fill="${INK}"/>`;
     elsRef.current = {
       glow: svg.querySelector("#brGlow") as SVGPathElement,
       shell: svg.querySelector("#brShell") as SVGPathElement,
@@ -103,7 +115,7 @@ const BrainSvg = forwardRef<BrainHandle>(function BrainSvg(_props, ref) {
         const e = elsRef.current;
         if (!e) return;
         // shell always visible (floor); the whole mesh brightens uniformly off `a`.
-        e.shell.setAttribute("fill", `rgba(143,179,192,${(0.05 + a * 0.1).toFixed(3)})`);
+        e.shell.setAttribute("fill", `rgba(${ACCENT_RGB},${(0.05 + a * 0.1).toFixed(3)})`);
         e.glow.setAttribute("opacity", (a * 0.35).toFixed(3));
         e.mesh.setAttribute("opacity", (0.12 + a * 0.8).toFixed(3)); // uniform — one global value
         e.mark.setAttribute("y", (176 - a * 120).toFixed(1)); // colorbar marker: 0 bottom → 1 top

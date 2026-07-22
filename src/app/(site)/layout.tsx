@@ -11,7 +11,7 @@ export default function SiteLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="fixed inset-0 overflow-y-auto bg-white text-[#0a0a0a]">
+    <main className="fixed inset-0 overflow-y-auto bg-paper text-ink">
       <SiteHeader />
       {children}
       <SiteFooter />

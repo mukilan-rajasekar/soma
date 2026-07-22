@@ -23,27 +23,29 @@ export type VideoItem = {
 // Only the arcs that actually exist under public/arcs are seeded — referencing a
 // missing json would paint a "Could not load" error frame. real1 = the real run;
 // the two hero cards are illustrative samples.
+// Thumb gradients are near-white, faintly slate — on-palette identity marks (the
+// per-card sparkline motif carries the real distinction). Never the old neon-on-black.
 export const VIDEOS: VideoItem[] = [
   {
     id: "real1",
     title: "Real TRIBE run · TVSum clip",
     src: "real · TRIBE v2",
     arc: "/arcs/real_esJrBWj2d8.json",
-    grad: "linear-gradient(140deg,#1c2e3a,#0a0f16 60%,#05070b)",
+    grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
   },
   {
     id: "hero1",
     title: "Skincare launch",
     src: "DTC · sample",
     arc: "/arcs/sample_arc.json",
-    grad: "linear-gradient(135deg,#2b3d4c,#0c1119 62%,#05070b)",
+    grad: "linear-gradient(135deg,#ffffff,#f2f5f6 62%,#eaeeef)",
   },
   {
     id: "hero2",
     title: "App promo",
     src: "performance · sample",
     arc: "/arcs/hero2.json",
-    grad: "linear-gradient(120deg,#20313e,#0a0f16 58%,#05070b)",
+    grad: "linear-gradient(120deg,#ffffff,#f0f4f5 58%,#e8eded)",
   },
 ];
 
@@ -108,7 +110,7 @@ function paintThumb(canvas: HTMLCanvasElement | null, id: string): void {
     if (i) x.lineTo(px, y);
     else x.moveTo(px, y);
   }
-  x.strokeStyle = "rgba(191,224,236,.55)";
+  x.strokeStyle = "rgba(95,139,153,.6)"; // --color-accent-2 (#5f8b99), slate on near-white
   x.lineWidth = 1.5;
   x.stroke();
 }
@@ -143,10 +145,10 @@ function Card({ video, active, dur, onPick }: CardProps) {
         }
       }}
       className={
-        "group cursor-pointer overflow-hidden rounded-[18px] border bg-[#141416] transition-all hover:-translate-y-[3px] " +
+        "group cursor-pointer overflow-hidden rounded-2xl border bg-paper transition-all hover:-translate-y-[2px] " +
         (active
-          ? "border-[#BFE0EC] shadow-[0_0_0_1px_#BFE0EC,0_20px_44px_-26px_rgba(191,224,236,0.4)]"
-          : "border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.14)]")
+          ? "border-ink"
+          : "border-line hover:border-line-2")
       }
     >
       <div
@@ -161,22 +163,22 @@ function Card({ video, active, dur, onPick }: CardProps) {
           className="absolute inset-0 block h-full w-full opacity-90"
         />
         {sample ? (
-          <div className="absolute left-2.5 top-2.5 rounded-full border border-[rgba(255,203,92,0.45)] bg-[rgba(20,15,4,0.74)] px-2 py-[3px] font-mono text-[9px] uppercase tracking-[0.06em] text-[#FFCB5C]">
-            ◆ Illustrative sample
+          <div className="absolute left-2.5 top-2.5 rounded-full border border-line bg-paper px-2 py-[3px] font-mono text-[9px] uppercase tracking-[0.06em] text-ink-2">
+            <span className="text-ink-3">◆</span> Illustrative sample
           </div>
         ) : null}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[rgba(8,9,12,0.55)] transition-transform group-hover:scale-[1.08]">
-          <svg viewBox="0 0 12 12" className="ml-0.5 h-3 w-3 fill-[#F5F5F7]">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink/75 transition-transform group-hover:scale-[1.04]">
+          <svg viewBox="0 0 12 12" className="ml-0.5 h-3 w-3 fill-white">
             <polygon points="2,1 11,6 2,11" />
           </svg>
         </div>
-        <div className="relative rounded-md bg-[rgba(8,9,12,0.6)] px-1.5 py-0.5 font-mono text-[10px] tracking-[0.04em] text-white">
+        <div className="relative rounded-md bg-ink/70 px-1.5 py-0.5 font-mono text-[10px] tracking-[0.04em] text-white">
           {durLabel(dur)}
         </div>
       </div>
-      <div className="px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] text-[#F5F5F7]">
+      <div className="px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] text-ink">
         {video.title}
-        <span className="mt-[3px] block font-mono text-[10px] font-normal uppercase tracking-[0.05em] text-[#7C7C82]">
+        <span className="mt-[3px] block font-mono text-[10px] font-normal uppercase tracking-[0.05em] text-ink-3">
           {video.src}
         </span>
       </div>

@@ -19,8 +19,11 @@ import { loadArc } from "./live";
 import type { VideoItem } from "./Picker";
 
 const N = 120; // resample resolution — both arcs sampled to this many points
-const COL_A = "#EAF6FA";
-const COL_B = "#BFE0EC";
+// A/B differ by colour AND dash (never hue alone): A = solid ink, B = dashed slate.
+// SOMA tokens (canvas can't read var()): ink #0a0a0a · accent-2 #5f8b99 · line #e2e2e2.
+const COL_A = "#0a0a0a";
+const COL_B = "#5f8b99";
+const GRID = "#e2e2e2";
 
 type CmpStatus = "loading" | "ok" | "same" | "error";
 
@@ -38,7 +41,7 @@ function drawCompare(canvas: HTMLCanvasElement | null, arcA: Arc, arcB: Arc): nu
   const X = (u: number) => pad + u * (W - 2 * pad);
   const Y = (v: number) => bot - clamp01(v) * (bot - top);
   // baseline
-  x.strokeStyle = "rgba(255,255,255,.10)";
+  x.strokeStyle = GRID;
   x.lineWidth = 1;
   x.beginPath();
   x.moveTo(pad, bot);
@@ -53,7 +56,8 @@ function drawCompare(canvas: HTMLCanvasElement | null, arcA: Arc, arcB: Arc): nu
     const bv = sampleAt(arcB, u);
     const aLead = av >= bv;
     if (aLead) aWins++;
-    x.fillStyle = aLead ? "rgba(234,246,250,.85)" : "rgba(143,179,192,.7)";
+    // A leads = tall ink bar, B leads = short slate bar (differ by height AND colour)
+    x.fillStyle = aLead ? "rgba(10,10,10,.85)" : "rgba(95,139,153,.7)";
     x.fillRect(X(u), bot + 6, (W - 2 * pad) / N + 0.8, aLead ? 9 : 4);
   }
   const curve = (arc: Arc, col: string, dash: number[]) => {
@@ -62,8 +66,6 @@ function drawCompare(canvas: HTMLCanvasElement | null, arcA: Arc, arcB: Arc): nu
     x.beginPath();
     x.lineWidth = 2.2;
     x.strokeStyle = col;
-    x.shadowColor = col;
-    x.shadowBlur = 8;
     for (let i = 0; i < N; i++) {
       const u = i / (N - 1);
       const px = X(u);
@@ -135,26 +137,27 @@ export default function Compare({ videos }: Props) {
   const titleFor = (id: string) => videos.find((v) => v.id === id)?.title ?? "—";
 
   const selectCls =
-    "cursor-pointer rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#141416] px-3 py-2 font-mono text-[12px] text-[#F5F5F7] outline-none transition-colors hover:border-[rgba(255,255,255,0.14)] focus-visible:border-[#BFE0EC]";
+    "cursor-pointer rounded-xl border border-line-2 bg-paper px-3 py-2 font-mono text-[12px] text-ink outline-none transition-colors hover:border-ink focus-visible:border-ink";
 
   return (
-    <section className="mt-[clamp(16px,3vh,24px)] rounded-[24px] border border-[rgba(255,255,255,0.08)] bg-[#0C0C0E] p-[clamp(20px,3vw,28px)]">
+    <section className="mt-[clamp(16px,3vh,24px)] rounded-2xl border border-line bg-paper p-[clamp(20px,3vw,28px)]">
       <div className="mb-3.5 flex flex-wrap items-start justify-between gap-[18px]">
         <div className="min-w-0">
-          <div className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#7C7C82]">
+          <div className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-3">
             3 · Compare · A / B
           </div>
-          <h3 className="mb-1.5 text-[20px] font-semibold tracking-[-0.02em] text-[#F5F5F7]">
-            Which ad holds attention better, moment to moment?
+          <h3 className="mb-1.5 text-[20px] font-medium tracking-[-0.02em] text-ink text-balance">
+            Which ad holds <span className="font-serif font-normal italic">attention</span>{" "}
+            better, moment to moment?
           </h3>
-          <p className="max-w-[58ch] text-[13.5px] leading-[1.55] text-[#ADADB2]">
+          <p className="max-w-[58ch] text-[13.5px] leading-[1.55] text-ink-2 text-pretty">
             Overlay two predicted attention arcs on one timeline &mdash; the read most
             performance teams actually want. Test every cut, not just the one you can afford to
             panel.
           </p>
         </div>
         <div className="flex shrink-0 gap-3">
-          <label className="flex flex-col gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#7C7C82]">
+          <label className="flex flex-col gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
             A
             <select value={aId} onChange={(e) => setAId(e.target.value)} className={selectCls}>
               {videos.map((v) => (
@@ -164,7 +167,7 @@ export default function Compare({ videos }: Props) {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-[#7C7C82]">
+          <label className="flex flex-col gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
             B
             <select value={bId} onChange={(e) => setBId(e.target.value)} className={selectCls}>
               {videos.map((v) => (
@@ -183,20 +186,20 @@ export default function Compare({ videos }: Props) {
         height={210}
         role="img"
         aria-label="Two predicted attention arcs overlaid on one timeline for comparison"
-        className="block h-auto w-full rounded-2xl"
+        className="block h-auto w-full rounded-2xl border border-line bg-paper"
       />
 
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[11px] text-[#ADADB2]">
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[11px] text-ink-3">
         <span className="inline-flex items-center gap-2">
           <i
-            className="inline-block h-0 w-4 border-t-[3px] border-solid border-t-[#EAF6FA]"
+            className="inline-block h-0 w-4 border-t-[3px] border-solid border-t-ink"
             aria-hidden="true"
           />
           A · {titleFor(aId)}
         </span>
         <span className="inline-flex items-center gap-2">
           <i
-            className="inline-block h-0 w-4 border-t-[3px] border-dashed border-t-[#BFE0EC]"
+            className="inline-block h-0 w-4 border-t-[3px] border-dashed border-t-accent-2"
             aria-hidden="true"
           />
           B · {titleFor(bId)}
@@ -206,18 +209,18 @@ export default function Compare({ videos }: Props) {
         </span>
       </div>
 
-      <div className="mt-3 min-h-[1.6em] font-mono text-[11.5px] leading-[1.6] tracking-[0.01em] text-[#ADADB2]">
+      <div className="mt-3 min-h-[1.6em] font-mono text-[11.5px] leading-[1.6] tracking-[0.01em] text-ink-3">
         {status === "same" ? (
           <>
-            Pick two <b className="text-[#F5F5F7]">different</b> ads to compare.
+            Pick two <b className="text-ink">different</b> ads to compare.
           </>
         ) : status === "error" ? (
           "Could not load one of the arcs."
         ) : status === "ok" && pa !== null ? (
           <>
-            <b className="text-[#F5F5F7]">A</b> holds higher predicted attention{" "}
-            <b className="text-[#F5F5F7]">{pa}%</b> of the clip; <b className="text-[#F5F5F7]">B</b>{" "}
-            the other <b className="text-[#F5F5F7]">{100 - pa}%</b>.
+            <b className="text-ink">A</b> holds higher predicted attention{" "}
+            <b className="text-ink">{pa}%</b> of the clip; <b className="text-ink">B</b>{" "}
+            the other <b className="text-ink">{100 - pa}%</b>.
           </>
         ) : null}
       </div>

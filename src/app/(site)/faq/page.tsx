@@ -35,17 +35,17 @@ const FAQS: Faq[] = [
           Soma predicts the cortical activation a video would produce in an
           average viewer, straight from the file, using Meta&rsquo;s public TRIBE
           v2 model. Off that predicted activation we read an{" "}
-          <strong className="font-semibold text-[#0a0a0a]">attention arc</strong>{" "}
+          <strong className="font-semibold text-ink">attention arc</strong>{" "}
           and a coarse{" "}
-          <strong className="font-semibold text-[#0a0a0a]">affect arc</strong>{" "}
+          <strong className="font-semibold text-ink">affect arc</strong>{" "}
           (valence and arousal).
         </p>
         <p>
           The prediction of activation is the validated part. The attention read
           is{" "}
-          <strong className="font-semibold text-[#0a0a0a]">validating now</strong>
+          <strong className="font-semibold text-ink">validating now</strong>
           . The affect read is a{" "}
-          <strong className="font-semibold text-[#0a0a0a]">
+          <strong className="font-semibold text-ink">
             labeled hypothesis
           </strong>
           . The demo shows all three with those exact badges.
@@ -62,7 +62,7 @@ const FAQS: Faq[] = [
       <p>
         No. There are no people and no hardware in the loop. Soma runs a model
         that was trained on real fMRI and{" "}
-        <strong className="font-semibold text-[#0a0a0a]">predicts</strong> the
+        <strong className="font-semibold text-ink">predicts</strong> the
         response an average viewer would have. It is a prediction from the file,
         not a measurement of your audience.
       </p>
@@ -91,19 +91,19 @@ const FAQS: Faq[] = [
     tier: { variant: "validating", label: "validating now" },
     a: (
       <p>
-        The <strong className="font-semibold text-[#0a0a0a]">encoder</strong> is
+        The <strong className="font-semibold text-ink">encoder</strong> is
         validated by Meta against real scans. The{" "}
-        <strong className="font-semibold text-[#0a0a0a]">
+        <strong className="font-semibold text-ink">
           attention read-out
         </strong>{" "}
         is being tested right now against public human data (TVSum), and we report
         the result either way, including a null. The{" "}
-        <strong className="font-semibold text-[#0a0a0a]">affect read</strong> is a
+        <strong className="font-semibold text-ink">affect read</strong> is a
         labeled proxy, not a decoder. We would rather show you a real null than a
         pretty number that isn&rsquo;t earned. The{" "}
         <Link
           href="/science"
-          className="text-[#5f8b99] underline underline-offset-2 hover:text-[#3f6b79]"
+          className="font-medium text-ink underline underline-offset-2 hover:text-ink-2"
         >
           science page
         </Link>{" "}
@@ -124,10 +124,10 @@ const FAQS: Faq[] = [
           to Meta. We can&rsquo;t find it in any Meta publication, so we
           don&rsquo;t use it. Meta&rsquo;s TRIBE actually reports a mean
           correlation around{" "}
-          <strong className="font-semibold text-[#0a0a0a]">0.21</strong> across
+          <strong className="font-semibold text-ink">0.21</strong> across
           ~1,000 cortical regions on held-out data (about half the measurable
           ceiling). Either way it only measures{" "}
-          <strong className="font-semibold text-[#0a0a0a]">
+          <strong className="font-semibold text-ink">
             video&nbsp;→&nbsp;brain activation
           </strong>{" "}
           versus real fMRI &mdash; not whether activation predicts whether someone
@@ -170,14 +170,14 @@ const FAQS: Faq[] = [
     a: (
       <p>
         An LLM role-playing a viewer imagines what a person might{" "}
-        <strong className="font-semibold text-[#0a0a0a]">say</strong>, and it
+        <strong className="font-semibold text-ink">say</strong>, and it
         leans toward agreeable, plausible answers. There is no biology under it.
         Soma predicts the neural response from a model trained on real brains, and
         the same input gives the same output run to run. Different signal,
         grounded in a different place. See the{" "}
         <Link
           href="/compare"
-          className="text-[#5f8b99] underline underline-offset-2 hover:text-[#3f6b79]"
+          className="font-medium text-ink underline underline-offset-2 hover:text-ink-2"
         >
           comparison
         </Link>{" "}
@@ -265,7 +265,7 @@ function Chevron() {
       stroke="currentColor"
       strokeWidth="1.7"
       aria-hidden="true"
-      className="ml-auto shrink-0 text-[#9a9a9a] transition-transform duration-200 group-open:rotate-180 group-open:text-[#5f8b99]"
+      className="ml-auto shrink-0 text-ink-3 transition-transform duration-200 group-open:rotate-180 group-open:text-accent-2"
     >
       <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -284,15 +284,15 @@ export default function FaqPage() {
 
       {/* header */}
       <header className="mx-auto max-w-[800px] px-[clamp(16px,4vw,24px)] pb-6 pt-[clamp(26px,5vw,44px)]">
-        <div className="mb-4 inline-flex items-center gap-[9px] font-mono text-[11px] uppercase tracking-[0.18em] text-[#5f8b99]">
-          <span className="h-[6px] w-[6px] rounded-full bg-[#8FB3C0]" />
+        <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-accent-2">
+          <span className="h-[6px] w-[6px] rounded-full bg-accent-2" />
           Questions, answered straight
         </div>
-        <h1 className="max-w-[16ch] text-balance text-[clamp(30px,5.2vw,52px)] font-medium leading-[1.05] tracking-[-0.03em]">
+        <h1 className="max-w-[16ch] text-balance text-hero text-ink">
           The <span className="font-serif font-normal italic">skeptic&rsquo;s</span>{" "}
           FAQ.
         </h1>
-        <p className="mt-[18px] max-w-[60ch] text-pretty text-[clamp(15.5px,1.8vw,18px)] leading-[1.5] text-[#4a4a4a]">
+        <p className="mt-[18px] max-w-[60ch] text-pretty text-[clamp(16px,1.7vw,18px)] leading-[1.5] text-ink-2">
           If you came in doubtful, good. These are the questions a careful reader
           asks, answered without dodging. Where the honest answer is &ldquo;we
           don&rsquo;t know yet, we&rsquo;re testing it,&rdquo; that is what
@@ -309,20 +309,20 @@ export default function FaqPage() {
       <div className="mx-auto max-w-[800px] px-[clamp(16px,4vw,24px)] pb-[10px] pt-[clamp(18px,3vw,26px)]">
         {GROUPS.map((group) => (
           <section key={group.name}>
-            <div className="mb-[10px] mt-[26px] font-mono text-[11px] uppercase tracking-[0.14em] text-[#9a9a9a]">
+            <div className="mb-[12px] mt-[30px] text-[11px] uppercase tracking-[0.16em] text-ink-3">
               {group.name}
             </div>
             {group.items.map((f) => (
               <details
                 key={f.q}
                 open={f.open}
-                className="group mb-[10px] overflow-hidden rounded-2xl border border-[#ececec] bg-white transition-colors open:border-[#d8d8d8] hover:border-[#d8d8d8]"
+                className="group mb-[10px] overflow-hidden rounded-2xl border border-line bg-paper transition-colors open:border-line-2 hover:border-line-2"
               >
-                <summary className="flex cursor-pointer list-none items-center gap-[14px] px-[18px] py-4 text-[16.5px] font-semibold tracking-[-0.01em] text-[#0a0a0a] [&::-webkit-details-marker]:hidden">
+                <summary className="flex cursor-pointer list-none items-center gap-[14px] px-[18px] py-4 text-[16.5px] font-semibold tracking-[-0.01em] text-ink [&::-webkit-details-marker]:hidden">
                   {f.q}
                   <Chevron />
                 </summary>
-                <div className="max-w-[66ch] px-[18px] pb-[18px] text-[15px] leading-[1.62] text-[#4a4a4a] [&_p+p]:mt-[11px]">
+                <div className="max-w-[66ch] px-[18px] pb-[18px] text-[15px] leading-[1.62] text-ink-2 [&_p+p]:mt-[11px]">
                   {f.tier ? (
                     <div className="mb-[10px]">
                       <Tier variant={f.tier.variant}>{f.tier.label}</Tier>
@@ -340,19 +340,19 @@ export default function FaqPage() {
       <div className="mx-auto mt-[30px] flex max-w-[800px] flex-wrap gap-3 px-[clamp(16px,4vw,24px)]">
         <Link
           href="/demo"
-          className="inline-flex items-center gap-2 rounded-xl bg-[#0a0a0a] px-5 py-[13px] text-[15px] font-semibold text-white transition-colors hover:bg-[#333]"
+          className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85"
         >
           See the demo
         </Link>
         <Link
           href="/science"
-          className="inline-flex items-center gap-2 rounded-xl border border-[#d8d8d8] px-5 py-[13px] text-[15px] font-semibold text-[#0a0a0a] transition-colors hover:border-[#0a0a0a]"
+          className="inline-flex items-center gap-2 rounded-xl border border-line-2 px-5 py-[13px] text-ui font-medium text-ink transition-colors hover:border-ink"
         >
           Read the science
         </Link>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-xl border border-[#d8d8d8] px-5 py-[13px] text-[15px] font-semibold text-[#0a0a0a] transition-colors hover:border-[#0a0a0a]"
+          className="inline-flex items-center gap-2 rounded-xl border border-line-2 px-5 py-[13px] text-ui font-medium text-ink transition-colors hover:border-ink"
         >
           Request early access
         </Link>

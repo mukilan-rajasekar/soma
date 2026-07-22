@@ -1,15 +1,82 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────
+   SOMA design system — single source of truth for the whole site.
+   Extracted from the finished landing hero (Landing.tsx / Brain.tsx).
+   Ethos: Swiss/editorial minimalism. Near-monochrome, generous whitespace,
+   one serif-italic accent. NO brand accent colour; a single muted slate/teal
+   is reserved for data-viz lanes only. Documented in docs/DESIGN-SYSTEM.md.
+   ───────────────────────────────────────────────────────────────────────── */
+
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;
 }
 
+/* Keep the existing background/foreground as `inline` so bg-background /
+   text-foreground resolve straight to the live vars above. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: "GT Planar", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-serif: Georgia, "Times New Roman", serif;
+}
+
+/* Design tokens. `@theme static` so every token is ALWAYS emitted as a `:root`
+   custom property — even before any utility references it — which keeps them
+   readable from dynamic canvas/SVG style values (e.g. stroke: var(--color-accent))
+   and from the plain CSS rules below. Utilities (text-ink, bg-fill, border-line,
+   rounded-xl, text-section, …) are still generated on demand when used. Pages
+   should reach for these semantic classes instead of scattering hex. */
+@theme static {
+  /* Surfaces & ink — near-monochrome */
+  --color-paper: #ffffff; /* page background            → bg-paper   */
+  --color-ink: #0a0a0a; /* primary text / black fill  → text-ink / bg-ink   */
+  --color-ink-2: #4a4a4a; /* secondary / body copy      → text-ink-2 */
+  --color-ink-3: #8a8a8a; /* tertiary / meta / muted    → text-ink-3 */
+
+  /* Hairlines & fills */
+  --color-line: #e2e2e2; /* default 1px hairline       → border-line   */
+  --color-line-2: #d8d8d8; /* input / stronger hairline  → border-line-2 */
+  --color-fill: #fafafa; /* raised surface / card fill → bg-fill       */
+
+  /* States */
+  --color-error: #b42318; /* validation / error text    → text-error */
+
+  /* Data-viz accent — the ONE restrained slate/teal, for arc lanes only.
+     Never a UI/brand colour, never neon. */
+  --color-accent: #3f6f7a; /* lane A / primary curve     → text-accent / stroke */
+  --color-accent-2: #5f8b99; /* lane B / secondary curve   → text-accent-2       */
+
+  /* Shape — matches Tailwind's defaults; pinned here so they're canonical. */
+  --radius-xl: 0.75rem; /* 12px — controls, inputs, buttons → rounded-xl  */
+  --radius-2xl: 1rem; /* 16px — cards, modals, canvases   → rounded-2xl */
+
+  /* Type scale — sizes carry their canonical tracking / leading so headings
+     stay tight (-0.02em) and UI stays -0.01em without repeating it per use. */
+  --text-wordmark: 23px;
+  --text-wordmark--line-height: 1;
+  --text-wordmark--letter-spacing: -0.01em;
+  --text-wordmark--font-weight: 500;
+
+  --text-hero: clamp(30px, 3.4vw, 46px);
+  --text-hero--line-height: 1.04;
+  --text-hero--letter-spacing: -0.02em;
+  --text-hero--font-weight: 500;
+
+  --text-section: clamp(28px, 3vw, 34px);
+  --text-section--line-height: 1.1;
+  --text-section--letter-spacing: -0.02em;
+  --text-section--font-weight: 500;
+
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+
+  --text-ui: 15px;
+  --text-ui--letter-spacing: -0.01em;
+
+  --text-meta: 13px;
+  --text-meta--line-height: 1.5;
 }
 
 html,
@@ -44,18 +111,20 @@ a:hover {
   }
 }
 
-/* /demo transport scrubber. Range-input pseudo-elements (track/thumb/progress) can't
-   be targeted by inline Tailwind utilities, so the demo console's scrubber is styled
-   here. The ice progress fill tracks the playhead via a per-frame --val CSS variable
-   the rAF loop sets on the element. */
+/* /demo transport scrubber. Range-input pseudo-elements (track/thumb/progress)
+   can't be targeted by inline Tailwind utilities, so the demo console's scrubber
+   is styled here. LIGHT surface theme (the /demo is white): a light hairline
+   track, an ink progress fill that tracks the playhead via the per-frame --val
+   CSS variable the rAF loop sets, and an ink thumb ringed in paper so it reads
+   against both the fill and the track. */
 .demo-scrub {
   -webkit-appearance: none;
   appearance: none;
   height: 6px;
   border-radius: 999px;
   background:
-    linear-gradient(#bfe0ec 0 0) 0 / var(--val, 0%) 100% no-repeat,
-    rgba(255, 255, 255, 0.1);
+    linear-gradient(var(--color-ink) 0 0) 0 / var(--val, 0%) 100% no-repeat,
+    var(--color-line-2);
   cursor: pointer;
 }
 .demo-scrub::-webkit-slider-thumb {
@@ -63,10 +132,8 @@ a:hover {
   width: 6px;
   height: 18px;
   border-radius: 3px;
-  background: #bfe0ec;
-  box-shadow:
-    0 0 0 1px rgba(8, 9, 12, 0.55),
-    0 0 10px -2px #bfe0ec;
+  background: var(--color-ink);
+  box-shadow: 0 0 0 3px var(--color-paper);
   cursor: pointer;
 }
 .demo-scrub::-moz-range-thumb {
@@ -74,13 +141,11 @@ a:hover {
   height: 18px;
   border: none;
   border-radius: 3px;
-  background: #bfe0ec;
-  box-shadow:
-    0 0 0 1px rgba(8, 9, 12, 0.55),
-    0 0 10px -2px #bfe0ec;
+  background: var(--color-ink);
+  box-shadow: 0 0 0 3px var(--color-paper);
   cursor: pointer;
 }
 .demo-scrub:focus-visible {
-  outline: 2px solid #bfe0ec;
+  outline: 2px solid var(--color-ink);
   outline-offset: 4px;
 }
