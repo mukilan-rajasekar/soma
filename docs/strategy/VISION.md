@@ -26,6 +26,55 @@ the cost and time.**
 4. Compare variants side by side, iterate the edit, re-run. Cheap enough to test
    every cut instead of only the one you can afford to panel.
 
+## The product surface (the three things a user can do)
+
+Soma is a **platform** with one engine — the brain-response read-out — wrapped in three
+jobs. The read-out is the **scoring function** ("which cut holds attention / lands the
+message?"); capabilities 2 and 3 point generation and editing at that judge. Honesty
+register still applies: only #1's *analysis* is close to today; #2 and #3 are the
+platform roadmap, built on external generators/editors with Soma as the scorer.
+
+1. **Bring your own videos → get the best one.** Drop in pre-existing ads/variants;
+   Soma ranks them on attention, comprehension, and weak-spots and tells you which to
+   ship. Closest to today's product (the read-out + variant compare). *Status: the
+   mechanic is real; the ranking's predictive validity is what we're validating.*
+2. **Generate from scratch with natural language + props.** Describe the ad (and hand
+   over brand props/assets); Soma spins up many candidates via **pre-trained
+   generators primed with tribe/creator context** (so it knows good hooks, attention
+   holds, and comprehension patterns) and surfaces the strongest. *Status: roadmap —
+   Soma is the scorer over third-party generation, not a pixel model of our own.*
+3. **AI ad editing (applies to #1 and #2).** Selectively splice, reorder shots, or add
+   text; auto-generate edit options, run each through the model, and splice the best.
+   **Does not require pixel generation** — reordering/captioning is enough to win. *Status:
+   roadmap — the value is the read-out choosing among edits, not novel footage.*
+
+## Model posture (what's running the read-out)
+
+Prototype runs on **Meta's TRIBE v2 weights as a blueprint** (frozen encoder + our
+read-out head). A **custom encoder is in development** — a faster, less GPU-intensive
+model built specifically for ad testing (cheaper per run, unblocks the CC-BY-NC / Llama
+licensing constraint the frozen stack carries). Full plan: **`STRATEGY-PROPRIETARY-MODEL.md`**.
+
+## How we sell it right now (service posture + who buys)
+
+- **Concierge, not self-serve.** We operate a **concierge model with a waitlist** — we run
+  the pipeline for the customer and hand back the read-out. AI-native services shape: we
+  sell the *outcome/work*, not a tool the customer has to drive.
+- **ICP = large companies that run lots of ads** (more ads → more time saved, no panel
+  campaigns to stand up, more accurate creative decisions). That is who this is *for*.
+- **Reality today: the waitlist is small companies**, on purpose — they're easier to
+  process and scale to real results, and there's an **access problem** (we don't have
+  Pepsi-exec access yet). Small-co now is the on-ramp to the large-co ICP, not a pivot.
+
+## The two YC lanes we fit (Requests for Startups)
+
+Soma sits squarely in two YC RFS themes:
+1. **Startups that want to sell to huge companies** — the large-advertiser ICP above.
+2. **AI-Native Service Companies** — the concierge/sell-the-work posture above.
+
+*(Paraphrase these — verify the exact 2026 RFS wording before quoting it in the
+application; see the same caution in `../GTM/YC-APPLICATION.md`.)*
+
 ## Why cheaper (real today)
 
 Human pre-testing (Realeyes, Nielsen, System1, panels) needs real people, so it
