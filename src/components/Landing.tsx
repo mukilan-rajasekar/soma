@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Brain from "./Brain";
+import UploadDialog from "./UploadDialog";
 
 export default function Landing() {
   const progressRef = useRef(0);
@@ -10,17 +11,14 @@ export default function Landing() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   useEffect(() => {
-    const clamp = (x: number) => Math.max(0, Math.min(1, x));
-
-    const setProgress = (p: number) => {
-      progressRef.current = clamp(p);
-    };
-
+    // Unbounded accumulator — no 0..1 clamp. Brain damps it downstream and rotates the
+    // turntable continuously (region activation is periodic, so scroll never runs out).
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      setProgress(progressRef.current + e.deltaY * 0.0007);
+      progressRef.current += e.deltaY * 0.0007;
     };
 
     let lastTouch: number | null = null;
@@ -28,7 +26,7 @@ export default function Landing() {
       if (e.touches.length !== 1) return;
       const y = e.touches[0].clientY;
       if (lastTouch != null) {
-        setProgress(progressRef.current + (lastTouch - y) * 0.0018);
+        progressRef.current += (lastTouch - y) * 0.0018;
       }
       lastTouch = y;
     };
@@ -125,7 +123,25 @@ export default function Landing() {
             ) : null}
           </form>
         )}
+
+        <div className="mt-8 max-w-[360px] text-[13px] leading-[1.5] text-[#4a4a4a]">
+          Have an ad already?{" "}
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            className="cursor-pointer font-medium text-[#0a0a0a] underline underline-offset-2 hover:text-[#333]"
+          >
+            Upload an MP4
+          </button>{" "}
+          and we&rsquo;ll analyze it.
+        </div>
       </div>
+
+      <UploadDialog
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        initialEmail={email}
+      />
     </div>
   );
 }
