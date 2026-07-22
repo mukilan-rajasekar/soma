@@ -43,3 +43,44 @@ a:hover {
     opacity: 0.9;
   }
 }
+
+/* /demo transport scrubber. Range-input pseudo-elements (track/thumb/progress) can't
+   be targeted by inline Tailwind utilities, so the demo console's scrubber is styled
+   here. The ice progress fill tracks the playhead via a per-frame --val CSS variable
+   the rAF loop sets on the element. */
+.demo-scrub {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(#bfe0ec 0 0) 0 / var(--val, 0%) 100% no-repeat,
+    rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+.demo-scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 6px;
+  height: 18px;
+  border-radius: 3px;
+  background: #bfe0ec;
+  box-shadow:
+    0 0 0 1px rgba(8, 9, 12, 0.55),
+    0 0 10px -2px #bfe0ec;
+  cursor: pointer;
+}
+.demo-scrub::-moz-range-thumb {
+  width: 6px;
+  height: 18px;
+  border: none;
+  border-radius: 3px;
+  background: #bfe0ec;
+  box-shadow:
+    0 0 0 1px rgba(8, 9, 12, 0.55),
+    0 0 10px -2px #bfe0ec;
+  cursor: pointer;
+}
+.demo-scrub:focus-visible {
+  outline: 2px solid #bfe0ec;
+  outline-offset: 4px;
+}
