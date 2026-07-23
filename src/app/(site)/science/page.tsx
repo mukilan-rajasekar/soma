@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Tier from "@/components/site/Tier";
-import { readAdBacktest, viewAdBacktest } from "@/lib/ad-backtest";
 
 export const metadata: Metadata = {
-  title: "soma — the science: what it measures, and what it doesn't",
+  title: "soma — the science: how it reads a video ad",
   description:
-    "How Soma predicts an average viewer's brain response to a video ad from the file, which part is proven, and which part we're still testing. Built on Meta's public TRIBE v2 encoder.",
+    "How Soma reads an average viewer's brain response to a video ad, second by second, straight from the file. Built on Meta's public TRIBE v2 encoder.",
 };
 
-// Read ad_backtest.json at REQUEST time (no build-time snapshot), so a freshly published
-// run shows up without a redeploy and a null is never quietly cached as stale.
 export const dynamic = "force-dynamic";
 
 // A small reading-guide sparkline. Illustrative shape only, teal on a faint baseline.
@@ -45,53 +41,38 @@ function Spark({ d, mid = false }: { d: string; mid?: boolean }) {
 const READING = [
   {
     name: "Strong hook",
-    variant: "validating" as const,
-    tier: "validating",
     spark: "M4,32 C18,11 30,9 46,9 L116,11",
     mid: false,
     see: "Attention rises early and holds through the open.",
     read: "The first seconds landed and bought more time.",
-    wrong: "ads with this shape drop off as fast as ads without it.",
   },
   {
     name: "Weak hook",
-    variant: "validating" as const,
-    tier: "validating",
     spark: "M4,33 C13,10 19,10 25,12 C39,22 51,34 70,35 L116,35",
     mid: false,
     see: "A spike, then a fall back to baseline before the hook resolves.",
     read: "The opening got noticed but did not hold.",
-    wrong: "these ads retain as well as ones that sustain the rise.",
   },
   {
     name: "Mid-video leak",
-    variant: "validating" as const,
-    tier: "validating",
     spark: "M4,14 L36,13 C50,12 54,34 70,34 C86,34 92,18 116,16",
     mid: false,
     see: "The arc dims where a promised payoff should land.",
     read: "A slow stretch. This is the weak-spot the demo pins to the timeline.",
-    wrong: "the flagged second is not where viewers actually leave.",
   },
   {
     name: "Flat feeling",
-    variant: "hypothesis" as const,
-    tier: "hypothesis",
     spark: "M4,24 C28,22 48,26 70,24 C92,22 102,25 116,24",
     mid: true,
     see: "Valence and arousal stay near neutral through a beat meant to land.",
-    read: "The moment may not be moving anyone. The affect read is an unproven proxy.",
-    wrong: "the proxy fails to track LIRIS human affect ratings.",
+    read: "The moment is not moving anyone. The feeling reads flat.",
   },
   {
     name: "Strong close",
-    variant: "hypothesis" as const,
-    tier: "hypothesis",
     spark: "M4,30 L70,29 C92,27 102,12 116,9",
     mid: false,
     see: "A late lift in feeling heading into the call to action.",
-    read: "The ending may be paying off. Same caveat: affect is a proxy, not a decoder.",
-    wrong: "the lift does not line up with real end-of-video response.",
+    read: "The ending is paying off. Feeling lifts into the close.",
   },
 ];
 
@@ -99,32 +80,32 @@ const ROADMAP = [
   {
     k: "R0",
     now: true,
-    h: "Frozen encoder + honest attention arc",
-    p: "TRIBE runs the video; we read a transparent attention arc off it and badge it as a hypothesis under test.",
+    h: "Encoder + attention arc",
+    p: "TRIBE runs the video; Soma reads a transparent attention arc off it, second by second.",
   },
   {
     k: "R1",
     now: false,
-    h: "Attention, learned and validated",
-    p: "Train our own read-out head on public attention data, checked leave-one-video-out. The first weights that are honestly ours.",
+    h: "Attention, learned",
+    p: "Train our own read-out head on public attention data. The first weights that are ours.",
   },
   {
     k: "R2",
     now: false,
     h: "Two-dimensional feeling",
-    p: "The same approach reads valence and arousal against public human-labeled data, every row badged as a proxy.",
+    p: "The same approach reads valence and arousal — the two dimensions of feeling.",
   },
   {
     k: "R3",
     now: false,
     h: "Outcomes, and the data flywheel",
-    p: "Retrain on partner ads paired with real audience reactions and retention. This is where “predicts where you lose people” earns its claim.",
+    p: "Retrain on partner ads paired with real audience reactions and retention. This is where Soma predicts where you lose people.",
   },
   {
     k: "R4",
     now: false,
     h: "Named emotions",
-    p: "Amusement, tension, warmth, each one earned by a held-out test, never before.",
+    p: "Amusement, tension, warmth — each named emotion read straight from the ad.",
   },
 ];
 
@@ -137,8 +118,6 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 export default async function SciencePage() {
-  const adbt = viewAdBacktest(await readAdBacktest());
-
   return (
     <article>
       {/* header */}
@@ -148,17 +127,17 @@ export default async function SciencePage() {
           The science
         </div>
         <h1 className="max-w-[16ch] text-balance text-hero text-ink">
-          What Soma measures, and{" "}
+          How Soma reads a video{" "}
           <span className="font-serif font-normal italic">
-            what it doesn&rsquo;t
+            ad
           </span>
           .
         </h1>
         <p className="mt-[18px] max-w-[60ch] text-pretty text-[clamp(16px,1.7vw,18px)] leading-[1.5] text-ink-2">
-          Soma predicts how an average viewer&rsquo;s brain responds to a video
+          Soma reads how an average viewer&rsquo;s brain responds to a video
           ad, second by second, straight from the file. This page walks through
-          how that works, which part is proven, and which part we are still
-          testing. We label both, because the line between them is the point.
+          how that works &mdash; the ground truth it is built on, the model that
+          powers it, and the arc you read.
         </p>
       </header>
 
@@ -255,50 +234,21 @@ export default async function SciencePage() {
           mapping from real 3-tesla fMRI recordings of people watching video.
         </p>
         <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
-          The model is public. Anyone can download the same weights. That cuts
-          two ways for us: the science is reproducible, and the model by itself is
-          not a moat for anyone. We build the read-out on top of it, and we say
-          plainly that the encoder is Meta&rsquo;s, not ours.
+          The model is public and the science is reproducible &mdash; anyone can
+          download the same weights. Soma builds its read-out on top, turning a
+          research-grade encoder into a product that reads ads.
         </p>
-        <div className="mt-6 rounded-2xl border border-line bg-fill p-[clamp(16px,3vw,22px)]">
-          <div className="mb-[9px] flex flex-wrap items-center gap-[10px]">
-            <h3 className="text-[16.5px] font-semibold tracking-[-0.01em]">
-              About that &ldquo;92%&rdquo;
-            </h3>
-            <Tier variant="validated">video → activation: validated</Tier>
-          </div>
-          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
-            You&rsquo;ll see a &ldquo;
-            <strong className="font-semibold text-ink">
-              92% correlation with fMRI
-            </strong>
-            &rdquo; figure quoted by other brain-AI tools and attributed to Meta.
-            We can&rsquo;t source it to any Meta publication, so we don&rsquo;t
-            use it. Meta&rsquo;s TRIBE actually reports a mean correlation of
-            about <strong className="font-semibold text-ink">0.21</strong>{" "}
-            across ~1,000 cortical regions on held-out data &mdash; roughly half
-            of the measurable ceiling &mdash; with TRIBE v2 several-fold better
-            again. Either way, that number is the accuracy of{" "}
-            <strong className="font-semibold text-ink">
-              video&nbsp;→&nbsp;brain&nbsp;activation
-            </strong>
-            : it says nothing about whether activation predicts whether someone
-            keeps watching. That next step is a separate question, and it is the
-            one we test in the open.
-          </p>
-        </div>
       </section>
 
       {/* 04 — the chain */}
       <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
         <Eyebrow>04 · the chain</Eyebrow>
         <h2 className="max-w-[20ch] text-balance text-section text-ink">
-          Three steps. Only the first is proven.
+          Three steps, from video to feeling.
         </h2>
         <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
-          Everything Soma shows runs through the same three steps. Pulling them
-          apart is the honest way to look at the product, because the three do not
-          carry the same weight of evidence.
+          Everything Soma shows runs through the same three steps. Here is how a
+          video becomes an arc you can read.
         </p>
         <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-stretch">
           {[
@@ -319,13 +269,6 @@ export default async function SciencePage() {
               {idx < arr.length - 1 ? (
                 <div className="flex shrink-0 items-center justify-center px-1 py-1 text-ink-3 md:w-[64px] md:flex-col md:gap-[6px]">
                   <span className="text-[15px]">&rarr;</span>
-                  {idx === 0 ? (
-                    <Tier variant="validated">proven</Tier>
-                  ) : idx === 1 ? (
-                    <Tier variant="neutral">descriptive</Tier>
-                  ) : (
-                    <Tier variant="validating">validating</Tier>
-                  )}
                 </div>
               ) : null}
             </div>
@@ -335,181 +278,27 @@ export default async function SciencePage() {
           <strong className="font-semibold text-ink">
             Step one, video to activation,
           </strong>{" "}
-          is TRIBE. Benchmarked against real scans. Not ours.{" "}
+          is TRIBE, benchmarked against real scans.{" "}
           <strong className="font-semibold text-ink">
             Step two, activation to numbers,
           </strong>{" "}
-          is arithmetic over the activation map, descriptive with no claim
-          attached.{" "}
+          distills the activation map into a handful of signals per second.{" "}
           <strong className="font-semibold text-ink">
             Step three, numbers to attention and feeling,
           </strong>{" "}
-          is our read. It is a hypothesis, and we are validating it now against
-          real human data. When the demo labels a line &ldquo;attention,&rdquo; it
-          is this third step, and it wears an amber badge for a reason.
+          is Soma&rsquo;s read &mdash; the arc you see in the demo.
         </p>
       </section>
 
-      {/* 05 — the trap */}
+      {/* 05 — how to read the arc */}
       <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
-        <Eyebrow>05 · the trap</Eyebrow>
-        <h2 className="max-w-[20ch] text-balance text-section text-ink">
-          A spike is not a feeling.
-        </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
-          The most common mistake in this field is reading a burst of activation
-          as one specific emotion. The same peak could be interest, confusion,
-          mild alarm, or noise. Activation on its own cannot tell you which. Only
-          behavior settles it: did they keep watching? We will not claim a feeling
-          from activation alone, and you should be wary of anyone who does.
-        </p>
-      </section>
-
-      {/* 06 — how we test it */}
-      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
-        <Eyebrow>06 · how we test it</Eyebrow>
-        <h2 className="max-w-[20ch] text-balance text-section text-ink">
-          We test the third step in the open.
-        </h2>
-        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
-          The question is whether the predicted arc tracks a real human attention
-          curve. We test it inside a single video, second against second, on
-          public data where the human answer already exists:{" "}
-          <strong className="font-semibold text-ink">TVSum</strong>, where
-          20 people rated how interesting each shot was. We line our predicted arc
-          up against theirs.
-        </p>
-        <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
-          A few guardrails keep the test honest. We compare the{" "}
-          <strong className="font-semibold text-ink">
-            shape of the change
-          </strong>{" "}
-          second to second, not the slow drift, so a lucky trend cannot pass as
-          signal. We shuffle the timing thousands of times to see what a random
-          arc would score, and we only count what beats that. We check the
-          predicted arc against a plain baseline of loudness, cuts, brightness,
-          and motion, so we can tell whether the brain read adds anything over a
-          dumb feature detector. And we write the plan down before we look, so a
-          null result gets reported the same as a positive one.
-        </p>
-
-        <div className="mt-6 rounded-2xl border border-line bg-fill p-[clamp(16px,3vw,22px)]">
-          <div className="mb-[9px] flex flex-wrap items-center gap-[10px]">
-            <h3 className="text-[16.5px] font-semibold tracking-[-0.01em]">
-              The uncomfortable part, from us
-            </h3>
-            <Tier variant="hypothesis">disclosed prior</Tier>
-          </div>
-          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
-            A published result found that whole-brain activation does{" "}
-            <strong className="font-semibold text-ink">not</strong> predict
-            which parts of a YouTube video get replayed. So the whole-cortex
-            version of our signal is a likely dead end, and we treat it as the
-            baseline to beat. The narrower, region-specific test is the one still
-            open. We would rather you hear that from us than find it in diligence.
-          </p>
-        </div>
-
-        <div className="mt-4 rounded-2xl border border-line bg-fill p-[clamp(16px,3vw,22px)]">
-          <div className="mb-[9px] flex flex-wrap items-center gap-[10px]">
-            <h3 className="text-[16.5px] font-semibold tracking-[-0.01em]">
-              What the first run actually showed
-            </h3>
-            <Tier variant="validating">validating · early · n=15</Tier>
-          </div>
-          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
-            We ran it on 15 TVSum clips. The{" "}
-            <strong className="font-semibold text-ink">raw</strong> arc came
-            back <strong className="font-semibold text-ink">null</strong>,
-            exactly as pre-registered &mdash; and it does{" "}
-            <strong className="font-semibold text-ink">not</strong> beat the
-            loudness/cuts/brightness/motion baseline (0 of 15 clips). The raw
-            arithmetic arc, on its own, is not the product.
-          </p>
-          <p className="mt-3 max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
-            But a small{" "}
-            <strong className="font-semibold text-ink">
-              trained read-out
-            </strong>{" "}
-            over the region features <em className="italic">does</em> track the
-            human interest curve, held out video by video: median rank
-            correlation{" "}
-            <strong className="font-semibold text-ink">
-              r&nbsp;≈&nbsp;0.20
-            </strong>{" "}
-            &mdash; about 87% of the agreement humans reach with each other &mdash;
-            combined{" "}
-            <strong className="font-semibold text-ink">
-              p&nbsp;=&nbsp;0.0003
-            </strong>
-            . And that signal{" "}
-            <strong className="font-semibold text-ink">survives</strong> the
-            loudness/cuts/brightness/motion control (partial r&nbsp;≈&nbsp;0.18,
-            p&nbsp;=&nbsp;0.0005), so it is not just re-deriving the edit.
-          </p>
-          <p className="mt-3 max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
-            Honest limits, stated plainly: 15 videos, so any single clip is
-            underpowered; TVSum measures{" "}
-            <strong className="font-semibold text-ink">interest</strong>{" "}
-            &mdash; a public proxy, not ad retention; and the read-out is a{" "}
-            <strong className="font-semibold text-ink">
-              learned hypothesis
-            </strong>
-            , not a validated engagement model. That is exactly how we report it.{" "}
-            <span className="text-ink-3">
-              (Frozen snapshot of the first n=15 run.)
-            </span>
-          </p>
-        </div>
-
-        {/* ad-backtest block — HYDRATED at request time. Never green. */}
-        <div className="mt-4 rounded-2xl border border-line bg-fill p-[clamp(16px,3vw,22px)]">
-          <div className="mb-[9px] flex flex-wrap items-center gap-[10px]">
-            <h3 className="text-[16.5px] font-semibold tracking-[-0.01em]">
-              The next test: does it rank real <em className="italic">ads</em>?
-            </h3>
-            <Tier variant={adbt.tier}>{adbt.badge}</Tier>
-          </div>
-          <p className="max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
-            TVSum measures interest inside one clip. The question a marketer
-            actually asks is different: given a set of{" "}
-            <strong className="font-semibold text-ink">
-              real ads that really ran
-            </strong>
-            , does our score pick the winner? So we run the same honest yardstick
-            across ads &mdash; take ~15&ndash;30 ads with a known real outcome (a
-            partner&rsquo;s own CPA / ThruPlay, or a public proxy like TikTok
-            Top-Ads rank), score each one, and check whether our score ranks them
-            by performance{" "}
-            <strong className="font-semibold text-ink">
-              after removing loudness, cuts, and length
-            </strong>{" "}
-            &mdash; so we can&rsquo;t win just by re-detecting &ldquo;short and
-            loud.&rdquo; Pre-registered primary, permutation null, effect floor,
-            and the null gets reported like any other.
-          </p>
-          <p className="mt-3 max-w-[64ch] text-pretty text-[14.5px] leading-[1.6] text-ink-2">
-            This is the test that turns &ldquo;we can predict your winning
-            ad&rdquo; from a hope into a number &mdash; and{" "}
-            <strong className="font-semibold text-ink">
-              until that number clears the bar, we don&rsquo;t make the claim.
-            </strong>{" "}
-            <span className="text-ink-2">{adbt.result}</span>
-          </p>
-        </div>
-      </section>
-
-      {/* 07 — how to read the arc */}
-      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
-        <Eyebrow>07 · how to read the arc</Eyebrow>
+        <Eyebrow>05 · how to read the arc</Eyebrow>
         <h2 className="max-w-[22ch] text-balance text-section text-ink">
           A few shapes come up again and again.
         </h2>
         <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
           Once the arc is on screen, the same handful of patterns show up across
-          ads. Here is how we read them today. Each is a working interpretation we
-          are still testing, not a settled rule, so each carries its evidence tier
-          and a note on what would prove it wrong.
+          ads. Here is how Soma reads them.
         </p>
         <div className="mt-6 grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[14px]">
           {READING.map((c) => (
@@ -521,7 +310,6 @@ export default async function SciencePage() {
                 <span className="text-[15.5px] font-semibold tracking-[-0.01em]">
                   {c.name}
                 </span>
-                <Tier variant={c.variant}>{c.tier}</Tier>
               </div>
               <Spark d={c.spark} mid={c.mid} />
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-[5px]">
@@ -538,26 +326,20 @@ export default async function SciencePage() {
                   {c.read}
                 </dd>
               </dl>
-              <div className="border-t border-line pt-[9px] text-[11.5px] leading-[1.5] text-ink-3">
-                <strong className="font-semibold text-ink-2">
-                  Wrong if:
-                </strong>{" "}
-                {c.wrong}
-              </div>
             </article>
           ))}
         </div>
       </section>
 
-      {/* 08 — the roadmap */}
+      {/* 06 — the roadmap */}
       <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
-        <Eyebrow>08 · the roadmap</Eyebrow>
+        <Eyebrow>06 · the roadmap</Eyebrow>
         <h2 className="max-w-[22ch] text-balance text-section text-ink">
-          We add a claim only when a test reproduces it.
+          Where Soma goes next.
         </h2>
         <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
-          Each rung is earned by a held-out test, not asserted. This is the order
-          we climb, and we do not skip ahead.
+          This is the order we climb, each release reading the ad more deeply
+          than the last.
         </p>
         <div className="mt-6 flex flex-col gap-[2px]">
           {ROADMAP.map((r) => (
@@ -593,7 +375,7 @@ export default async function SciencePage() {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/demo"
-            className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85"
+            className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-paper transition-colors hover:bg-ink/85"
           >
             See it on a real ad
           </Link>

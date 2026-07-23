@@ -42,7 +42,7 @@ export default function SiteHeader() {
         </div>
         <Link
           href="/"
-          className="rounded-xl bg-ink px-[15px] py-[9px] text-[14px] font-medium tracking-[-0.01em] text-white transition-colors hover:bg-ink/85"
+          className="rounded-xl bg-ink px-[15px] py-[9px] text-[14px] font-medium tracking-[-0.01em] text-paper transition-colors hover:bg-ink/85"
         >
           Request access
         </Link>

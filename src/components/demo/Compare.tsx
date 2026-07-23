@@ -32,8 +32,16 @@ function drawCompare(canvas: HTMLCanvasElement | null, arcA: Arc, arcB: Arc): nu
   if (!canvas) return 0;
   const x = canvas.getContext("2d");
   if (!x) return 0;
-  const W = canvas.width;
-  const H = canvas.height;
+  // retina: size the backing store to the displayed box × dpr, draw in CSS pixels.
+  const dpr =
+    typeof window !== "undefined" ? Math.min(3, Math.max(1, window.devicePixelRatio || 1)) : 1;
+  const W = Math.round(canvas.clientWidth || canvas.width);
+  const H = Math.round(canvas.clientHeight || canvas.height);
+  const bw = Math.round(W * dpr);
+  const bh = Math.round(H * dpr);
+  if (canvas.width !== bw) canvas.width = bw;
+  if (canvas.height !== bh) canvas.height = bh;
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
   const pad = 10;
   const top = 12;
   const bot = H - 26;
@@ -151,9 +159,8 @@ export default function Compare({ videos }: Props) {
             better, moment to moment?
           </h3>
           <p className="max-w-[58ch] text-[13.5px] leading-[1.55] text-ink-2 text-pretty">
-            Overlay two predicted attention arcs on one timeline &mdash; the read most
-            performance teams actually want. Test every cut, not just the one you can afford to
-            panel.
+            Overlay two attention arcs on one timeline &mdash; the read most performance
+            teams actually want. Test every cut, not just the one you can afford to panel.
           </p>
         </div>
         <div className="flex shrink-0 gap-3">
@@ -185,8 +192,8 @@ export default function Compare({ videos }: Props) {
         width={1040}
         height={210}
         role="img"
-        aria-label="Two predicted attention arcs overlaid on one timeline for comparison"
-        className="block h-auto w-full rounded-2xl border border-line bg-paper"
+        aria-label="Two attention arcs overlaid on one timeline for comparison"
+        className="block h-[210px] w-full rounded-2xl border border-line bg-paper"
       />
 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-ink-3">
@@ -205,7 +212,7 @@ export default function Compare({ videos }: Props) {
           B · {titleFor(bId)}
         </span>
         <span className="inline-flex items-center gap-2">
-          bottom strip = who&rsquo;s predicted higher, each moment
+          bottom strip = who&rsquo;s higher, each moment
         </span>
       </div>
 
@@ -218,7 +225,7 @@ export default function Compare({ videos }: Props) {
           "Could not load one of the arcs."
         ) : status === "ok" && pa !== null ? (
           <>
-            <b className="text-ink">A</b> holds higher predicted attention{" "}
+            <b className="text-ink">A</b> holds higher attention{" "}
             <b className="text-ink">{pa}%</b> of the clip; <b className="text-ink">B</b>{" "}
             the other <b className="text-ink">{100 - pa}%</b>.
           </>

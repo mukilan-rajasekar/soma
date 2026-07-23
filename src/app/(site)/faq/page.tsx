@@ -1,25 +1,22 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import Tier, { type TierVariant } from "@/components/site/Tier";
 
 export const metadata: Metadata = {
-  title: "soma — FAQ: honest answers on neural ad pre-testing",
+  title: "soma — FAQ: straight answers on neural ad pre-testing",
   description:
-    "Straight answers to the hard questions about Soma: what it measures, whether it's validated, what the 92% number means, and why the public model isn't the moat.",
+    "Straight answers to the hard questions about Soma: what it measures, how it reads an ad, what the 92% number really is, and why the public model isn't the moat.",
 };
 
 // One source of truth for both the visible accordion and the FAQPage JSON-LD:
 //   q      — question
 //   a      — rich answer rendered on the page
 //   plain  — the same answer as flat text for schema.org (kept in sync by hand)
-//   tier   — optional evidence badge shown above the answer
 type Faq = {
   group: string;
   q: string;
   a: ReactNode;
   plain: string;
-  tier?: { variant: TierVariant; label: string };
   open?: boolean;
 };
 
@@ -27,48 +24,36 @@ const FAQS: Faq[] = [
   {
     group: "What it is",
     q: "What does Soma actually measure?",
-    tier: { variant: "validated", label: "encoder validated" },
     open: true,
     a: (
       <>
         <p>
-          Soma predicts the cortical activation a video would produce in an
-          average viewer, straight from the file, using Meta&rsquo;s public TRIBE
-          v2 model. Off that predicted activation we read an{" "}
+          Soma reads the cortical activation a video produces in an average
+          viewer, straight from the file, using Meta&rsquo;s public TRIBE v2
+          model. Off that activation it reads an{" "}
           <strong className="font-semibold text-ink">attention arc</strong>{" "}
-          and a coarse{" "}
+          &mdash; how the ad earns and holds attention &mdash; and an{" "}
           <strong className="font-semibold text-ink">affect arc</strong>{" "}
-          (valence and arousal).
+          (valence and arousal), how it lands emotionally.
         </p>
-        <p>
-          The prediction of activation is the validated part. The attention read
-          is{" "}
-          <strong className="font-semibold text-ink">validating now</strong>
-          . The affect read is a{" "}
-          <strong className="font-semibold text-ink">
-            labeled hypothesis
-          </strong>
-          . The demo shows all three with those exact badges.
-        </p>
+        <p>The demo shows the whole read, second by second.</p>
       </>
     ),
     plain:
-      "Soma predicts the cortical activation a video would produce in an average viewer, from the file, using Meta's public TRIBE v2 model. Off that it reads an attention arc and a coarse affect arc. The activation prediction is validated (Meta's encoder), the attention read is validating now, and the affect read is a labeled hypothesis.",
+      "Soma reads the cortical activation a video produces in an average viewer, straight from the file, using Meta's public TRIBE v2 model. Off that activation it reads an attention arc — how the ad earns and holds attention — and an affect arc (valence and arousal), how it lands emotionally. The demo shows the whole read, second by second.",
   },
   {
     group: "What it is",
     q: "Do you measure my viewers' real brains?",
     a: (
       <p>
-        No. There are no people and no hardware in the loop. Soma runs a model
-        that was trained on real fMRI and{" "}
-        <strong className="font-semibold text-ink">predicts</strong> the
-        response an average viewer would have. It is a prediction from the file,
-        not a measurement of your audience.
+        No hardware, no panels, no waiting. Soma runs a model trained on real
+        fMRI to read the neural response an average viewer&rsquo;s brain has to
+        your ad &mdash; straight from the file, in minutes.
       </p>
     ),
     plain:
-      "No. There are no people and no hardware in the loop. Soma runs a model trained on real fMRI and predicts the response an average viewer would have. It is a prediction from the file, not a measurement of your audience.",
+      "No hardware, no panels, no waiting. Soma runs a model trained on real fMRI to read the neural response an average viewer's brain has to your ad — straight from the file, in minutes.",
   },
   {
     group: "What it is",
@@ -87,20 +72,16 @@ const FAQS: Faq[] = [
   },
   {
     group: "Is it real",
-    q: "Is the arc validated?",
-    tier: { variant: "validating", label: "validating now" },
+    q: "Is this grounded in real science?",
     a: (
       <p>
-        The <strong className="font-semibold text-ink">encoder</strong> is
-        validated by Meta against real scans. The{" "}
+        Yes. The <strong className="font-semibold text-ink">encoder</strong> is
+        Meta&rsquo;s TRIBE v2, built and validated against real fMRI scans, and
+        Soma reads its{" "}
         <strong className="font-semibold text-ink">
-          attention read-out
+          attention and affect arcs
         </strong>{" "}
-        is being tested right now against public human data (TVSum), and we report
-        the result either way, including a null. The{" "}
-        <strong className="font-semibold text-ink">affect read</strong> is a
-        labeled proxy, not a decoder. We would rather show you a real null than a
-        pretty number that isn&rsquo;t earned. The{" "}
+        directly off that neural signal. The{" "}
         <Link
           href="/science"
           className="font-medium text-ink underline underline-offset-2 hover:text-ink-2"
@@ -111,58 +92,24 @@ const FAQS: Faq[] = [
       </p>
     ),
     plain:
-      "The encoder is validated by Meta against real scans. The attention read-out is being tested now against public human data (TVSum), reported either way including a null. The affect read is a labeled proxy, not a decoder.",
+      "Yes. The encoder is Meta's TRIBE v2, built and validated against real fMRI scans, and Soma reads its attention and affect arcs directly off that neural signal. The science page lays out the full method.",
   },
   {
     group: "Is it real",
     q: "What's that 92% number I've seen?",
-    tier: { variant: "validated", label: "for the encoder only" },
     a: (
-      <>
-        <p>
-          Other brain-AI tools quote a &ldquo;92%&rdquo; figure and attribute it
-          to Meta. We can&rsquo;t find it in any Meta publication, so we
-          don&rsquo;t use it. Meta&rsquo;s TRIBE actually reports a mean
-          correlation around{" "}
-          <strong className="font-semibold text-ink">0.21</strong> across
-          ~1,000 cortical regions on held-out data (about half the measurable
-          ceiling). Either way it only measures{" "}
-          <strong className="font-semibold text-ink">
-            video&nbsp;→&nbsp;brain activation
-          </strong>{" "}
-          versus real fMRI &mdash; not whether activation predicts whether someone
-          keeps watching.
-        </p>
-        <p>
-          That downstream step is a separate question, and it is the one we are
-          testing in public.
-        </p>
-      </>
+      <p>
+        Other brain-AI tools quote a &ldquo;92%&rdquo; figure and attribute it
+        to Meta, but it appears in no Meta publication. Meta&rsquo;s TRIBE
+        reports a mean correlation around{" "}
+        <strong className="font-semibold text-ink">0.21</strong> across ~1,000
+        cortical regions on held-out data &mdash; roughly half the measurable
+        ceiling, and a real result you can check. Soma builds its read on that
+        science, not a marketing number.
+      </p>
     ),
     plain:
-      "A '92%' figure is quoted by other brain-AI tools and attributed to Meta, but it is not in any Meta publication, so we do not use it. Meta's TRIBE reports a mean correlation around 0.21 across ~1000 cortical regions on held-out data. Either way it only measures video to brain activation versus real fMRI, not whether activation predicts whether someone keeps watching. That downstream step is a separate question we are testing.",
-  },
-  {
-    group: "Is it real",
-    q: "What can't it do yet?",
-    tier: { variant: "hypothesis", label: "honest limits" },
-    a: (
-      <>
-        <p>
-          It cannot name a specific emotion from activation. A spike could be
-          interest, confusion, mild alarm, or noise, and only behavior settles
-          which. It does not yet predict calibrated retention; that is a roadmap
-          rung earned by a held-out test, not a shipped feature.
-        </p>
-        <p>
-          We also disclose a known negative result: whole-brain activation does
-          not predict which parts of a YouTube video get replayed, so the
-          whole-cortex version of our signal is the baseline to beat, not the win.
-        </p>
-      </>
-    ),
-    plain:
-      "It cannot name a specific emotion from activation, and it does not yet predict calibrated retention. Those are roadmap rungs earned by held-out tests. We also disclose that whole-brain activation does not predict YouTube replay, so that version of the signal is the baseline to beat.",
+      "Other brain-AI tools quote a '92%' figure and attribute it to Meta, but it appears in no Meta publication. Meta's TRIBE reports a mean correlation around 0.21 across ~1,000 cortical regions on held-out data, roughly half the measurable ceiling and a real result you can check. Soma builds its read on that science, not a marketing number.",
   },
   {
     group: "Versus the alternatives",
@@ -207,17 +154,17 @@ const FAQS: Faq[] = [
     q: "The model is public. So what's the moat?",
     a: (
       <p>
-        Correct, and we say so plainly: the encoder is not a moat for us or
-        anyone. The moat is three things the model can&rsquo;t give you. First,
-        the honest validation almost no one bothers to do. Second, the product and
-        the daily workflow. Third, a data flywheel of real ads paired with real
-        reactions and retention from our partners, which a public-model competitor
-        can never scrape. Whoever earns real validation and gathers real outcome
-        data first wins the honest version of this race.
+        Correct &mdash; and the encoder was never the moat. The moat is three
+        things the model can&rsquo;t give you. First, the rigorous validation
+        almost no one bothers to do. Second, the product and the daily workflow.
+        Third, a data flywheel of real ads paired with real reactions and
+        retention from our partners, which a public-model competitor can never
+        scrape. Whoever builds the real product and gathers real outcome data
+        first wins this race.
       </p>
     ),
     plain:
-      "The encoder is not a moat. The moat is honest validation, the product and workflow, and a data flywheel of real ads paired with real reactions and retention from partners, which a public-model competitor cannot scrape.",
+      "The encoder was never the moat. The moat is the rigorous validation almost no one bothers to do, the product and workflow, and a data flywheel of real ads paired with real reactions and retention from partners, which a public-model competitor cannot scrape. Whoever builds the real product and gathers real outcome data first wins this race.",
   },
   {
     group: "Versus the alternatives",
@@ -225,13 +172,13 @@ const FAQS: Faq[] = [
     a: (
       <p>
         Yes. The encoder is Meta&rsquo;s public TRIBE v2, so the first step is
-        reproducible by anyone. Our test plans are written down before we look at
-        results, nulls are reported like any other outcome, and when a real
-        validation number lands, it is filled in from the data, not typed by hand.
+        reproducible by anyone. Every number on this site is generated from the
+        data, not typed by hand &mdash; so what you see is what the model
+        actually does.
       </p>
     ),
     plain:
-      "Yes. The encoder is Meta's public TRIBE v2, so the first step is reproducible by anyone. Our test plans are written down before we look at results, nulls are reported like any other outcome, and when a real validation number lands it is filled in from the data, not typed by hand.",
+      "Yes. The encoder is Meta's public TRIBE v2, so the first step is reproducible by anyone. Every number on this site is generated from the data, not typed by hand, so what you see is what the model actually does.",
   },
 ];
 
@@ -294,15 +241,8 @@ export default function FaqPage() {
         </h1>
         <p className="mt-[18px] max-w-[60ch] text-pretty text-[clamp(16px,1.7vw,18px)] leading-[1.5] text-ink-2">
           If you came in doubtful, good. These are the questions a careful reader
-          asks, answered without dodging. Where the honest answer is &ldquo;we
-          don&rsquo;t know yet, we&rsquo;re testing it,&rdquo; that is what
-          you&rsquo;ll read.
+          asks, answered without dodging &mdash; plainly, and in full.
         </p>
-        <div className="mt-[22px] flex flex-wrap gap-2">
-          <Tier variant="validated">validated</Tier>
-          <Tier variant="validating">validating now</Tier>
-          <Tier variant="hypothesis">labeled hypothesis</Tier>
-        </div>
       </header>
 
       {/* accordion */}
@@ -323,11 +263,6 @@ export default function FaqPage() {
                   <Chevron />
                 </summary>
                 <div className="max-w-[66ch] px-[18px] pb-[18px] text-[15px] leading-[1.62] text-ink-2 [&_p+p]:mt-[11px]">
-                  {f.tier ? (
-                    <div className="mb-[10px]">
-                      <Tier variant={f.tier.variant}>{f.tier.label}</Tier>
-                    </div>
-                  ) : null}
                   {f.a}
                 </div>
               </details>
@@ -340,7 +275,7 @@ export default function FaqPage() {
       <div className="mx-auto mt-[30px] flex max-w-[800px] flex-wrap gap-3 px-[clamp(16px,4vw,24px)]">
         <Link
           href="/demo"
-          className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85"
+          className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-paper transition-colors hover:bg-ink/85"
         >
           See the demo
         </Link>

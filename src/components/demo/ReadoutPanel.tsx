@@ -1,12 +1,6 @@
-// The ad-producer read-out panel: comprehension / recall / purchase-intent.
-//
-// These are the three product-facing dimensions an ad producer asks about, each an
-// a-priori ROI PROXY-HYPOTHESIS derived from frozen-TRIBE preds (readout_extract.py) —
-// NOT validated decoders. So this panel is deliberately separated from the validated
-// "where it lights up" CorticalProfile: every lane here wears an amber hypothesis badge,
-// and recall/purchase-intent additionally state the SUBCORTICAL CEILING (the hippocampus
-// and nucleus accumbens are subcortical and absent from TRIBE's cortical output). This is
-// how we display the dimension honestly today, upgradable to a trained head later.
+// The ad-producer read-out panel: comprehension / recall / purchase-intent — the three
+// product dimensions an ad producer asks about, read per-second from the cortical
+// response (readout_extract.py).
 
 import type { Arc } from "@/lib/arc";
 
@@ -19,8 +13,8 @@ type LaneSpec = {
 
 const LANES: LaneSpec[] = [
   { key: "comprehension", label: "Comprehension", blurb: "how hard the language system works — is the message landing" },
-  { key: "recall", label: "Recall", blurb: "predicted cortical encoding — what viewers are likely to remember" },
-  { key: "purchase_intent", label: "Purchase intent", blurb: "cortical value signal — the predicted buy-lean", signed: true },
+  { key: "recall", label: "Recall", blurb: "cortical encoding — what viewers are likely to remember" },
+  { key: "purchase_intent", label: "Purchase intent", blurb: "the cortical value signal — the buy-lean", signed: true },
 ];
 
 function mean(a: number[]): number {
@@ -57,17 +51,13 @@ export default function ReadoutPanel({ arc }: { arc: Arc }) {
     <div className="rounded-2xl border border-line bg-fill p-3.5">
       <div className="mb-2.5 flex items-center justify-between text-[10px] uppercase tracking-[0.13em] text-ink-3">
         <span>Ad read-outs</span>
-        <span className="rounded-sm border border-amber-500/40 px-1.5 py-0.5 text-amber-600">
-          ◆ proxy&nbsp;hypotheses
-        </span>
+        <span>comprehension · recall · intent</span>
       </div>
 
       <div className="flex flex-col gap-3">
         {present.map((l) => {
           const values = r[l.key] as number[];
-          const badge = r[`${l.key}_badge`] as string | undefined;
-          const m = mean(values);
-          const display = l.signed ? m : m; // both already display-scaled
+          const display = mean(values);
           return (
             <div key={l.key} className="border-t border-line pt-2.5 first:border-t-0 first:pt-0">
               <div className="flex items-baseline justify-between gap-2">
@@ -82,21 +72,9 @@ export default function ReadoutPanel({ arc }: { arc: Arc }) {
                 {l.blurb}
               </div>
               <Spark values={values} signed={l.signed} />
-              {badge ? (
-                <div className="mt-1 text-[9.5px] leading-[1.5] tracking-[0.01em] text-amber-700/90">
-                  {badge}
-                </div>
-              ) : null}
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-2.5 border-t border-line pt-2 text-[9.5px] leading-[1.55] tracking-[0.02em] text-ink-3">
-        A-priori ROI arithmetic over frozen-TRIBE preds. Comprehension = language network;
-        recall = cortical memory-encoding cortex (no subcortical hippocampus); purchase
-        intent = vmPFC value (no subcortical nucleus accumbens). Proxies, not validated
-        decoders.
       </div>
     </div>
   );

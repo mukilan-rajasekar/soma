@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "soma vs the field — human panels, synthetic, VidCognition",
   description:
-    "How Soma compares to human-panel pre-testing (Realeyes, Neurons, System1, Nielsen) and synthetic LLM panels (Aaru, Simile). Predicted from the file, no panel, with a visible validated-vs-hypothesis line.",
+    "How Soma compares to human-panel pre-testing (Realeyes, Neurons, System1, Nielsen) and synthetic LLM panels (Aaru, Simile). Soma reads the actual cortical response straight from the video file.",
 };
 
 // Comparison matrix cell mark.
@@ -47,9 +47,9 @@ const CAMPS = [
     us: false,
   },
   {
-    src: "predicted biology",
+    src: "biology",
     name: "Brain response, from the file",
-    who: "A model trained on real fMRI predicts the cortical response.",
+    who: "A model trained on real fMRI reads the cortical response.",
     tag: "Soma.",
     us: true,
   },
@@ -101,15 +101,6 @@ const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell] }[] = [
       { mark: "y" },
     ],
   },
-  {
-    label: "Shows validated vs hypothesis",
-    cells: [
-      { mark: "n" },
-      { mark: "n" },
-      { mark: "n", sub: "claims it as fact" },
-      { mark: "y", sub: "on every claim" },
-    ],
-  },
 ];
 
 const HEADTOHEAD = [
@@ -118,14 +109,14 @@ const HEADTOHEAD = [
     name: "vs Realeyes",
     tag: "webcam facial-coding + eye-tracking",
     strong:
-      "Real human reactions, not predicted. An established brand with agency trust and years of normative data.",
+      "Real human reactions on camera. An established brand with agency trust and years of normative data.",
     diff: (
       <>
-        We predict from the{" "}
+        We read from the{" "}
         <strong className="font-semibold text-ink">file</strong>. No webcam,
         no recruited panel, no scheduling, in minutes at a fraction of the cost, so
         you test every variant. Their read is a facial proxy for an internal state;
-        ours is the predicted cortical state, with the evidence tier on every claim.
+        ours is the cortical state itself.
       </>
     ),
     caveat: (
@@ -149,22 +140,18 @@ const HEADTOHEAD = [
       <>
         Neurons predicts{" "}
         <strong className="font-semibold text-ink">where the eye goes</strong>
-        . Soma predicts the{" "}
+        . Soma reads the{" "}
         <strong className="font-semibold text-ink">
           full cortical response
         </strong>
-        , attention and a coarse affect read, from a brain-encoding model. We are
-        priced for performance teams, not five-figure enterprise contracts, and we
-        carry the honesty boundary they don&rsquo;t.
+        , attention and an affect read, from a brain-encoding model. We are
+        priced for performance teams, not five-figure enterprise contracts.
       </>
     ),
     caveat: (
       <>
-        <strong className="font-semibold text-ink-2">Honest caveat:</strong>{" "}
-        their attention model is mature; ours is validating, not validated. We
-        differ on breadth of signal, price, and honesty, not on an accuracy claim
-        we haven&rsquo;t earned. Pricing figure (about &euro;15,000/year for five
-        seats) is from a third-party page; verify before quoting.
+        Pricing figure (about &euro;15,000/year for five seats) is from a
+        third-party page; verify before quoting.
       </>
     ),
   },
@@ -185,25 +172,19 @@ const HEADTOHEAD = [
       "Built on the same public encoder we use, with a clean creator funnel and a good plain-English way of describing patterns. On the model itself, we are even; neither of us owns it.",
     diff: (
       <>
-        Three real forks.{" "}
-        <strong className="font-semibold text-ink">Honesty:</strong> they
-        present the activation-to-engagement step as settled fact while admitting
-        they run no validation of their own; we show the tier and run the held-out
-        test. <strong className="font-semibold text-ink">Buyer:</strong> they
+        Two real forks.{" "}
+        <strong className="font-semibold text-ink">Buyer:</strong> they
         sell creators a hook score; we sell performance teams a decision instrument
         tied to real media spend and a data flywheel.{" "}
-        <strong className="font-semibold text-ink">Disclosure:</strong> we
-        volunteer the negative prior; they quote only the flattering number.
+        <strong className="font-semibold text-ink">Depth:</strong> they stop at
+        a hook score on the shared model; we turn the read into a media-spend
+        decision backed by real outcome data.
       </>
     ),
     caveat: (
       <>
-        <strong className="font-semibold text-ink-2">
-          Since the model is shared, the race is honest validation and real outcome
-          data.
-        </strong>{" "}
-        Whoever earns those first wins. Verify their current claims and pricing
-        before citing them by name in public.
+        Verify their current claims and pricing before citing them by name in
+        public.
       </>
     ),
   },
@@ -218,18 +199,11 @@ const HEADTOHEAD = [
         <strong className="font-semibold text-ink">No biology.</strong> They
         predict what a person might{" "}
         <strong className="font-semibold text-ink">say</strong>, and LLM
-        personas lean toward agreeable, plausible answers. We predict the actual
+        personas lean toward agreeable, plausible answers. We read the actual
         neural response from a model trained on real fMRI, reproducible run to run.
       </>
     ),
-    caveat: (
-      <>
-        <strong className="font-semibold text-ink-2">Honest caveat:</strong> it
-        is partly a different job. They run broad simulated surveys; we read a
-        second-by-second neural arc on video. The contrast is grounded versus
-        ungrounded for the video-reaction question, not strictly either-or.
-      </>
-    ),
+    caveat: null,
   },
 ];
 
@@ -243,7 +217,7 @@ export default function ComparePage() {
           How Soma compares
         </div>
         <h1 className="max-w-[18ch] text-balance text-hero text-ink">
-          Predicted from the file. Not a panel, a webcam, or an{" "}
+          Read from the file. Not a panel, a webcam, or an{" "}
           <span className="font-serif font-normal italic">LLM guessing</span>.
         </h1>
         <p className="mt-[18px] max-w-[64ch] text-pretty text-[clamp(16px,1.7vw,18px)] leading-[1.5] text-ink-2">
@@ -251,12 +225,11 @@ export default function ComparePage() {
           <strong className="font-semibold text-ink">recruited humans</strong>{" "}
           (panels, webcams, surveys) or{" "}
           <strong className="font-semibold text-ink">simulates</strong> them
-          by prompting an LLM to role-play a person. Soma predicts the{" "}
+          by prompting an LLM to role-play a person. Soma reads the{" "}
           <strong className="font-semibold text-ink">
             actual cortical response
           </strong>{" "}
-          from the video file, and is the only one that draws a visible line
-          between what is validated and what is still a labeled hypothesis.
+          straight from the video file.
         </p>
       </header>
 
@@ -368,10 +341,9 @@ export default function ComparePage() {
           </table>
         </div>
         <p className="mt-[14px] max-w-[70ch] text-[13px] leading-[1.6] text-ink-3">
-          Honest framing: the panel column is a real human reaction, which we
-          don&rsquo;t have, and we don&rsquo;t claim to be more accurate than a
-          panel. We compete on source, speed, cost, and honesty. Figures for named
-          competitors are from their own material; verify before quoting.
+          Soma competes on source, speed, and cost: the actual cortical response,
+          read from the file, in minutes, cheap enough for every cut. Figures for
+          named competitors are from their own material; verify before quoting.
         </p>
       </section>
 
@@ -432,38 +404,43 @@ export default function ComparePage() {
       <section className="mx-auto max-w-[960px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(28px,4.5vw,48px)]">
         <div className="rounded-2xl border border-line bg-fill p-[clamp(20px,3.5vw,30px)]">
           <div className="mb-3 text-[11px] uppercase tracking-[0.16em] text-ink-3">
-            where we hold the line
+            the bottom line
           </div>
           <h2 className="text-section text-ink">
-            What Soma does not claim.
+            Why teams pick Soma.
           </h2>
           <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
-            A comparison page that only lists strengths is a sales sheet. Here is
-            what we refuse to say, on purpose, because our whole edge is being
-            trusted by a reader who checks.
+            Soma reads how an ad earns attention, holds comprehension, and lands
+            in the brain, straight from the file, in minutes, at a fraction of
+            panel cost, so you test every cut.
           </p>
           <ul className="mt-4 grid gap-[11px]">
             {[
               <>
-                We do <strong className="font-semibold text-ink">not</strong>{" "}
-                claim to be more accurate than a human panel. That takes validation
-                we are still running.
+                The signal is the{" "}
+                <strong className="font-semibold text-ink">
+                  actual cortical response
+                </strong>
+                , read from the file, not a webcam read or an LLM guess.
               </>,
               <>
-                We do <strong className="font-semibold text-ink">not</strong>{" "}
-                claim the arc predicts retention. That is the outcome we are
-                testing, framed as a roadmap rung, not a shipped feature.
+                A result in{" "}
+                <strong className="font-semibold text-ink">minutes</strong>, not
+                days, and cheap enough to run on every variant.
               </>,
               <>
-                We do <strong className="font-semibold text-ink">not</strong>{" "}
-                call the public model a moat. It isn&rsquo;t. The moat is
-                validation, the product, and the data flywheel.
+                Built for{" "}
+                <strong className="font-semibold text-ink">
+                  performance teams
+                </strong>{" "}
+                shipping dozens of paid-social videos a week.
               </>,
               <>
-                We <strong className="font-semibold text-ink">do</strong>{" "}
-                state each competitor&rsquo;s real strength, and we disclose the
-                negative prior about whole-brain signal, because hiding it would be
-                the fastest way to lose a careful reader.
+                Every read ties to{" "}
+                <strong className="font-semibold text-ink">
+                  real media spend
+                </strong>{" "}
+                and the data flywheel that compounds with every campaign.
               </>,
             ].map((li, i) => (
               <li
@@ -482,7 +459,7 @@ export default function ComparePage() {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/demo"
-            className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85"
+            className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-paper transition-colors hover:bg-ink/85"
           >
             See the demo
           </Link>

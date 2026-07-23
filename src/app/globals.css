@@ -30,6 +30,7 @@
    should reach for these semantic classes instead of scattering hex. */
 @theme static {
   /* Surfaces & ink — near-monochrome */
+  --color-white: #ffffff; /* explicit white so text-paper/bg-paper resolve on ink buttons */
   --color-paper: #ffffff; /* page background            → bg-paper   */
   --color-ink: #0a0a0a; /* primary text / black fill  → text-ink / bg-ink   */
   --color-ink-2: #4a4a4a; /* secondary / body copy      → text-ink-2 */
@@ -91,12 +92,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-a {
-  color: #0a0a0a;
-  text-decoration: none;
-}
-a:hover {
-  color: #666;
+/* In @layer base so Tailwind text-* utilities (which live in the later `utilities`
+   layer) can override the default anchor colour — an UNLAYERED `a { color }` rule
+   would otherwise beat every layered utility regardless of specificity, leaving
+   ink-on-ink text on black button-styled links. */
+@layer base {
+  a {
+    color: #0a0a0a;
+    text-decoration: none;
+  }
+  a:hover {
+    color: #666;
+  }
 }
 
 @keyframes somaHint {

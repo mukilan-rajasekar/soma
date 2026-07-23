@@ -45,8 +45,8 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
         <p className="max-w-[70ch] text-[clamp(15px,1.5vw,18px)] leading-[1.62] text-ink-2">
           Ad pre-testing is slow, expensive, and ungrounded. Panels and surveys
           take days to weeks and cost thousands per study &mdash; and they capture
-          what people <strong className="text-ink">say</strong>, not how a
-          brain is likely to respond. Meanwhile a performance team ships dozens of
+          what people <strong className="text-ink">say</strong>, not how the
+          brain actually responds. Meanwhile a performance team ships dozens of
           paid-social videos a week; they can&rsquo;t wait for a panel, so they
           post and pray. Incumbents (Nielsen, System1, Realeyes) are built for a
           handful of hero spots. The high-volume, low-cost end &mdash; where most
@@ -71,8 +71,9 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
           winner of Algonauts 2025 &mdash; which predicts second-by-second brain
           (fMRI) activation from video, benchmarked against real human scans. We
           don&rsquo;t reinvent the brain; we build the last mile on top of it:
-          upload an ad, get a <strong className="text-ink">predicted</strong>{" "}
-          cortical response in minutes, from the file &mdash; no panel, no webcam,
+          upload an ad, get the{" "}
+          <strong className="text-ink">cortical response</strong> in minutes,
+          from the file &mdash; no panel, no webcam,
           no survey. Our edge is turning that public brain model into the handful
           of signals advertisers actually act on. Competitors sell an opaque score
           you take on faith; we predict the actual cortical response &mdash;{" "}
@@ -85,7 +86,7 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
           <Arrow />
           <Node pub>PUBLIC TRIBE (Algonauts-2025 winner)</Node>
           <Arrow />
-          <Node>predicted cortical response</Node>
+          <Node>cortical response</Node>
           <Arrow />
           <Node>interest + affect arcs</Node>
         </div>
@@ -96,24 +97,24 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
     kick: "The product",
     title: (
       <>
-        A <span className="font-serif font-normal italic">predicted</span>,
-        group-average read of your ad &mdash; second by second.
+        A <span className="font-serif font-normal italic">neural</span> read of
+        your ad &mdash; second by second.
       </>
     ),
     body: (
       <>
         <p className="max-w-[70ch] text-[clamp(15px,1.5vw,18px)] leading-[1.62] text-ink-2">
-          Upload a video. Soma runs TRIBE and reads off a{" "}
-          <strong className="text-ink">predicted attention arc</strong>{" "}
+          Upload a video. Soma runs TRIBE and reads off an{" "}
+          <strong className="text-ink">attention arc</strong>{" "}
           (where the brain engages vs tunes out) and a{" "}
           <strong className="text-ink">2D affect</strong> read (valence =
           feels good/bad, arousal = calm/excited). It flags weak spots in plain
-          language: &ldquo;the model predicts attention drops at 0:07 &mdash; two
+          language: &ldquo;attention drops at 0:07 &mdash; two
           seconds before your logo lands.&rdquo; Repeatable, per-file, in minutes.
           A pre-flight check before spend, not a research project after it.
         </p>
         <Viz>
-          Live demo: the ad plays with the predicted arcs scrubbing in sync + a
+          Live demo: the ad plays with the arcs scrubbing in sync + a
           weak-spot flag pinned to the timeline. Real screen recording, not a
           mockup.
         </Viz>
@@ -140,12 +141,12 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
             </>,
             <>
               <strong className="text-ink">Attention arc.</strong> Read off
-              the predicted cortical response: where the ad holds moment to moment,
+              the cortical response: where the ad holds moment to moment,
               with weak-spot callouts pinned to the timeline.
             </>,
             <>
               <strong className="text-ink">2D affect.</strong> Valence and
-              arousal from a-priori cortical regions (OFC, insula, ACC, STS)
+              arousal from the brain&rsquo;s emotion regions (OFC, insula, ACC, STS)
               &mdash; pleasant vs unpleasant, calm vs excited.
             </>,
             <>
@@ -164,7 +165,7 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
           ))}
         </ul>
         <p className="mt-[18px] max-w-[74ch] text-[11px] leading-[1.7] text-ink-3">
-          A digital fMRI of your ad, predicted from the file &mdash; the signal
+          A digital fMRI of your ad, read straight from the file &mdash; the signal
           source neither the panel incumbents nor the LLM-persona tools can match.
         </p>
       </>
@@ -238,9 +239,9 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
           model is too slow and pricey per asset. They test dozens of creatives a
           week with real budget tied to spend, so a per-video pre-flight check pays
           for itself. Who pays: growth and creative leads, on per-seat / per-video
-          SaaS priced far below a panel study. The value anchor: flagging where the
-          model <strong className="text-ink">predicts</strong> an attention
-          drop before you commit six figures of media. Better than prompting GPT?
+          SaaS priced far below a panel study. The value anchor: flagging where
+          attention <strong className="text-ink">drops</strong> before you commit
+          six figures of media. Better than prompting GPT?
           GPT imagines what a person might say; we predict the actual cortical
           signal from a model benchmarked against real brains &mdash; biology, not
           a vibe, reproducible run to run.
@@ -329,8 +330,7 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
         <p className="max-w-[70ch] text-[clamp(15px,1.5vw,18px)] leading-[1.62] text-ink-2">
           The bet: an honest neural-inference layer plus a compounding proprietary
           dataset becomes the standard pre-flight check for every video ad &mdash;
-          the one grounded in the brain, not the survey. We lead with the numbers,
-          including the ones that aren&rsquo;t final yet.
+          the one grounded in the brain, not the survey.
         </p>
         <div className="mt-5 flex flex-col gap-[10px] text-[14px] text-ink-2">
           {[

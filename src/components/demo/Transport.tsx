@@ -29,7 +29,7 @@ export default function Transport({
         type="button"
         onClick={onToggle}
         aria-label={playing ? "Pause" : "Play"}
-        className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-ink text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-ink text-paper transition-transform hover:scale-[1.02] active:scale-[0.98]"
       >
         {playing ? (
           <svg viewBox="0 0 12 12" className="h-[13px] w-[13px] fill-current">

@@ -82,17 +82,17 @@ const BrainSvg = forwardRef<BrainHandle>(function BrainSvg(_props, ref) {
       `<stop offset="0" stop-color="${FILL}"/><stop offset=".45" stop-color="${ACCENT2}"/><stop offset="1" stop-color="${ACCENT}"/>` +
       `</linearGradient>` +
       `</defs>` +
-      `<text id="brMag" x="14" y="30" fill="${INK}" font-family="ui-monospace,monospace" font-size="21" font-weight="600">0.00</text>` +
-      `<text x="14" y="43" fill="${INK3}" font-family="ui-monospace,monospace" font-size="8" letter-spacing=".8">GLOBAL ACTIVATION · NORM</text>` +
-      `<text id="brPk" x="252" y="24" text-anchor="end" fill="${ACCENT}" font-family="ui-monospace,monospace" font-size="9">PK 0.00</text>` +
+      `<text id="brMag" x="14" y="30" fill="${INK}" font-family="system-ui,sans-serif" font-size="21" font-weight="600">0.00</text>` +
+      `<text x="14" y="43" fill="${INK3}" font-family="system-ui,sans-serif" font-size="8" letter-spacing=".8">GLOBAL ACTIVATION · NORM</text>` +
+      `<text id="brPk" x="252" y="24" text-anchor="end" fill="${ACCENT}" font-family="system-ui,sans-serif" font-size="9">PK 0.00</text>` +
       `<path id="brGlow" d="${CORTEX_PATH}" fill="none" stroke="${ACCENT2}" stroke-width="7" opacity="0"/>` +
       `<path id="brShell" d="${CORTEX_PATH}" fill="rgba(${ACCENT_RGB},.05)" stroke="${ACCENT}" stroke-width="1.1" stroke-opacity=".6"/>` +
       sulci +
       `<g id="brMesh" clip-path="url(#brClip)" opacity="0.12">${meshDots()}</g>` +
       `<rect x="270" y="56" width="6" height="122" rx="3" fill="url(#brBarGrad)" opacity=".72"/>` +
       `<rect x="270" y="56" width="6" height="122" rx="3" fill="none" stroke="${ACCENT}" stroke-opacity=".3"/>` +
-      `<text x="266" y="59" text-anchor="end" fill="${INK3}" font-family="ui-monospace,monospace" font-size="8">1.0</text>` +
-      `<text x="266" y="181" text-anchor="end" fill="${INK3}" font-family="ui-monospace,monospace" font-size="8">0</text>` +
+      `<text x="266" y="59" text-anchor="end" fill="${INK3}" font-family="system-ui,sans-serif" font-size="8">1.0</text>` +
+      `<text x="266" y="181" text-anchor="end" fill="${INK3}" font-family="system-ui,sans-serif" font-size="8">0</text>` +
       `<rect id="brMark" x="267" y="176" width="12" height="2.2" rx="1" fill="${INK}"/>`;
     elsRef.current = {
       glow: svg.querySelector("#brGlow") as SVGPathElement,

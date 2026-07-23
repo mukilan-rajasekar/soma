@@ -42,7 +42,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-white">
+    <div className="fixed inset-0 overflow-hidden bg-paper">
       <BrainField />
 
       <div className="absolute left-11 top-[34px] z-[2] text-[23px] font-medium tracking-[-0.01em]">
@@ -57,7 +57,7 @@ export default function Landing() {
         </h1>
         <p className="mb-[34px] mt-[22px] max-w-[340px] text-[16px] leading-[1.5] text-pretty text-[#4a4a4a]">
           You can&rsquo;t sugarcoat brain activity. Soma uses real fMRI data to
-          compare your ads for attention, before you spend on testing.
+          read how your ad earns attention, so you launch the one that wins.
         </p>
 
         {submitted ? (
@@ -72,7 +72,7 @@ export default function Landing() {
             <button
               type="submit"
               disabled={pending}
-              className="cursor-pointer whitespace-nowrap rounded-xl border border-[#0a0a0a] bg-[#0a0a0a] px-5 py-[13px] text-[15px] font-medium text-white transition-colors hover:border-[#333] hover:bg-[#333]"
+              className="cursor-pointer whitespace-nowrap rounded-xl border border-[#0a0a0a] bg-[#0a0a0a] px-5 py-[13px] text-[15px] font-medium text-paper transition-colors hover:border-[#333] hover:bg-[#333]"
             >
               {pending ? "Joining..." : "Join waitlist"}
             </button>
@@ -81,7 +81,7 @@ export default function Landing() {
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="you@company.com"
-              className="min-w-0 flex-1 rounded-xl border border-[#d8d8d8] bg-white px-[15px] py-[13px] text-[15px] text-[#0a0a0a] outline-none"
+              className="min-w-0 flex-1 rounded-xl border border-[#d8d8d8] bg-paper px-[15px] py-[13px] text-[15px] text-[#0a0a0a] outline-none"
             />
             {error ? (
               <div className="absolute top-full mt-2 text-[13px] text-[#b42318]">

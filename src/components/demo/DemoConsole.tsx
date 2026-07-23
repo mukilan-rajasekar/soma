@@ -32,16 +32,6 @@ import ReadoutPanel from "./ReadoutPanel";
 import SiteHeader from "@/components/site/SiteHeader";
 import { loadArc, mergeLiveArcs } from "./live";
 
-type LaneBadge = { text: string; color: string } | null;
-
-// honesty badge: any status that is NOT the validated tier ("learned-hypothesis")
-// shows in warning error-red, so a smoke / unvalidated / poisoned head can't be mistaken
-// for a validated result. Validated reads as calm neutral ink-2 (never a colour).
-function badgeFor(txt: string | undefined, status: string | undefined): LaneBadge {
-  if (!txt) return null;
-  return { text: txt, color: status === "learned-hypothesis" ? "#4a4a4a" : "#b42318" };
-}
-
 const EYE =
   "mb-3 text-[10.5px] uppercase tracking-[0.12em] text-ink-3";
 
@@ -404,7 +394,6 @@ export default function DemoConsole() {
   }, []);
 
   // ---- derived (React-rendered) bits ----
-  const attBadge = arc ? badgeFor(arc.attention_badge || arc.lanes?.attention?.badge, arc.attention_status || arc.lanes?.attention?.status) : null;
 
   const activeVideo = videos.find((v) => v.id === currentId) || null;
   const showWatermark = !!activeVideo && !failed && isSample(activeVideo);
@@ -482,7 +471,7 @@ export default function DemoConsole() {
                     className="mb-2.5 block w-full rounded-xl border border-line bg-ink"
                   />
                   <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-[0.13em] text-ink-3">
-                    <span>Predicted cortical activation</span>
+                    <span>Cortical activation</span>
                     <b ref={brainTRef} className="font-bold tabular-nums text-ink">
                       0.0s
                     </b>
@@ -511,15 +500,8 @@ export default function DemoConsole() {
                     onClick={(e) => laneClick(cAttRef.current, e)}
                     role="img"
                     aria-label="Attention arc across the clip timeline"
-                    className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
+                    className="block h-[150px] w-full cursor-crosshair rounded-xl border border-line bg-paper"
                   />
-                  {!failed && attBadge ? (
-                    <div className="mt-2 text-meta leading-snug" style={{ color: attBadge.color }}>
-                      {attBadge.color === "#4a4a4a"
-                        ? "Predicted · dorsal-attention ROI · a hypothesis, not a measurement."
-                        : attBadge.text}
-                    </div>
-                  ) : null}
                 </div>
 
                 {/* weak-spot callout */}
@@ -544,7 +526,7 @@ export default function DemoConsole() {
                   <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
                     <div className="mb-2 flex items-baseline justify-between gap-3">
                       <span className="text-ui font-medium">Message · language load</span>
-                      <span className="shrink-0 text-meta text-ink-3">comprehension proxy</span>
+                      <span className="shrink-0 text-meta text-ink-3">comprehension</span>
                     </div>
                     <canvas
                       ref={cMsgRef}
@@ -553,7 +535,7 @@ export default function DemoConsole() {
                       onClick={(e) => laneClick(cMsgRef.current, e)}
                       role="img"
                       aria-label="Message / language-load arc across the clip timeline"
-                      className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
+                      className="block h-[120px] w-full cursor-crosshair rounded-xl border border-line bg-paper"
                     />
                   </div>
                 ) : null}

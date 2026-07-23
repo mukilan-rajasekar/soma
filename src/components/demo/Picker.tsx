@@ -236,7 +236,7 @@ function Card({ video, active, dur, onPick }: CardProps) {
             <polygon points="2,1 11,6 2,11" />
           </svg>
         </div>
-        <div className="relative rounded bg-ink/70 px-1 py-0.5 text-[9px] tabular-nums tracking-[0.04em] text-white">
+        <div className="relative rounded bg-ink/70 px-1 py-0.5 text-[9px] tabular-nums tracking-[0.04em] text-paper">
           {durLabel(dur)}
         </div>
       </div>
