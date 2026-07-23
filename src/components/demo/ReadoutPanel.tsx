@@ -57,15 +57,18 @@ export default function ReadoutPanel({ arc }: { arc: Arc }) {
       <div className="flex flex-col gap-3">
         {present.map((l) => {
           const values = r[l.key] as number[];
-          const display = mean(values);
+          // Headline number = the clip-level ROI magnitude (comparable across ads).
+          // The per-second arrays are min-max normalised per clip, so their mean is
+          // ~0.5 for every ad — useless as a summary; the level actually differentiates.
+          const lvl = r[`${l.key}_level`];
+          const display = typeof lvl === "number" ? lvl : mean(values);
           return (
             <div key={l.key} className="border-t border-line pt-2.5 first:border-t-0 first:pt-0">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-[13px] font-semibold tracking-[-0.01em]">{l.label}</span>
                 <span className="text-[11px] tabular-nums text-ink-2">
-                  {l.signed ? (display >= 0 ? "+" : "") : ""}
                   {display.toFixed(2)}
-                  <span className="text-ink-3">{l.signed ? " lean" : " avg"}</span>
+                  <span className="text-ink-3"> level</span>
                 </span>
               </div>
               <div className="mb-1 text-[10px] leading-tight tracking-[0.02em] text-ink-3">

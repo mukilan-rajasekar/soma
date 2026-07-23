@@ -1,12 +1,12 @@
 "use client";
 
-// The ad picker. Sample cards seeded from public/arcs/*.json. real1 is the one REAL
-// frozen-TRIBE run; the others are illustrative samples and are marked as such (a
-// per-card amber "◆ ILLUSTRATIVE SAMPLE" pill) so authoritative-looking overlays on
-// synthetic data can never read as fabricated. Each card's thumb carries a faint,
-// DECORATIVE cortical-signal motif — not real data, a stable per-id identity mark
-// (deterministic hash → seeded PRNG → smoothstep sparkline), like the gradient behind
-// it. Booting on real1 (never synthetic) is enforced by DemoConsole.
+// The ad picker. Every card is a REAL frozen-TRIBE v2 run — seeded from the overnight
+// trimodal extract (public/arcs/arc_<id>.json) plus the welding-cut flagship, which is
+// the one card that also carries the per-network cortical profile. Titles describe each
+// ad's actual attention shape (front-loaded / late-peak / etc.), read straight off the
+// curve. Each card's thumb carries a faint, DECORATIVE cortical-signal motif — a stable
+// per-id identity mark (deterministic hash → seeded PRNG → smoothstep sparkline), like
+// the gradient behind it. Booting on the flagship is enforced by DemoConsole.
 
 import { useEffect, useRef } from "react";
 import type { Arc } from "@/lib/arc";
@@ -21,8 +21,9 @@ export type VideoItem = {
 };
 
 // Only the arcs that actually exist under public/arcs are seeded — referencing a
-// missing json would paint a "Could not load" error frame. real1 = the real run;
-// the two hero cards are illustrative samples.
+// missing json would paint a "Could not load" error frame. Every entry is a real
+// trimodal TRIBE v2 run; the flagship (real_meta12) boots first and is the one card
+// that also carries the per-network cortical profile.
 // Thumb gradients are near-white, faintly slate — on-palette identity marks (the
 // per-card sparkline motif carries the real distinction). Never the old neon-on-black.
 export const VIDEOS: VideoItem[] = [
@@ -33,87 +34,84 @@ export const VIDEOS: VideoItem[] = [
     arc: "/arcs/real_meta12.json",
     grad: "linear-gradient(140deg,#ffffff,#eef2f3 60%,#e6ebec)",
   },
+  // --- 10 real ads from the overnight trimodal extract, curated for a spread of
+  // attention shapes (front-loaded → mid → late-peak) and lengths (8s → 82s). Titles
+  // name each ad's actual curve shape, read straight off its activation arc. ---
   {
-    id: "real1",
-    title: "Real TRIBE run · TVSum clip",
-    src: "real · TRIBE v2",
-    arc: "/arcs/real_esJrBWj2d8.json",
+    id: "tt_264",
+    title: "Rise & fall",
+    src: "real · trimodal",
+    arc: "/arcs/arc_tt_264.json",
     grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
   },
   {
-    id: "hero1",
-    title: "Skincare launch",
-    src: "DTC · sample",
-    arc: "/arcs/sample_arc.json",
-    grad: "linear-gradient(135deg,#ffffff,#f2f5f6 62%,#eaeeef)",
-  },
-  {
-    id: "hero2",
-    title: "App promo",
-    src: "performance · sample",
-    arc: "/arcs/hero2.json",
-    grad: "linear-gradient(120deg,#ffffff,#f0f4f5 58%,#e8eded)",
-  },
-  // --- 7 real TikTok Top Ads (from the harvested corpus), spanning the CTR range so the
-  // demo shows the read-outs on winners vs losers. The CTR labels are REAL TikTok data;
-  // the brain arcs are ILLUSTRATIVE SAMPLES (src "· sample" => watermarked) until the
-  // overnight Colab extracts real frozen-TRIBE preds for these clips and regenerates the
-  // arcs (readout_extract → arc_<id>.json). Ordered high → mid → low CTR. ---
-  {
-    id: "tt_60",
-    title: "@editingnews · Games — high CTR (p99)",
-    src: "TikTok Top Ads · sample",
-    arc: "/arcs/tt_60_sample.json",
+    id: "tt_449",
+    title: "Late surge",
+    src: "real · trimodal",
+    arc: "/arcs/arc_tt_449.json",
     grad: "linear-gradient(135deg,#ffffff,#eef3f2 60%,#e6ecea)",
   },
   {
-    id: "tt_28",
-    title: "@wigchichair · Wig & hair — high CTR",
-    src: "TikTok Top Ads · sample",
-    arc: "/arcs/tt_28_sample.json",
-    grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
+    id: "tt_102",
+    title: "Fast open",
+    src: "real · trimodal",
+    arc: "/arcs/arc_tt_102.json",
+    grad: "linear-gradient(135deg,#ffffff,#f2f5f6 62%,#eaeeef)",
   },
   {
-    id: "tt_150",
-    title: "Food & produce — high CTR",
-    src: "TikTok Top Ads · sample",
-    arc: "/arcs/tt_150_sample.json",
-    grad: "linear-gradient(120deg,#ffffff,#f2f5f4 58%,#eaefed)",
+    id: "meta_01",
+    title: "Meta ad · spiky",
+    src: "real · trimodal",
+    arc: "/arcs/arc_meta_01.json",
+    grad: "linear-gradient(120deg,#ffffff,#f0f4f5 58%,#e8eded)",
   },
   {
-    id: "tt_544",
-    title: "skinguardian · Cosmetics — mid CTR",
-    src: "TikTok Top Ads · sample",
-    arc: "/arcs/tt_544_sample.json",
-    grad: "linear-gradient(135deg,#ffffff,#f0f4f5 60%,#e8eeef)",
-  },
-  {
-    id: "tt_455",
-    title: "Men's shoes — mid CTR",
-    src: "TikTok Top Ads · sample",
-    arc: "/arcs/tt_455_sample.json",
-    grad: "linear-gradient(140deg,#ffffff,#eff3f4 60%,#e7edee)",
-  },
-  {
-    id: "tt_82",
-    title: "@Verb · Beverage — low CTR (p01)",
-    src: "TikTok Top Ads · sample",
-    arc: "/arcs/tt_82_sample.json",
+    id: "tt_44",
+    title: "Slow build",
+    src: "real · trimodal",
+    arc: "/arcs/arc_tt_44.json",
     grad: "linear-gradient(120deg,#ffffff,#f1f4f4 58%,#e9eeed)",
   },
   {
-    id: "tt_74",
-    title: "Short-drama app — low CTR",
-    src: "TikTok Top Ads · sample",
-    arc: "/arcs/tt_74_sample.json",
+    id: "tt_342",
+    title: "Sustained peak",
+    src: "real · trimodal",
+    arc: "/arcs/arc_tt_342.json",
+    grad: "linear-gradient(140deg,#ffffff,#eff3f4 60%,#e7edee)",
+  },
+  {
+    id: "tt_506",
+    title: "Rise & hold",
+    src: "real · trimodal",
+    arc: "/arcs/arc_tt_506.json",
+    grad: "linear-gradient(120deg,#ffffff,#f2f5f4 58%,#eaefed)",
+  },
+  {
+    id: "tt_318",
+    title: "Quick spike",
+    src: "real · trimodal",
+    arc: "/arcs/arc_tt_318.json",
+    grad: "linear-gradient(135deg,#ffffff,#f0f4f5 60%,#e8eeef)",
+  },
+  {
+    id: "tt_313",
+    title: "Build & fade",
+    src: "real · trimodal",
+    arc: "/arcs/arc_tt_313.json",
+    grad: "linear-gradient(140deg,#ffffff,#eef2f3 60%,#e6ebec)",
+  },
+  {
+    id: "tt_702",
+    title: "Long-form build",
+    src: "real · trimodal",
+    arc: "/arcs/arc_tt_702.json",
     grad: "linear-gradient(135deg,#ffffff,#f2f4f5 60%,#eaeeef)",
   },
 ];
 
-// real1 is the only real run: everything else (or anything tagged "sample") is illustrative.
-// A card is an ILLUSTRATIVE SAMPLE (synthetic — gets the watermark) only when its
-// source is labelled a sample. Real TRIBE runs (src "real · …") and validated live
-// Supabase rows are real model output and must NOT be watermarked as synthetic.
+// The seeded cards are all real TRIBE runs, so none are watermarked. The sample
+// mechanism is retained only as a guard: a card would be flagged if its source were
+// ever labelled a sample (e.g. a future placeholder), never for real model output.
 export function isSample(v: VideoItem): boolean {
   return /sample/i.test(v.src || "");
 }
