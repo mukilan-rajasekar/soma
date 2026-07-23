@@ -1,48 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import BrainField from "./BrainField";
 import UploadDialog from "./UploadDialog";
 
 export default function Landing() {
-  const progressRef = useRef(0);
-
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
-
-  useEffect(() => {
-    // Unbounded accumulator — no 0..1 clamp. Brain damps it downstream and rotates the
-    // turntable continuously (region activation is periodic, so scroll never runs out).
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      progressRef.current += e.deltaY * 0.0007;
-    };
-
-    let lastTouch: number | null = null;
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      const y = e.touches[0].clientY;
-      if (lastTouch != null) {
-        progressRef.current += (lastTouch - y) * 0.0018;
-      }
-      lastTouch = y;
-    };
-    const onTouchEnd = () => {
-      lastTouch = null;
-    };
-
-    window.addEventListener("wheel", onWheel, { passive: false });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-    return () => {
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-    };
-  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +43,7 @@ export default function Landing() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-white">
-      <BrainField progressRef={progressRef} />
+      <BrainField />
 
       <div className="absolute left-11 top-[34px] z-[2] text-[23px] font-medium tracking-[-0.01em]">
         soma

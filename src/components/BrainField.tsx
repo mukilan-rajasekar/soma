@@ -1,31 +1,33 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 /**
- * BrainField — the fused cortical hero.
+ * BrainField — the fused cortical hero, now a DIRECTLY CONTROLLABLE 3D model.
  *
  * ONE brain that is "Point Firing MAINLY, with elements of Pulse & Drift", rendered on the
- * dotted point-cloud geometry and gently scroll-reactive.
+ * dotted point-cloud geometry. The user orbits + zooms it like a model viewer; the firing keeps
+ * animating in place, and the firing colour is a single hue that slowly cycles through the
+ * spectrum over time.
  *
  *   BASE (dominant)  — the fsaverage6 surface (81,924 vertices) as a fine grey POINT CLOUD.
  *                      Activation travels as expanding ripples: a few seeds fire in sequence,
  *                      each radiating a soft wavefront; points caught by an advancing front
- *                      brighten to a muted indigo/slate accent and scale up, then settle.
+ *                      brighten to the current firing hue and scale up, then settle.
  *   FOLDED-IN (quieter)
- *     · DRIFT   — a slow organic multi-axis tumble (summed low-frequency incommensurate sines,
- *                 never a plain single-axis spin), amplitudes small so the cortex stays upright.
  *     · BREATHE — a handful of regions gently pulse UNDER the firing on golden-ratio phase
  *                 offsets, always quieter than the firing.
- *   MOOD      — a slow macro cycle eases the emphasis between loud firing and calmer
- *               drift+breathing and back, so it feels like it rotates between the two moods
- *               (firing dominant overall).
+ *   MOOD      — a slow macro cycle eases the emphasis between loud firing and calmer breathing
+ *               and back (firing dominant overall).
  *
- * SCROLL — an optional progressRef (same contract as Brain.tsx) scrubs the whole activity +
- *   rotation forward; an idle clock keeps it alive when the user stops. Framerate-independent
- *   (THREE.Clock getDelta clamped) and damped. With no progressRef (lab mode) the component
- *   attaches its own wheel + touch listeners so scroll can be demonstrated standalone.
+ * INTERACTION — BrainField OWNS all input (its own window/canvas listeners):
+ *   · Two-finger trackpad SCROLL (wheel, no ctrlKey) → orbit: deltaX yaws, deltaY pitches.
+ *   · PINCH (ctrl+wheel on Mac trackpad; two-finger distance on touch) → camera DOLLY zoom.
+ *   · POINTER DRAG (mouse drag / single-finger touch) → orbit: dx yaws, dy pitches.
+ *   Yaw is a free turntable about the superior +z axis; pitch is clamped so it can't flip over;
+ *   zoom is clamped. Everything is DAMPED + framerate-independent, and the cortex STAYS exactly
+ *   where the user leaves it (no auto drift / no scroll-scrub) — that's the point of "controllable".
  *
  * HARD visual rules: NO post-processing (no EffectComposer / UnrealBloom), NO dark stage /
  * vignette. Transparent canvas over the pure-white page (alpha:true, clearAlpha 0). Glow reads
@@ -33,27 +35,28 @@ import * as THREE from "three";
  * additive, never a blown-out white core. Camera / scale / placement reuse Brain.tsx.
  */
 
-// ── SCROLL REACTIVITY (tune these) ─────────────────────────────────────────────────────────
-// How strongly accumulated scroll progress scrubs the activity + rotation forward. Higher =
-// scrolling jumps the firing/tumble further ahead per unit of scroll. Landing feeds ~1 unit of
-// progress per vigorous scroll gesture, so this is roughly "seconds of phase per full scroll".
-const SCROLL_GAIN = 3.5;
-// Idle advance: seconds of phase per real second when nobody scrolls. Kept LOW so very little
-// happens without scrolling — the cortex is mostly calm at rest and comes alive as you scroll.
-const IDLE_RATE = 0.32;
-// dt-damping rate (1/sec) applied to the scroll accumulator so scrubbing glides, never snaps.
-const SCROLL_DAMP = 6;
-// Lab-mode (no progressRef) input gains — mirror Landing's own accumulator.
-const WHEEL_GAIN = 0.0007;
-const TOUCH_GAIN = 0.0018;
-// Direct per-axis rotation added by scroll (radians per unit of accumulated scroll), so every
-// scroll also tumbles the cortex a little in ALL THREE dimensions, accumulating as you go.
-// Different per-axis gains → it tumbles in 3D rather than spinning about one axis. Tune freely.
-const SCROLL_ROT_X = 0.5;
-const SCROLL_ROT_Y = 0.45;
-const SCROLL_ROT_Z = 0.85;
+// ── INTERACTION (tune these; signs are trivially flippable) ─────────────────────────────────
+// Wheel (two-finger trackpad scroll) delta → radians of orbit. Flip the += / -= below (or this
+// sign) to reverse a direction if it reads inverted on your hardware.
+const ROT_GAIN = 0.005;
+// Pointer-drag pixels → radians of orbit (mouse drag AND single-finger touch).
+const DRAG_GAIN = 0.008;
+// Pinch (ctrl+wheel) delta → world units of camera dolly. Higher = pinch zooms faster.
+const ZOOM_GAIN = 0.012;
+// Two-finger TOUCH pinch: pixels of finger-spread → world units of dolly (mobile only).
+const PINCH_GAIN = 0.01;
+// Camera dolly clamp (distance from the lookAt target). Smaller = closer = bigger cortex.
+const ZOOM_MIN = 1.6; // closest the camera may dolly in
+const ZOOM_MAX = 4.6; // furthest the camera may dolly out
+// Ease rate (1/sec) for current → target on yaw/pitch/zoom. Higher = snappier, lower = floatier.
+const DAMP = 9;
+// Pitch clamp (radians) so the cortex tilts but never flips over. Yaw is left free (full turns).
+const PITCH_LIMIT = 1.2;
 
 // ── FIRING (dominant) ──────────────────────────────────────────────────────────────────────
+// Idle advance: seconds of firing phase per real second. The firing self-animates at this calm
+// rate forever (the geometry only moves when the user orbits/zooms it).
+const IDLE_RATE = 0.32;
 const NSEED = 3;
 const SEED_PERIOD = 4.6; // seconds for one ripple to travel seed → far edge
 const PHASE_OFFSET = [0, 1 / 3, 2 / 3] as const; // staggered so ~1–2 fronts peak at once
@@ -66,33 +69,21 @@ const PULSE_WIDTH = 0.22; // fraction of the cycle a region spends lit (soft, ge
 const PHI = 0.6180339887498949; // golden-ratio phase spacing → scatters, never sweeps a ring
 
 // ── MOOD (macro cycle: rotate between the two) ─────────────────────────────────────────────
-const MACRO_PERIOD = 24; // seconds for one loud-firing → calm-drift → loud-firing swing
+const MACRO_PERIOD = 24; // seconds for one loud-firing → calm-breath → loud-firing swing
 const FIRE_GAIN_MIN = 0.6; //   firing loudness floor (still dominant at its quietest)
 const FIRE_GAIN_MAX = 1.0; //   firing loudness peak
 const BREATH_GAIN_MIN = 0.25; // breathing floor
 const BREATH_GAIN_MAX = 0.5; //  breathing lift when firing eases back (still under the firing)
 
-// ── COLOUR (firing sweeps through the spectrum) ────────────────────────────────────────────
-// The firing colour is a muted HSV rainbow: hue varies smoothly around the cortex (azimuth), so
-// travelling wavefronts sweep through the spectrum, and the whole wheel turns slowly with phase.
-const HUE_RATE = 0.05; // spectrum turns per unit of phase (slow → idle stays calm)
-const FIRE_SAT = 0.52; // muted saturation — a soft spectrum on white, never neon
+// ── COLOUR (ONE hue that rotates through the spectrum over time) ────────────────────────────
+// Every firing point shares a single hue at any instant; that hue cycles steadily through the
+// whole spectrum on a wall clock (independent of the firing phase). ~one full cycle every ~30s.
+const HUE_RATE = 0.033; // spectrum cycles per second (1 / HUE_RATE ≈ 30s per full rotation)
+const FIRE_SAT = 0.5; // muted saturation — a soft spectrum on white, never neon
 const FIRE_VAL = 0.72; // sub-white value so source-over never clips
 
-// ── DRIFT (slow organic multi-axis tumble) ─────────────────────────────────────────────────
-const BASE_TILT = -0.12;
-const DRIFT_X: [number, number, number][] = [
-  [0.09, 0.17, 0.0],
-  [0.05, 0.29, 1.7],
-];
-const DRIFT_Y: [number, number, number][] = [
-  [0.13, 0.13, 0.6],
-  [0.06, 0.31, 2.2],
-];
-const DRIFT_Z: [number, number, number][] = [
-  [0.18, 0.11, 0.0],
-  [0.09, 0.21, 0.9],
-];
+// ── POSE ────────────────────────────────────────────────────────────────────────────────────
+const BASE_TILT = -0.12; // resting pitch (added to the user's pitch)
 
 // Static pose (seconds of phase) held under prefers-reduced-motion — a calm representative frame.
 const STATIC_PHASE = 3.4;
@@ -126,15 +117,12 @@ const VERT = /* glsl */ `
   uniform float uSizeScale;
   uniform float uPixelRatio;
   attribute float aRand;
-  attribute float aHue;
   varying float vFire;
   varying float vBreath;
   varying float vRand;
-  varying float vHue;
 
   void main() {
     vRand = aRand;
-    vHue = aHue;
 
     // Firing = the strongest single wavefront touching this point (max, not sum → bounded by 1,
     // so overlapping fronts can never pile up into a blown-out core). Scaled by the mood gain.
@@ -182,7 +170,6 @@ const FRAG = /* glsl */ `
   varying float vFire;
   varying float vBreath;
   varying float vRand;
-  varying float vHue;
 
   vec3 hsv2rgb(vec3 c) {
     vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0);
@@ -200,8 +187,9 @@ const FRAG = /* glsl */ `
     // tints strongly on top. All targets are sub-white, so source-over never clips to white.
     vec3 base = uGrey * mix(0.92, 1.06, vRand);
     vec3 col = mix(base, uBreathCol, vBreath * 0.6);
-    // Firing tints toward a muted spectrum colour whose hue sweeps around the cortex.
-    vec3 fireCol = hsv2rgb(vec3(fract(uHueBase + vHue), uSat, uVal));
+    // Firing tints toward ONE muted hue shared by every point — that hue cycles through the
+    // spectrum over time (driven by uHueBase), spatially uniform at any instant.
+    vec3 fireCol = hsv2rgb(vec3(fract(uHueBase), uSat, uVal));
     col = mix(col, fireCol, vFire);
 
     // Firing dominates the alpha lift; breathing contributes only a gentle rise.
@@ -231,17 +219,7 @@ function bump(phase01: number) {
   return 0.5 * (1 + Math.cos(t * Math.PI));
 }
 
-function driftAngle(terms: [number, number, number][], t: number) {
-  let a = 0;
-  for (const [amp, rate, phase] of terms) a += amp * Math.sin(t * rate + phase);
-  return a;
-}
-
-export default function BrainField({
-  progressRef,
-}: {
-  progressRef?: RefObject<number>;
-}) {
+export default function BrainField() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -275,8 +253,15 @@ export default function BrainField({
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(34, 1, 0.01, 100);
     camera.up.set(0, 0, 1); // superior (+z) up → upright anatomical cortex
+
+    // Camera dollies along a FIXED sight-line through the lookAt target: position stays on the
+    // ray LOOK + camDir * distance, so only the distance (zoom) changes and orientation is stable.
+    const LOOK = new THREE.Vector3(0, 0, 0.02);
     camera.position.set(0, 3.05, 0.15);
-    camera.lookAt(0, 0, 0.02);
+    const camDir = camera.position.clone().sub(LOOK);
+    const BASE_DIST = camDir.length(); // resting camera distance (~3.05)
+    camDir.normalize();
+    camera.lookAt(LOOK); // orientation set once; dolly below never changes the sight-line
 
     // outer group: brain in the left ~2/3 of the frame (text lives on the right).
     const group = new THREE.Group();
@@ -284,7 +269,7 @@ export default function BrainField({
     group.scale.setScalar(1.1);
     scene.add(group);
 
-    // inner group: carries the slow organic drift.
+    // inner group: carries the user-controlled orientation (turntable yaw about +z, tilt about x).
     const rotator = new THREE.Group();
     group.add(rotator);
 
@@ -318,7 +303,7 @@ export default function BrainField({
       // Colours authored as literal sRGB values (numeric Color ctor = no colour-management
       // conversion), so what the shader writes is what the sRGB framebuffer shows.
       uGrey: { value: new THREE.Color(0.62, 0.62, 0.63) },
-      uHueBase: { value: 0 }, // rotating base hue for the firing spectrum (advanced by phase)
+      uHueBase: { value: 0 }, // single firing hue; cycled steadily through the spectrum by time
       uSat: { value: FIRE_SAT },
       uVal: { value: FIRE_VAL },
       uBreathCol: { value: new THREE.Color(0.42, 0.52, 0.58) }, // quieter dusty teal (breathing)
@@ -330,13 +315,24 @@ export default function BrainField({
     let raf = 0;
     let disposed = false;
     let ready = false;
-    let tAccum = 0; // idle clock — accumulated, tab-spike-clamped time
-    let smoothedScroll = 0; // damped scroll accumulator
-    let localScroll = 0; // lab-mode own accumulator (used when no progressRef)
+    let tAccum = 0; // idle clock — accumulated, tab-spike-clamped time (drives firing + hue)
     let maxR = 1;
     let anchors: THREE.Vector3[] = [];
     const geo = new THREE.BufferGeometry();
     let mat: THREE.ShaderMaterial | null = null;
+
+    // ── User-controlled orientation + zoom: damped current → target each frame ──
+    let curYaw = 0;
+    let tgtYaw = 0;
+    let curPitch = 0;
+    let tgtPitch = 0;
+    let curZoom = BASE_DIST;
+    let tgtZoom = BASE_DIST;
+
+    const clampPitch = (v: number) =>
+      Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, v));
+    const clampZoom = (v: number) =>
+      Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, v));
 
     (async () => {
       const [pos, idx] = await Promise.all([
@@ -354,14 +350,6 @@ export default function BrainField({
       const rand = new Float32Array(vCount);
       for (let i = 0; i < vCount; i++) rand[i] = Math.random();
       geo.setAttribute("aRand", new THREE.BufferAttribute(rand, 1));
-
-      // Per-point hue for the firing spectrum: azimuth around the vertical (+z) axis, 0..1, so the
-      // firing colour sweeps smoothly through the spectrum around the cortex as wavefronts travel.
-      const hue = new Float32Array(vCount);
-      for (let i = 0; i < vCount; i++) {
-        hue[i] = Math.atan2(pos[i * 3], -pos[i * 3 + 1]) / (Math.PI * 2) + 0.5;
-      }
-      geo.setAttribute("aHue", new THREE.BufferAttribute(hue, 1));
 
       // Scale ripple travel + shell thickness to the actual cortex size.
       geo.computeBoundingSphere();
@@ -404,7 +392,7 @@ export default function BrainField({
     }
 
     // Advance the firing seeds along the effective phase: each cycles birth→travel→fade,
-    // staggered so ~1–2 peak at a time. Scroll and the idle clock both feed `phase`.
+    // staggered so ~1–2 peak at a time. The idle clock feeds `phase`.
     function updateSeeds(phase: number) {
       for (let i = 0; i < NSEED; i++) {
         const local = phase / SEED_PERIOD + PHASE_OFFSET[i];
@@ -425,17 +413,8 @@ export default function BrainField({
       }
     }
 
-    // Slow organic multi-axis tumble (summed incommensurate sines) PLUS a direct accumulating
-    // tumble driven by scroll on all three axes (different gains → real 3D rotation), so every
-    // scroll visibly rotates the cortex a little; idle leaves this term constant (no idle spin).
-    function updatePose(phase: number, scroll: number) {
-      rotator.rotation.x = BASE_TILT + driftAngle(DRIFT_X, phase) + scroll * SCROLL_ROT_X;
-      rotator.rotation.y = driftAngle(DRIFT_Y, phase) + scroll * SCROLL_ROT_Y;
-      rotator.rotation.z = driftAngle(DRIFT_Z, phase) + scroll * SCROLL_ROT_Z;
-    }
-
     // Mood macro cycle (driven by the steady idle clock so the two moods swing predictably):
-    // eases emphasis between loud firing and calmer drift+breathing. Firing dominant overall.
+    // eases emphasis between loud firing and calmer breathing. Firing dominant overall.
     function updateMood(t: number) {
       const macro = 0.5 + 0.5 * Math.sin((Math.PI * 2 * t) / MACRO_PERIOD);
       uniforms.uFireGain.value =
@@ -444,20 +423,17 @@ export default function BrainField({
         BREATH_GAIN_MIN + (BREATH_GAIN_MAX - BREATH_GAIN_MIN) * (1 - macro);
     }
 
-    // Effective phase = idle clock (keeps it alive) + damped scroll (scrubs it forward).
-    function effectivePhase() {
-      return tAccum * IDLE_RATE + smoothedScroll * SCROLL_GAIN;
-    }
-
     function renderStatic() {
       if (!ready) return;
-      // A calm, representative frame for prefers-reduced-motion.
+      // A calm, representative frame for prefers-reduced-motion — fixed pose, no rAF.
       uniforms.uFireGain.value = 0.85;
       uniforms.uBreathGain.value = 0.4;
       uniforms.uHueBase.value = STATIC_PHASE * HUE_RATE;
       updateSeeds(STATIC_PHASE);
       updateBreath(STATIC_PHASE);
-      updatePose(STATIC_PHASE, 0);
+      rotator.rotation.z = 0;
+      rotator.rotation.x = BASE_TILT;
+      camera.position.copy(LOOK).addScaledVector(camDir, BASE_DIST);
       renderer.render(scene, camera);
     }
 
@@ -480,16 +456,25 @@ export default function BrainField({
       const dt = Math.min(clock.getDelta(), 0.05); // clamp tab-switch spikes → dt-smoothed
       tAccum += dt;
 
-      // Damp the raw scroll target so scrubbing glides (framerate-independent).
-      const target = progressRef ? (progressRef.current ?? 0) : localScroll;
-      smoothedScroll += (target - smoothedScroll) * (1 - Math.exp(-dt * SCROLL_DAMP));
+      // Ease current → target (framerate-independent) so all input glides, never snaps.
+      const k = 1 - Math.exp(-dt * DAMP);
+      curYaw += (tgtYaw - curYaw) * k;
+      curPitch += (tgtPitch - curPitch) * k;
+      curZoom += (tgtZoom - curZoom) * k;
 
-      const phase = effectivePhase();
+      // Direct orientation: free turntable yaw about +z, clamped tilt about x.
+      rotator.rotation.z = curYaw;
+      rotator.rotation.x = BASE_TILT + curPitch;
+      // Dolly the camera along its fixed sight-line: smaller distance = closer = bigger cortex.
+      camera.position.copy(LOOK).addScaledVector(camDir, curZoom);
+
+      // Firing self-animates at the calm idle rate; the geometry only moves when the user does.
+      const phase = tAccum * IDLE_RATE;
       updateSeeds(phase);
       updateBreath(phase);
-      updatePose(phase, smoothedScroll);
-      uniforms.uHueBase.value = phase * HUE_RATE;
       updateMood(tAccum);
+      // ONE hue for all firing points, cycled steadily through the spectrum by the wall clock.
+      uniforms.uHueBase.value = tAccum * HUE_RATE;
       renderer.render(scene, camera);
     }
 
@@ -503,26 +488,90 @@ export default function BrainField({
       raf = requestAnimationFrame(frame);
     }
 
-    // ── Lab mode: no progressRef → own wheel + touch listeners on a local accumulator ──
+    // ── Direct-manipulation input (BrainField owns it all) ──────────────────────────────────
+    // Two-finger trackpad scroll rotates; Mac pinch (ctrl+wheel) dollies. preventDefault the
+    // wheel — the hero is a fixed full-screen page, so there is no page scroll to lose.
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      localScroll += e.deltaY * WHEEL_GAIN;
+      if (e.ctrlKey) {
+        // Pinch: trackpad pinch-out emits deltaY<0 → dolly closer (zoom in); pinch-in zooms out.
+        tgtZoom = clampZoom(tgtZoom + e.deltaY * ZOOM_GAIN);
+      } else {
+        // Orbit: horizontal → yaw (flip this sign to reverse), vertical → pitch.
+        tgtYaw += e.deltaX * ROT_GAIN;
+        tgtPitch = clampPitch(tgtPitch - e.deltaY * ROT_GAIN);
+      }
     };
-    let lastTouch: number | null = null;
+
+    // Pointer drag = mouse drag AND single-finger touch (pointer events unify both).
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    const onPointerDown = (e: PointerEvent) => {
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {}
+      canvas.style.cursor = "grabbing";
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      tgtYaw += dx * DRAG_GAIN; // drag right → content follows right (flip sign to reverse)
+      tgtPitch = clampPitch(tgtPitch - dy * DRAG_GAIN); // drag down → reveal the superior surface
+    };
+    const endDrag = (e: PointerEvent) => {
+      dragging = false;
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch {}
+      canvas.style.cursor = "grab";
+    };
+
+    // Optional two-finger TOUCH pinch (mobile): track finger spread → dolly. Single-finger touch
+    // is already handled by the pointer path above, so we only act on exactly two touches.
+    let pinchDist: number | null = null;
+    const touchDist = (e: TouchEvent) => {
+      const a = e.touches[0];
+      const b = e.touches[1];
+      return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        dragging = false; // a second finger cancels the single-finger orbit
+        pinchDist = touchDist(e);
+      }
+    };
     const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      const y = e.touches[0].clientY;
-      if (lastTouch != null) localScroll += (lastTouch - y) * TOUCH_GAIN;
-      lastTouch = y;
+      if (e.touches.length === 2 && pinchDist != null) {
+        e.preventDefault();
+        const d = touchDist(e);
+        // Fingers apart (d grows) → dolly closer (zoom in); pinch together → zoom out.
+        tgtZoom = clampZoom(tgtZoom - (d - pinchDist) * PINCH_GAIN);
+        pinchDist = d;
+      }
     };
-    const onTouchEnd = () => {
-      lastTouch = null;
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinchDist = null;
     };
-    const selfListen = !progressRef && !reduceMotion;
-    if (selfListen) {
+
+    // Reduced motion → static frame only: no rAF, and skip every input listener too.
+    const interactive = !reduceMotion;
+    if (interactive) {
+      canvas.style.cursor = "grab";
       window.addEventListener("wheel", onWheel, { passive: false });
-      window.addEventListener("touchmove", onTouchMove, { passive: true });
-      window.addEventListener("touchend", onTouchEnd, { passive: true });
+      canvas.addEventListener("pointerdown", onPointerDown);
+      canvas.addEventListener("pointermove", onPointerMove);
+      canvas.addEventListener("pointerup", endDrag);
+      canvas.addEventListener("pointercancel", endDrag);
+      canvas.addEventListener("touchstart", onTouchStart, { passive: true });
+      canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+      canvas.addEventListener("touchend", onTouchEnd, { passive: true });
     }
 
     window.addEventListener("resize", resize);
@@ -531,16 +580,26 @@ export default function BrainField({
       disposed = true;
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
-      if (selfListen) {
+      if (interactive) {
         window.removeEventListener("wheel", onWheel);
-        window.removeEventListener("touchmove", onTouchMove);
-        window.removeEventListener("touchend", onTouchEnd);
+        canvas.removeEventListener("pointerdown", onPointerDown);
+        canvas.removeEventListener("pointermove", onPointerMove);
+        canvas.removeEventListener("pointerup", endDrag);
+        canvas.removeEventListener("pointercancel", endDrag);
+        canvas.removeEventListener("touchstart", onTouchStart);
+        canvas.removeEventListener("touchmove", onTouchMove);
+        canvas.removeEventListener("touchend", onTouchEnd);
       }
       geo.dispose();
       mat?.dispose();
       renderer.dispose();
     };
-  }, [progressRef]);
+  }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 h-full w-full cursor-grab touch-none"
+    />
+  );
 }
