@@ -4,7 +4,7 @@ export_brain.py — BUILD-TIME ONLY (not part of the demo runtime).
 
 Dumps the fsaverage pial cortical surface — at fsaverage5 the exact ~20,484-vertex
 surface TRIBE v2 predicts on — to three compact little-endian binaries that the
-Next.js brain components (src/components/Brain.tsx, brainlab/*) fetch directly
+Next.js brain components (src/components/BrainField.tsx, brainlab/*) fetch directly
 from /brain/ (no GLTFLoader needed). Filenames carry the resolution (fs5/fs6/fs7);
 the default mesh is fsaverage6, i.e. the fs6_* files the site ships:
 
