@@ -53,6 +53,29 @@ export type Arc = {
   // "where the copy makes the brain work", never "the viewer understood it". ---
   message?: number[];
 
+  // --- ad-producer read-out lanes (readout_extract.py): comprehension / recall /
+  // purchase-intent, each an a-priori ROI PROXY-HYPOTHESIS, never a validated result.
+  // recall omits the subcortical hippocampus; purchase_intent omits the subcortical
+  // nucleus accumbens (TRIBE emits cortical surface only). Each carries its own badge. ---
+  readout?: {
+    status?: string;
+    method?: string;
+    baseline?: number;                 // whole-cortex magnitude (bar comparison baseline)
+    comprehension?: number[];          // 0..1 predicted semantic-integration load
+    comprehension_badge?: string;
+    comprehension_status?: string;
+    comprehension_level?: number;      // raw ROI magnitude (summary bar)
+    recall?: number[];                 // 0..1 predicted cortical encoding engagement
+    recall_badge?: string;
+    recall_status?: string;
+    recall_level?: number;
+    purchase_intent?: number[];        // ~[-1,1] predicted cortical value signal
+    purchase_intent_badge?: string;
+    purchase_intent_status?: string;
+    purchase_intent_level?: number;
+    [k: string]: number[] | number | string | undefined;
+  };
+
   // --- affect lanes ---
   affect?: {
     status?: string;

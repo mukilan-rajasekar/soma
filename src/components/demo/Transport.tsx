@@ -55,7 +55,7 @@ export default function Transport({
         className="demo-scrub min-w-0 flex-1"
       />
 
-      <span className="min-w-[92px] text-right font-mono text-[12px] tabular-nums text-ink-3">
+      <span className="min-w-[92px] text-right text-[12px] tabular-nums text-ink-3">
         <span ref={clockRef}>0:00 / 0:00</span>
       </span>
     </div>

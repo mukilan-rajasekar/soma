@@ -20,7 +20,7 @@ export default function CorticalProfile({ arc }: { arc: Arc }) {
 
   return (
     <div className="rounded-2xl border border-line bg-fill p-3.5">
-      <div className="mb-2.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.13em] text-ink-3">
+      <div className="mb-2.5 flex items-center justify-between text-[10px] uppercase tracking-[0.13em] text-ink-3">
         <span>Cortical network profile</span>
         <span>where it lights up</span>
       </div>
@@ -49,9 +49,8 @@ export default function CorticalProfile({ arc }: { arc: Arc }) {
           </div>
         ))}
       </div>
-      <div className="mt-2.5 border-t border-line pt-2.5 font-mono text-[10px] leading-[1.6] tracking-[0.02em] text-ink-3">
-        Mean predicted activation per brain system &mdash; where this ad lights up
-        (&#9474;&nbsp;= whole-cortex baseline).
+      <div className="mt-2.5 border-t border-line pt-2.5 text-[10px] leading-[1.6] tracking-[0.02em] text-ink-3">
+        Mean activation per network &middot; &#9474;&nbsp;= whole-cortex baseline.
       </div>
     </div>
   );

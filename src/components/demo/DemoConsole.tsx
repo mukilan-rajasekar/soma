@@ -28,6 +28,7 @@ import Transport from "./Transport";
 import Picker, { VIDEOS, isSample, type VideoItem } from "./Picker";
 import Compare from "./Compare";
 import CorticalProfile from "./CorticalProfile";
+import ReadoutPanel from "./ReadoutPanel";
 import { loadArc, mergeLiveArcs } from "./live";
 
 type LaneBadge = { text: string; color: string } | null;
@@ -41,7 +42,7 @@ function badgeFor(txt: string | undefined, status: string | undefined): LaneBadg
 }
 
 const EYE =
-  "mb-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-3";
+  "mb-3 text-[10.5px] uppercase tracking-[0.12em] text-ink-3";
 
 // The PUBLIC read-out never surfaces emotion (valence/arousal). Those are a private
 // research result, not a customer-facing claim — so the cortical profile shows only the
@@ -50,54 +51,39 @@ const EYE =
 const EMOTION_NET = /valence|arousal|emotion/i;
 
 type Takeaway = { n: string; title: string; body: string };
-type Readout = { sub: string; takeaways: Takeaway[] };
+type Readout = { takeaways: Takeaway[] };
 
-function deriveReadout(arc: Arc, title?: string | null): Readout {
+// Short, plain-english reads derived from the arc — kept terse on purpose (the charts
+// carry the detail). Everything here is positive; emotion is never referenced.
+function deriveReadout(arc: Arc): Readout {
   const act = arc.activation || [];
   let pk = 0;
   for (let i = 1; i < act.length; i++) if (act[i] > act[pk]) pk = i;
   const peak = fmt(arc.timestamps?.[pk] ?? 0);
 
-  const lit = (arc.roi_profile || [])
-    .filter((p) => p.strong && !EMOTION_NET.test(p.net))
-    .slice()
-    .sort((a, b) => b.value - a.value);
-  const top = lit.slice(0, 2).map((p) => p.net);
-
-  const sub =
-    (title || "This cut") +
-    " — peaks at " + peak +
-    (top.length ? ", strongest in " + top.join(" & ") : "") + ".";
+  const lit = (arc.roi_profile || []).filter((p) => p.strong && !EMOTION_NET.test(p.net));
+  const att = lit.find((p) => /attention/i.test(p.net));
+  const lang = lit.find((p) => /language/i.test(p.net));
 
   const takeaways: Takeaway[] = [
-    {
-      n: "01",
-      title: "Attention builds to a peak.",
-      body: "The read climbs to its high point at " + peak + " — where the ad holds people best.",
-    },
+    { n: "01", title: "Attention builds to a peak.", body: "Highest at " + peak + " — where the ad holds best." },
   ];
   const w = (arc.weak_spots || [])[0];
   if (w) {
     takeaways.push({
       n: "02",
       title: "Soft open.",
-      body:
-        "The stretch from " + fmt(w.start) + " to " + fmt(w.end) +
-        " under-earns against this cut's own median — the first place to re-cut.",
+      body: "Weakest from " + fmt(w.start) + " to " + fmt(w.end) + " — re-cut here first.",
     });
   }
-  const att = lit.find((p) => /attention/i.test(p.net));
-  const lang = lit.find((p) => /language/i.test(p.net));
   if (att && lang) {
     takeaways.push({
-      n: String(takeaways.length + 1).padStart(2, "0"),
+      n: "03",
       title: "A rational sell.",
-      body:
-        "Attention (" + att.value.toFixed(3) + ") and language (" + lang.value.toFixed(3) +
-        ") lead the response — this ad works through attention and message.",
+      body: "Attention and language lead — it works on focus and message.",
     });
   }
-  return { sub, takeaways };
+  return { takeaways };
 }
 
 // Boot on the REAL welding-ad run (honesty: never default to a synthetic/illustrative
@@ -421,7 +407,7 @@ export default function DemoConsole() {
 
   const activeVideo = videos.find((v) => v.id === currentId) || null;
   const showWatermark = !!activeVideo && !failed && isSample(activeVideo);
-  const readout = arc && !failed ? deriveReadout(arc, activeVideo?.title) : null;
+  const readout = arc && !failed ? deriveReadout(arc) : null;
 
   const laneClick = (c: HTMLCanvasElement | null, e: React.MouseEvent) => {
     if (!c) return;
@@ -440,13 +426,13 @@ export default function DemoConsole() {
           <div className="flex items-center gap-5">
             <Link
               href="/story"
-              className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
+              className="text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
             >
               result walkthrough ↗
             </Link>
             <Link
               href="/"
-              className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
+              className="text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
             >
               ← back to home
             </Link>
@@ -459,12 +445,12 @@ export default function DemoConsole() {
           className="relative rounded-2xl border border-line bg-paper"
         >
           {showWatermark ? (
-            <div className="pointer-events-none absolute left-1/2 top-2.5 z-[6] -translate-x-1/2 whitespace-nowrap rounded-full border border-line bg-fill px-2.5 py-[5px] font-mono text-[11px] tracking-[0.04em] text-ink-2 shadow-sm">
+            <div className="pointer-events-none absolute left-1/2 top-2.5 z-[6] -translate-x-1/2 whitespace-nowrap rounded-full border border-line bg-fill px-2.5 py-[5px] text-[11px] tracking-[0.04em] text-ink-2 shadow-sm">
               <span className="text-ink-3">◆</span> ILLUSTRATIVE SAMPLE — synthetic data, not model output
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2.5 border-b border-line px-[clamp(16px,3vw,20px)] py-3 font-mono text-[11px] text-ink-3">
+          <div className="flex items-center gap-2.5 border-b border-line px-[clamp(16px,3vw,20px)] py-3 text-[11px] text-ink-3">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true" />
             <span>soma · analyze</span>
             <span className="ml-auto rounded-md border border-line px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-ink-3">
@@ -473,25 +459,19 @@ export default function DemoConsole() {
           </div>
 
           {/* thesis — the result reads on load; emotion is never surfaced (private) */}
-          <div className="px-[clamp(16px,3vw,20px)] pt-[clamp(16px,3vw,20px)]">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-ink px-3 py-1.5 text-[13px] font-semibold tracking-[-0.01em] text-ink">
-                <span className="inline-flex h-2 w-2 rounded-full bg-ink" aria-hidden="true" />
-                {activeVideo?.title || "Analysis"}
-              </span>
-              {readout ? (
-                <span className="font-mono text-[11px] tracking-[0.02em] text-ink-3">{readout.sub}</span>
-              ) : null}
+          <div className="px-[clamp(16px,3vw,20px)] pt-[clamp(18px,3.5vw,26px)]">
+            <div className="mb-3 flex items-center gap-2 text-meta text-ink-3">
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true" />
+              <span className="text-ink-2">{activeVideo?.title || "Analysis"}</span>
             </div>
-            <h2 className="mt-3 max-w-[20ch] text-[clamp(22px,3.2vw,32px)] font-semibold leading-[1.08] tracking-[-0.02em] text-ink">
+            <h2 className="max-w-[18ch] text-section text-ink text-balance">
               Where this ad earns{" "}
-              <em style={{ fontFamily: "var(--font-serif)", fontWeight: 400 }}>attention</em>.
+              <span className="font-serif font-normal italic">attention</span>.
             </h2>
           </div>
 
           {/* read-out (leads the page) */}
-          <div className="px-[clamp(16px,3vw,20px)] pb-[clamp(18px,3vw,22px)] pt-[clamp(14px,2.5vw,18px)]">
-            <div className={EYE}>Neural read-out · one shared timeline</div>
+          <div className="px-[clamp(16px,3vw,20px)] pb-[clamp(18px,3vw,22px)] pt-[clamp(16px,2.5vw,20px)]">
             <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[300px_1fr]">
               {/* brain */}
               <div className="flex flex-col gap-3">
@@ -504,18 +484,19 @@ export default function DemoConsole() {
                     preload="metadata"
                     className="mb-2.5 block w-full rounded-xl border border-line bg-ink"
                   />
-                  <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.13em] text-ink-3">
+                  <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-[0.13em] text-ink-3">
                     <span>Predicted cortical activation</span>
                     <b ref={brainTRef} className="font-bold tabular-nums text-ink">
                       0.0s
                     </b>
                   </div>
                   <BrainSvg ref={brainRef} />
-                  <div className="mt-2.5 border-t border-line pt-2.5 font-mono text-[10px] leading-[1.6] tracking-[0.02em] text-ink-3">
-                    Whole-cortex activation magnitude · average viewer · normalized 0&ndash;1 · 1&nbsp;Hz.
+                  <div className="mt-2.5 border-t border-line pt-2.5 text-[10px] leading-[1.6] tracking-[0.02em] text-ink-3">
+                    Whole-cortex activation · normalized 0&ndash;1 · 1&nbsp;Hz.
                   </div>
                 </div>
                 {!failed && arc?.roi_profile ? <CorticalProfile arc={arc} /> : null}
+                {!failed && arc?.readout ? <ReadoutPanel arc={arc} /> : null}
               </div>
 
               {/* lanes */}
@@ -523,17 +504,8 @@ export default function DemoConsole() {
                 {/* attention */}
                 <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
                   <div className="mb-2 flex items-baseline justify-between gap-3">
-                    <span className="text-[14px] font-semibold tracking-[-0.01em]">
-                      Attention arc
-                      <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-ink-3">
-                        where the ad holds vs loses people
-                      </small>
-                      {!failed && attBadge ? (
-                        <small className="mt-1.5 block max-w-[62ch] font-mono text-[11px] leading-[1.35] tracking-[0.02em] opacity-90" style={{ color: attBadge.color }}>
-                          {attBadge.text}
-                        </small>
-                      ) : null}
-                    </span>
+                    <span className="text-ui font-medium">Attention arc</span>
+                    <span className="shrink-0 text-meta text-ink-3">where it holds vs loses</span>
                   </div>
                   <canvas
                     ref={cAttRef}
@@ -544,6 +516,13 @@ export default function DemoConsole() {
                     aria-label="Attention arc across the clip timeline"
                     className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
                   />
+                  {!failed && attBadge ? (
+                    <div className="mt-2 text-meta leading-snug" style={{ color: attBadge.color }}>
+                      {attBadge.color === "#4a4a4a"
+                        ? "Predicted · dorsal-attention ROI · a hypothesis, not a measurement."
+                        : attBadge.text}
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* weak-spot callout */}
@@ -567,15 +546,8 @@ export default function DemoConsole() {
                 {!failed && arc?.message ? (
                   <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
                     <div className="mb-2 flex items-baseline justify-between gap-3">
-                      <span className="text-[14px] font-semibold tracking-[-0.01em]">
-                        Message · language load
-                        <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-ink-3">
-                          how hard the copy is working, second by second
-                        </small>
-                      </span>
-                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
-                        comprehension proxy
-                      </span>
+                      <span className="text-ui font-medium">Message · language load</span>
+                      <span className="shrink-0 text-meta text-ink-3">comprehension proxy</span>
                     </div>
                     <canvas
                       ref={cMsgRef}
@@ -603,12 +575,11 @@ export default function DemoConsole() {
             {readout && readout.takeaways.length ? (
               <div className="mt-5 border-t border-line pt-5">
                 <div className={EYE}>In plain english</div>
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3">
                   {readout.takeaways.map((tk) => (
                     <div key={tk.n}>
-                      <div className="font-mono text-[11px] tracking-[0.1em] text-ink-3">{tk.n}</div>
-                      <h3 className="mt-2 text-[15px] font-semibold tracking-[-0.01em] text-ink">{tk.title}</h3>
-                      <p className="mt-1.5 text-[13px] leading-[1.5] text-ink-2">{tk.body}</p>
+                      <h3 className="text-ui font-medium text-ink">{tk.title}</h3>
+                      <p className="mt-1 text-meta text-ink-2">{tk.body}</p>
                     </div>
                   ))}
                 </div>
