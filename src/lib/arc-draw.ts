@@ -275,6 +275,75 @@ export function drawAttention(
   drawStats(x, W, cur, s);
 }
 
+// ---- message / language-load lane ------------------------------------------------
+// Same 0..1 shape as attention, rendered in neutral ink (the slate accent is reserved
+// for the attention lane). Reads arc.message; a no-op when it is absent. No emotion.
+export function drawMessage(
+  c: HTMLCanvasElement,
+  arc: Arc,
+  t: number,
+  duration: number,
+): void {
+  const x = c.getContext("2d");
+  if (!x) return;
+  const seq = arc.message;
+  if (!seq || !seq.length) return;
+  const P = pal();
+  const W = c.width;
+  const H = c.height;
+  const top = 14;
+  const bot = H - 22;
+  const xs = arc.timestamps;
+  x.clearRect(0, 0, W, H);
+  const Y = (v: number) => bot - clamp01(v) * (bot - top);
+  drawGrid(
+    x,
+    c,
+    W,
+    top,
+    bot,
+    [
+      { v: 1, label: "1.0" },
+      { v: 0.5, label: "0.5" },
+      { v: 0, label: "0" },
+    ],
+    Y,
+    duration,
+  );
+  // faint neutral area fill under the curve
+  x.beginPath();
+  xs.forEach((tt, i) => {
+    const px = xAt(c, tt, duration);
+    const py = Y(seq[i]);
+    if (i) x.lineTo(px, py);
+    else x.moveTo(px, py);
+  });
+  x.lineTo(xAt(c, xs[xs.length - 1], duration), bot);
+  x.lineTo(xAt(c, xs[0], duration), bot);
+  x.closePath();
+  x.fillStyle = rgba(P.ink2, 0.05);
+  x.fill();
+  // neutral ink-2 line
+  x.save();
+  x.beginPath();
+  x.lineWidth = 1.8;
+  x.strokeStyle = P.ink2;
+  xs.forEach((tt, i) => {
+    const px = xAt(c, tt, duration);
+    const py = Y(seq[i]);
+    if (i) x.lineTo(px, py);
+    else x.moveTo(px, py);
+  });
+  x.stroke();
+  x.restore();
+  // playhead + current-sample dot
+  playhead(x, c, t, top, bot, duration);
+  x.fillStyle = P.ink2;
+  x.beginPath();
+  x.arc(xAt(c, t, duration), Y(clamp01(valAt(seq, t, duration))), 3, 0, 7);
+  x.fill();
+}
+
 // ---- signed lanes (valence & arousal) -------------------------------------------
 // mode 'center' => baseline mid (valence, ~[-1,1]); 'bottom' => baseline bottom
 // (arousal, [0,1]). `stroke` is the solid lane colour (ink for valence, ink-2 for

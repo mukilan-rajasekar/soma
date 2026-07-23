@@ -1,17 +1,19 @@
 // The "where it lights up" figure for the /demo read-out. A static (non-timeline)
-// bar panel: mean predicted activation per brain system for the whole clip. This is
-// the honest thesis in one chart — strong in attention & language, faint in the
-// emotion cortex — so it reads next to the brain viz, not on the shared clock.
+// bar panel: mean predicted activation per brain system for the whole clip — the
+// honest positive thesis in one chart: strong in attention & language.
 //
-// Design system: near-monochrome; the ONE slate/teal accent is reserved for data,
-// so STRONG lanes paint accent and the emotion DEAD zone paints ink-3 (grey) — the
-// contrast IS the point. The whole-cortex baseline is a hairline tick.
+// PUBLIC-FACING RULE: the emotion networks (valence/arousal) are a private research
+// result, not a customer claim, so they are filtered out entirely here — the panel
+// only ever shows where the ad DOES light up. The one slate/teal accent is reserved
+// for data, so every lit bar paints accent; the whole-cortex baseline is a hairline tick.
 
 import type { Arc } from "@/lib/arc";
 
+const EMOTION_NET = /valence|arousal|emotion/i;
+
 export default function CorticalProfile({ arc }: { arc: Arc }) {
-  const prof = arc.roi_profile;
-  if (!prof || !prof.length) return null;
+  const prof = (arc.roi_profile || []).filter((p) => !EMOTION_NET.test(p.net));
+  if (!prof.length) return null;
 
   const base = arc.roi_baseline ?? 0;
   const max = Math.max(...prof.map((p) => p.value), base) * 1.08 || 1;
@@ -28,16 +30,13 @@ export default function CorticalProfile({ arc }: { arc: Arc }) {
             key={p.net}
             className="grid grid-cols-[84px_1fr_42px] items-center gap-2 text-[11px]"
           >
-            <span className="truncate text-right text-ink-2">
-              {p.net}
-              {p.strong ? "" : <span className="text-ink-3"> · dead</span>}
-            </span>
+            <span className="truncate text-right text-ink-2">{p.net}</span>
             <span className="relative block h-2.5 rounded-sm border border-line bg-paper">
               <i
                 className="absolute inset-y-0 left-0 rounded-[1px]"
                 style={{
                   width: `${Math.max(2, (p.value / max) * 100)}%`,
-                  background: p.strong ? "var(--color-accent)" : "var(--color-ink-3)",
+                  background: "var(--color-accent)",
                 }}
               />
               <span
@@ -51,8 +50,8 @@ export default function CorticalProfile({ arc }: { arc: Arc }) {
         ))}
       </div>
       <div className="mt-2.5 border-t border-line pt-2.5 font-mono text-[10px] leading-[1.6] tracking-[0.02em] text-ink-3">
-        Mean activation per brain system. Strong in attention &amp; language, faint in the
-        emotion cortex (&#9474;&nbsp;= whole-cortex baseline) &mdash; shown, not hidden.
+        Mean predicted activation per brain system &mdash; where this ad lights up
+        (&#9474;&nbsp;= whole-cortex baseline).
       </div>
     </div>
   );

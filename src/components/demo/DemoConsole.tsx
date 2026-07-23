@@ -22,7 +22,7 @@ import {
   type Arc,
   type ArcStats,
 } from "@/lib/arc";
-import { coarseColor, drawAttention, drawCoarse, drawSigned, pal } from "@/lib/arc-draw";
+import { drawAttention, drawMessage, pal } from "@/lib/arc-draw";
 import BrainSvg, { type BrainHandle } from "./BrainSvg";
 import Transport from "./Transport";
 import Picker, { VIDEOS, isSample, type VideoItem } from "./Picker";
@@ -42,6 +42,63 @@ function badgeFor(txt: string | undefined, status: string | undefined): LaneBadg
 
 const EYE =
   "mb-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-3";
+
+// The PUBLIC read-out never surfaces emotion (valence/arousal). Those are a private
+// research result, not a customer-facing claim — so the cortical profile shows only the
+// networks that light up, and everything derived below is positive: attention, the peak,
+// weak spots, and comprehension. Emotion nets are filtered out by name everywhere.
+const EMOTION_NET = /valence|arousal|emotion/i;
+
+type Takeaway = { n: string; title: string; body: string };
+type Readout = { sub: string; takeaways: Takeaway[] };
+
+function deriveReadout(arc: Arc, title?: string | null): Readout {
+  const act = arc.activation || [];
+  let pk = 0;
+  for (let i = 1; i < act.length; i++) if (act[i] > act[pk]) pk = i;
+  const peak = fmt(arc.timestamps?.[pk] ?? 0);
+
+  const lit = (arc.roi_profile || [])
+    .filter((p) => p.strong && !EMOTION_NET.test(p.net))
+    .slice()
+    .sort((a, b) => b.value - a.value);
+  const top = lit.slice(0, 2).map((p) => p.net);
+
+  const sub =
+    (title || "This cut") +
+    " — peaks at " + peak +
+    (top.length ? ", strongest in " + top.join(" & ") : "") + ".";
+
+  const takeaways: Takeaway[] = [
+    {
+      n: "01",
+      title: "Attention builds to a peak.",
+      body: "The read climbs to its high point at " + peak + " — where the ad holds people best.",
+    },
+  ];
+  const w = (arc.weak_spots || [])[0];
+  if (w) {
+    takeaways.push({
+      n: "02",
+      title: "Soft open.",
+      body:
+        "The stretch from " + fmt(w.start) + " to " + fmt(w.end) +
+        " under-earns against this cut's own median — the first place to re-cut.",
+    });
+  }
+  const att = lit.find((p) => /attention/i.test(p.net));
+  const lang = lit.find((p) => /language/i.test(p.net));
+  if (att && lang) {
+    takeaways.push({
+      n: String(takeaways.length + 1).padStart(2, "0"),
+      title: "A rational sell.",
+      body:
+        "Attention (" + att.value.toFixed(3) + ") and language (" + lang.value.toFixed(3) +
+        ") lead the response — this ad works through attention and message.",
+    });
+  }
+  return { sub, takeaways };
+}
 
 // Boot on the REAL welding-ad run (honesty: never default to a synthetic/illustrative
 // card). real2 is the trimodal ad cut and the only card carrying a cortical profile, so
@@ -76,9 +133,7 @@ export default function DemoConsole() {
   const brainRef = useRef<BrainHandle>(null);
   const brainTRef = useRef<HTMLElement>(null);
   const cAttRef = useRef<HTMLCanvasElement>(null);
-  const cValRef = useRef<HTMLCanvasElement>(null);
-  const cAroRef = useRef<HTMLCanvasElement>(null);
-  const cCoarseRef = useRef<HTMLCanvasElement>(null);
+  const cMsgRef = useRef<HTMLCanvasElement>(null);
   const scrubRef = useRef<HTMLInputElement>(null);
   const clockRef = useRef<HTMLSpanElement>(null);
   const calloutRef = useRef<HTMLDivElement>(null);
@@ -187,7 +242,7 @@ export default function DemoConsole() {
     failedRef.current = true;
     setFailed(true);
     const msg = (e instanceof Error ? e.message : "") || "error";
-    [cAttRef.current, cValRef.current, cAroRef.current].forEach((c) => {
+    [cAttRef.current, cMsgRef.current].forEach((c) => {
       if (!c) return;
       const x = c.getContext("2d");
       if (!x) return;
@@ -241,15 +296,8 @@ export default function DemoConsole() {
     if (clockRef.current) clockRef.current.textContent = fmt(t) + " / " + fmt(duration);
     if (!a) return;
     if (cAttRef.current) drawAttention(cAttRef.current, a, t, duration, stats);
-    const af = a.affect || {};
-    const P = pal();
-    // valence rides on ink; arousal on a lighter ink tint (ink-2) — attention keeps the
-    // one slate accent to itself.
-    if (cValRef.current)
-      drawSigned(cValRef.current, af.valence, af.valence_lo, af.valence_hi, t, P.ink, "center", stats?.val ?? null, a, duration);
-    if (cAroRef.current)
-      drawSigned(cAroRef.current, af.arousal, af.arousal_lo, af.arousal_hi, t, P.ink2, "bottom", stats?.aro ?? null, a, duration);
-    if (cCoarseRef.current) drawCoarse(cCoarseRef.current, a, t, duration);
+    // message / language-load lane (trimodal arcs only) — neutral ink, no emotion.
+    if (cMsgRef.current && a.message) drawMessage(cMsgRef.current, a, t, duration);
     brainRef.current?.apply(clamp01(valAt(a.activation, t, duration)), stats?.att?.max ?? null);
     if (brainTRef.current) brainTRef.current.textContent = t.toFixed(1) + "s";
     // weak-spot callout pinned to the timeline
@@ -370,14 +418,10 @@ export default function DemoConsole() {
 
   // ---- derived (React-rendered) bits ----
   const attBadge = arc ? badgeFor(arc.attention_badge || arc.lanes?.attention?.badge, arc.attention_status || arc.lanes?.attention?.status) : null;
-  const valBadge = arc ? badgeFor(arc.affect?.valence_badge || arc.lanes?.valence?.badge, arc.affect?.valence_status || arc.lanes?.valence?.status) : null;
-  const aroBadge = arc ? badgeFor(arc.affect?.arousal_badge || arc.lanes?.arousal?.badge, arc.affect?.arousal_status || arc.lanes?.arousal?.status) : null;
-
-  const cs = arc?.affect?.coarse_states;
-  const hasCoarse = !!(cs && Array.isArray(cs.labels) && cs.labels.length && Array.isArray(cs.probs) && cs.probs.length && Array.isArray(cs.probs[0]));
 
   const activeVideo = videos.find((v) => v.id === currentId) || null;
   const showWatermark = !!activeVideo && !failed && isSample(activeVideo);
+  const readout = arc && !failed ? deriveReadout(arc, activeVideo?.title) : null;
 
   const laneClick = (c: HTMLCanvasElement | null, e: React.MouseEvent) => {
     if (!c) return;
@@ -428,15 +472,26 @@ export default function DemoConsole() {
             </span>
           </div>
 
-          {/* 1 · pick */}
-          <div className="p-[clamp(16px,3vw,20px)]">
-            <div className={EYE}>1 · Pick an ad</div>
-            <Picker videos={videos} currentId={currentId} durations={durations} onPick={pickVideo} />
+          {/* thesis — the result reads on load; emotion is never surfaced (private) */}
+          <div className="px-[clamp(16px,3vw,20px)] pt-[clamp(16px,3vw,20px)]">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-ink px-3 py-1.5 text-[13px] font-semibold tracking-[-0.01em] text-ink">
+                <span className="inline-flex h-2 w-2 rounded-full bg-ink" aria-hidden="true" />
+                {activeVideo?.title || "Analysis"}
+              </span>
+              {readout ? (
+                <span className="font-mono text-[11px] tracking-[0.02em] text-ink-3">{readout.sub}</span>
+              ) : null}
+            </div>
+            <h2 className="mt-3 max-w-[20ch] text-[clamp(22px,3.2vw,32px)] font-semibold leading-[1.08] tracking-[-0.02em] text-ink">
+              Where this ad earns{" "}
+              <em style={{ fontFamily: "var(--font-serif)", fontWeight: 400 }}>attention</em>.
+            </h2>
           </div>
 
-          {/* 2 · read-out */}
-          <div className="px-[clamp(16px,3vw,20px)] pb-[clamp(18px,3vw,22px)]">
-            <div className={EYE}>2 · Neural read-out (one shared timeline)</div>
+          {/* read-out (leads the page) */}
+          <div className="px-[clamp(16px,3vw,20px)] pb-[clamp(18px,3vw,22px)] pt-[clamp(14px,2.5vw,18px)]">
+            <div className={EYE}>Neural read-out · one shared timeline</div>
             <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[300px_1fr]">
               {/* brain */}
               <div className="flex flex-col gap-3">
@@ -508,89 +563,29 @@ export default function DemoConsole() {
                   </span>
                 </div>
 
-                {/* valence */}
-                <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
-                  <div className="mb-2 flex items-baseline justify-between gap-3">
-                    <span className="text-[14px] font-semibold tracking-[-0.01em]">
-                      Valence · feels good ↔ bad
-                      <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-ink-3">
-                        pleasant (up) / unpleasant (down)
-                      </small>
-                      {!failed && valBadge ? (
-                        <small className="mt-1.5 block max-w-[62ch] font-mono text-[11px] leading-[1.35] tracking-[0.02em] opacity-90" style={{ color: valBadge.color }}>
-                          {valBadge.text}
-                        </small>
-                      ) : null}
-                    </span>
-                  </div>
-                  <canvas
-                    ref={cValRef}
-                    width={720}
-                    height={120}
-                    onClick={(e) => laneClick(cValRef.current, e)}
-                    role="img"
-                    aria-label="Valence arc across the clip timeline"
-                    className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
-                  />
-                </div>
-
-                {/* arousal */}
-                <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
-                  <div className="mb-2 flex items-baseline justify-between gap-3">
-                    <span className="text-[14px] font-semibold tracking-[-0.01em]">
-                      Arousal · calm ↔ excited
-                      <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-ink-3">
-                        how worked-up the moment is
-                      </small>
-                      {!failed && aroBadge ? (
-                        <small className="mt-1.5 block max-w-[62ch] font-mono text-[11px] leading-[1.35] tracking-[0.02em] opacity-90" style={{ color: aroBadge.color }}>
-                          {aroBadge.text}
-                        </small>
-                      ) : null}
-                    </span>
-                  </div>
-                  <canvas
-                    ref={cAroRef}
-                    width={720}
-                    height={120}
-                    onClick={(e) => laneClick(cAroRef.current, e)}
-                    role="img"
-                    aria-label="Arousal arc across the clip timeline"
-                    className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
-                  />
-                </div>
-
-                {/* coarse discrete-state distribution (only when present) */}
-                {!failed && hasCoarse && cs ? (
+                {/* message / language-load lane (trimodal arcs only) */}
+                {!failed && arc?.message ? (
                   <div className="rounded-2xl border border-line bg-fill px-[15px] py-3.5">
                     <div className="mb-2 flex items-baseline justify-between gap-3">
                       <span className="text-[14px] font-semibold tracking-[-0.01em]">
-                        Coarse affective states
+                        Message · language load
                         <small className="mt-0.5 block font-mono text-[10px] font-normal tracking-[0.02em] text-ink-3">
-                          probability spread over the clip
+                          how hard the copy is working, second by second
                         </small>
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
+                        comprehension proxy
                       </span>
                     </div>
                     <canvas
-                      ref={cCoarseRef}
+                      ref={cMsgRef}
                       width={720}
-                      height={96}
-                      onClick={(e) => laneClick(cCoarseRef.current, e)}
+                      height={120}
+                      onClick={(e) => laneClick(cMsgRef.current, e)}
                       role="img"
-                      aria-label="Coarse affective-state probabilities across the clip"
+                      aria-label="Message / language-load arc across the clip timeline"
                       className="block h-auto w-full cursor-crosshair rounded-xl border border-line bg-paper"
                     />
-                    <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-2 font-mono text-[10px] text-ink-3">
-                      {cs.labels.map((lb, i) => (
-                        <span key={lb + i} className="inline-flex items-center gap-1.5">
-                          <i
-                            className="inline-block h-[9px] w-[9px] rounded-[3px]"
-                            style={{ background: coarseColor(i, cs.labels.length) }}
-                          />
-                          {lb}
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 ) : null}
 
@@ -603,6 +598,28 @@ export default function DemoConsole() {
                 />
               </div>
             </div>
+
+            {/* plain-english takeaways — full width, below the read-out */}
+            {readout && readout.takeaways.length ? (
+              <div className="mt-5 border-t border-line pt-5">
+                <div className={EYE}>In plain english</div>
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                  {readout.takeaways.map((tk) => (
+                    <div key={tk.n}>
+                      <div className="font-mono text-[11px] tracking-[0.1em] text-ink-3">{tk.n}</div>
+                      <h3 className="mt-2 text-[15px] font-semibold tracking-[-0.01em] text-ink">{tk.title}</h3>
+                      <p className="mt-1.5 text-[13px] leading-[1.5] text-ink-2">{tk.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {/* pick — analyze another ad, below the result */}
+          <div className="border-t border-line p-[clamp(16px,3vw,20px)]">
+            <div className={EYE}>Analyze another ad</div>
+            <Picker videos={videos} currentId={currentId} durations={durations} onPick={pickVideo} />
           </div>
         </div>
 
