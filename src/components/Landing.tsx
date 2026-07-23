@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Brain from "./Brain";
+import BrainField from "./BrainField";
 import UploadDialog from "./UploadDialog";
 
 export default function Landing() {
@@ -76,7 +76,7 @@ export default function Landing() {
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-white">
-      <Brain progressRef={progressRef} />
+      <BrainField progressRef={progressRef} />
 
       <div className="absolute left-11 top-[34px] z-[2] text-[23px] font-medium tracking-[-0.01em]">
         soma

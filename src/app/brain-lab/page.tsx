@@ -4,6 +4,7 @@ import { useState } from "react";
 import BrainSignalSweep from "@/components/brainlab/BrainSignalSweep";
 import BrainPointFiring from "@/components/brainlab/BrainPointFiring";
 import BrainPulseDrift from "@/components/brainlab/BrainPulseDrift";
+import BrainField from "@/components/BrainField";
 
 /**
  * /brain-lab — an internal, orphaned comparison bench for the three candidate cortical
@@ -15,7 +16,7 @@ import BrainPulseDrift from "@/components/brainlab/BrainPulseDrift";
  * marked noindex (rendered <meta>, hoisted to <head> by React), so it stays off the sitemap.
  */
 
-type TabId = "sweep" | "firing" | "pulse";
+type TabId = "fusion" | "sweep" | "firing" | "pulse";
 
 const TABS: {
   id: TabId;
@@ -23,6 +24,14 @@ const TABS: {
   caption: string;
   Component: () => React.JSX.Element;
 }[] = [
+  {
+    id: "fusion",
+    label: "Fusion (hero)",
+    caption:
+      "Fusion — the hero brain: point-cloud firing (dominant) with folded-in drift + breathing, scrubbable by scroll.",
+    // No progressRef in the lab → BrainField self-listens to wheel/touch so scroll is testable.
+    Component: () => <BrainField />,
+  },
   {
     id: "sweep",
     label: "Signal Sweep",
@@ -47,7 +56,7 @@ const TABS: {
 ];
 
 export default function BrainLabPage() {
-  const [active, setActive] = useState<TabId>("sweep");
+  const [active, setActive] = useState<TabId>("fusion");
   const current = TABS.find((t) => t.id === active) ?? TABS[0];
   const ActiveBrain = current.Component;
 
