@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python (the pipeline scripts at the repo root)
+# unanchored, so it catches tools/__pycache__ etc., not just the root one
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
