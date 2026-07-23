@@ -29,6 +29,7 @@ import Picker, { VIDEOS, isSample, type VideoItem } from "./Picker";
 import Compare from "./Compare";
 import CorticalProfile from "./CorticalProfile";
 import ReadoutPanel from "./ReadoutPanel";
+import LineupCompare from "./LineupCompare";
 import SiteHeader from "@/components/site/SiteHeader";
 import { loadArc, mergeLiveArcs } from "./live";
 
@@ -598,6 +599,12 @@ export default function DemoConsole() {
           <div className="border-t border-line p-[clamp(16px,3vw,20px)]">
             <div className={EYE}>Analyze another ad</div>
             <Picker videos={videos} currentId={currentId} durations={durations} onPick={pickVideo} />
+          </div>
+
+          {/* the whole roster's cortical profiles side by side + a plain-english read each */}
+          <div className="border-t border-line p-[clamp(16px,3vw,20px)]">
+            <div className={EYE}>Across the lineup</div>
+            <LineupCompare />
           </div>
         </div>
 
