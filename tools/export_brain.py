@@ -87,7 +87,7 @@ def main():
 
     # --- orient to a clean anatomical frame ---
     # FreeSurfer RAS: x=Left->Right, y=Posterior->Anterior, z=Inferior->Superior.
-    # We keep that; brain3d.js frames a coronal (front-facing) hero by orbiting.
+    # We keep that; BrainField.tsx frames a coronal (front-facing) hero by orbiting.
     centroid = coords.mean(axis=0)
     coords = coords - centroid
     radius = np.linalg.norm(coords, axis=1).max()

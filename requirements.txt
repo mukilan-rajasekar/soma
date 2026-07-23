@@ -12,14 +12,17 @@
 # ---------------------------------------------------------------------------
 # GROUP A — GPU / INFERENCE  (rented A100 / Colab only; generates the arcs)
 # ---------------------------------------------------------------------------
-# NOTE: the full pinned GPU-only stack (with the exact neuralset/tribev2 commit
-# pins) lives in requirements-gpu.txt — install that on the GPU box, not this file.
+# NOTE: this file does NOT pin the GPU-only stack. The exact neuralset/tribev2
+# revision pins live only in the GPU environment itself (the rented A100 box /
+# Colab notebook) — reproduce them from that environment, not from a tracked file.
 # numpy is pinned HARD. WHY: TRIBE v2 / neuralset ship compiled extensions built
 # against the numpy<2.1 C-ABI; importing them under numpy>=2.1 segfaults or throws
 # ImportError ("module compiled against ABI version ...") at load time.
-# triggered by: neuralset @ <commit-sha> and tribev2 @ <release-tag> — FILL IN from the GPU env
+# triggered by: the neuralset + tribev2 builds pinned in the GPU env (their exact
+# revisions are recorded there, not here).
 # REMOVAL RUNWAY: lift this ceiling ONLY after those upstreams publish numpy>=2.1
-# wheels; then re-test `make head-demo` + a real batch_extract run before bumping.
+# wheels; then re-verify the head (see GROUP B below) + a real batch_extract run
+# before bumping.
 numpy>=1.26,<2.1
 torch                    # CUDA build; installed per the box's CUDA version
 # --- TRIBE v2 + its event-building stack (installed from their sources) ---
@@ -32,6 +35,14 @@ torch                    # CUDA build; installed per the box's CUDA version
 # GROUP B — CPU / ANALYSIS  (this .venv; no GPU; the whole downstream pipeline)
 # ---------------------------------------------------------------------------
 # numpy already declared above (>=1.26,<2.1) and is compatible with this group.
+#
+# VERIFY THE HEAD (no Makefile; run the scripts directly). Fit + save the
+# read-out head, then apply it to the cached preds:
+#   python train_head.py --preds-dir <preds> --arc-dir <arcs> \
+#       --human-dir <human> --masks-dir <masks> --fit-all --save head.json
+#   python head_apply.py --preds-dir <preds> --arc-dir <arcs> --head head.json
+# (train_head.py fits when --shuffle-target is off; head_apply.py writes
+#  arc_<id>.json and promotes the head lane into arc.activation.)
 scipy                   # stats: ranks, norm cdf/ppf, .mat loading
 pandas                  # arc/annotation tables
 matplotlib              # the forest plot in honest_corr_timeseries.py
@@ -39,3 +50,13 @@ nilearn                 # Destrieux fsaverage5 atlas -> ROI masks (build_roi_mas
 opencv-python-headless  # per-second luminance/cuts/motion in baseline_extract.py
 imageio-ffmpeg          # audio loudness + synthetic mp4 muxing (baseline/tests)
 h5py>=3.0  # read the real TVSum v7.3 (HDF5) .mat; scipy only handles v7
+
+# ---------------------------------------------------------------------------
+# GROUP C — AD FETCH  (ad_fetch_bb.py; optional, standalone ad-clip fetcher)
+# ---------------------------------------------------------------------------
+# Only needed to run ad_fetch_bb.py. Not required by GROUP A or B. pip installs:
+stagehand               # Browserbase Stagehand client (ad_fetch_bb.py:226)
+playwright              # sync_playwright fallback fetch path (ad_fetch_bb.py:624)
+python-dotenv           # load_dotenv reads the repo-root .env (ad_fetch_bb.py:103)
+# ALSO REQUIRED (not a pip dep): the `yt-dlp` binary must be on PATH — ad_fetch_bb.py
+# shells out to it via subprocess for non-direct URLs (ad_fetch_bb.py:166).

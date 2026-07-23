@@ -192,9 +192,15 @@ def main():
             arc_path = os.path.join(args.arc_dir, f"arc_{vid}.json")
             if os.path.exists(arc_path):
                 arc = json.load(open(arc_path))
-                arc["message"] = {k: payload[k] for k in
-                                  ("status", "method", "requires", "space",
-                                   "semantic_load", "semantic_load_raw")}
+                # The site's Arc type (src/lib/types/arc.ts) and every shipped arc
+                # (e.g. public/arcs/real_meta12.json) expect `message` to be a FLAT
+                # number[] — arc-draw.ts reads `const seq = arc.message`. Writing an
+                # object here silently rendered an empty message lane. Keep the flat
+                # display array on `message`; park the honesty metadata on a sibling.
+                arc["message"] = payload["semantic_load"]          # flat 0..1 number[]
+                arc["message_meta"] = {k: payload[k] for k in
+                                       ("status", "method", "requires", "space",
+                                        "semantic_load_raw")}
                 json.dump(arc, open(arc_path, "w"), indent=2)
                 merged = f" + merged into arc_{vid}.json"
             else:

@@ -52,6 +52,13 @@ export type Arc = {
   // --- message / semantic-load lane: language-ROI activation 0..1 (trimodal only).
   // "where the copy makes the brain work", never "the viewer understood it". ---
   message?: number[];
+  message_meta?: {          // provenance/honesty badge for the message lane (message_extract.py)
+    status?: string;
+    method?: string;
+    requires?: string;
+    space?: string;
+    semantic_load_raw?: number[];
+  };
 
   // --- ad-producer read-out lanes (readout_extract.py): comprehension / recall /
   // purchase-intent, each an a-priori ROI PROXY-HYPOTHESIS, never a validated result.

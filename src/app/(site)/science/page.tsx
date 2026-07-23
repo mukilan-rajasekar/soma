@@ -7,8 +7,6 @@ export const metadata: Metadata = {
     "How Soma reads an average viewer's brain response to a video ad, second by second, straight from the file. Built on Meta's public TRIBE v2 encoder.",
 };
 
-export const dynamic = "force-dynamic";
-
 // A small reading-guide sparkline. Illustrative shape only, teal on a faint baseline.
 function Spark({ d, mid = false }: { d: string; mid?: boolean }) {
   return (
@@ -117,7 +115,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default async function SciencePage() {
+export default function SciencePage() {
   return (
     <article>
       {/* header */}
