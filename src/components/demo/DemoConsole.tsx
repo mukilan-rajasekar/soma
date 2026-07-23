@@ -43,8 +43,10 @@ function badgeFor(txt: string | undefined, status: string | undefined): LaneBadg
 const EYE =
   "mb-3 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-3";
 
-// Boot on the REAL run (honesty: never default to a synthetic/illustrative card).
-const BOOT_ID = "real1";
+// Boot on the REAL welding-ad run (honesty: never default to a synthetic/illustrative
+// card). real2 is the trimodal ad cut and the only card carrying a cortical profile, so
+// the "where it lights up" panel is visible the instant /demo loads.
+const BOOT_ID = "real2";
 const bootVideo = VIDEOS.find((v) => v.id === BOOT_ID) || VIDEOS[0];
 
 export default function DemoConsole() {

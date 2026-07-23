@@ -27,18 +27,18 @@ export type VideoItem = {
 // per-card sparkline motif carries the real distinction). Never the old neon-on-black.
 export const VIDEOS: VideoItem[] = [
   {
-    id: "real1",
-    title: "Real TRIBE run · TVSum clip",
-    src: "real · TRIBE v2",
-    arc: "/arcs/real_esJrBWj2d8.json",
-    grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
-  },
-  {
     id: "real2",
     title: "Welding-gear DR ad · cut",
     src: "real · trimodal",
     arc: "/arcs/real_meta12.json",
     grad: "linear-gradient(140deg,#ffffff,#eef2f3 60%,#e6ebec)",
+  },
+  {
+    id: "real1",
+    title: "Real TRIBE run · TVSum clip",
+    src: "real · TRIBE v2",
+    arc: "/arcs/real_esJrBWj2d8.json",
+    grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
   },
   {
     id: "hero1",
