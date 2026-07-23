@@ -23,7 +23,7 @@ INPUT : arc_<id>.json with affect.valence[] (~[-1,1]) and affect.arousal[] (~[0,
 OUTPUT: same file, with affect.coarse_states = {labels:[...], probs:[[...], ...]}.
 
 USAGE
-    python coarse_states.py --arc-glob "demo/arcs/*.json"
+    python coarse_states.py --arc-glob "public/arcs/*.json"
     python coarse_states.py --arc-glob "data/arcs/arc_*.json" --temp 0.18
 """
 import argparse
@@ -53,7 +53,7 @@ def coarse_row(v, a, temp=0.20):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--arc-glob", default="demo/arcs/*.json")
+    ap.add_argument("--arc-glob", default="public/arcs/*.json")
     ap.add_argument("--temp", type=float, default=0.20,
                     help="softmax temperature; higher = softer/flatter spread")
     args = ap.parse_args()

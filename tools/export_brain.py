@@ -2,13 +2,15 @@
 """
 export_brain.py — BUILD-TIME ONLY (not part of the demo runtime).
 
-Dumps the fsaverage5 pial cortical surface — the exact ~20,484-vertex surface
-TRIBE v2 predicts on — to three compact little-endian binaries that demo/brain3d.js
-loads directly (no GLTFLoader needed):
+Dumps the fsaverage pial cortical surface — at fsaverage5 the exact ~20,484-vertex
+surface TRIBE v2 predicts on — to three compact little-endian binaries that the
+Next.js brain components (src/components/Brain.tsx, brainlab/*) fetch directly
+from /brain/ (no GLTFLoader needed). Filenames carry the resolution (fs5/fs6/fs7);
+the default mesh is fsaverage6, i.e. the fs6_* files the site ships:
 
-  demo/assets/fs5_pos.bin   Float32  [nVerts*3]   vertex positions, centered + unit-scaled
-  demo/assets/fs5_idx.bin   Uint32   [nTris*3]    triangle indices (both hemispheres)
-  demo/assets/fs5_sulc.bin  Float32  [nVerts]     sulcal depth in [0,1] (1 = deep sulcus)
+  public/brain/fs6_pos.bin   Float32  [nVerts*3]   vertex positions, centered + unit-scaled
+  public/brain/fs6_idx.bin   Uint32   [nTris*3]    triangle indices (both hemispheres)
+  public/brain/fs6_sulc.bin  Float32  [nVerts]     sulcal depth in [0,1] (1 = deep sulcus)
 
 The SAME vertex set is used for BOTH the translucent glass shell (Layer A, as an
 indexed mesh) and the neon "signal" point overlay (Layer B, as points) — so the
@@ -25,7 +27,7 @@ import sys
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.abspath(os.path.join(HERE, "..", "demo", "assets"))
+OUT = os.path.abspath(os.path.join(HERE, "..", "public", "brain"))
 os.makedirs(OUT, exist_ok=True)
 
 

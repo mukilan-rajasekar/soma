@@ -6,21 +6,26 @@ This is the server-side half of the concierge MVP loop:
 
     Colab / batch_extract.py  →  arc_<id>.json  →  publish_to_supabase.py  →  arcs table
                                                                               │
-                                            demo/app.js  ←  Soma.supabase.fetchArcs()
+                        src/app/api/arcs/route.ts  ←  src/components/demo/live.ts
 
 It writes with the **service_role** key (bypasses row-level security), so it must
 run server-side only. NEVER put the service_role key in the browser or commit it.
 
-Auth: read from the environment (nothing is hard-coded except a fallback URL):
-    export SUPABASE_URL="https://<project>.supabase.co"        # optional (has a default)
-    export SUPABASE_SERVICE_ROLE_KEY="sb_secret_..."           # required (dashboard → Settings → API)
+Auth: read from the environment (nothing is hard-coded except a fallback URL).
+Either naming scheme works — the Python pipeline's names, or the Next runtime's
+names from src/lib/supabase/server.ts — so a single .env serves both:
+
+    URL  (optional, has a default):  SUPABASE_URL              or NEXT_PUBLIC_SUPABASE_URL
+    KEY  (required):                 SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY
+
+Both key names refer to the same service_role / secret key (dashboard → Settings → API).
 
 Usage:
-    python publish_to_supabase.py demo/arcs/hero2.json
+    python publish_to_supabase.py public/arcs/hero2.json
     python publish_to_supabase.py "data/arcs/arc_*.json"                 # glob many
     python publish_to_supabase.py arc_nike.json --id nike_winter --title "Nike — Winter 30s"
     python publish_to_supabase.py "data/arcs/arc_*.json" --dataset tvsum --run-id run7
-    python publish_to_supabase.py demo/arcs/*.json --dry-run             # print, don't send
+    python publish_to_supabase.py public/arcs/*.json --dry-run           # print, don't send
 
 Stdlib only (urllib) — no pip install, so it runs anywhere the arcs land
 (including a bare Colab cell).
@@ -34,6 +39,21 @@ import urllib.error
 import urllib.request
 
 DEFAULT_URL = "https://jfjztzdnoybhfgbgljjh.supabase.co"
+
+# The Python pipeline and the Next runtime historically used different names for the
+# same two values. Accept either, so one .env serves both. Python names win when both
+# are set (this is the pipeline). Keep in sync with src/lib/supabase/server.ts.
+URL_VARS = ("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL")
+KEY_VARS = ("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY")
+
+
+def env_any(names, default=""):
+    """First non-empty value among `names` in the environment, else `default`."""
+    for name in names:
+        val = os.environ.get(name, "").strip()
+        if val:
+            return val
+    return default
 
 
 def load_dotenv():
@@ -153,7 +173,7 @@ def main():
     ap.add_argument("--run-id", help="tag meta.run_id for provenance")
     ap.add_argument("--source", default="pipeline", help="tag meta.source (default: pipeline)")
     ap.add_argument("--private", action="store_true", help="set is_public=false (hidden from the public demo)")
-    ap.add_argument("--url", default=os.environ.get("SUPABASE_URL", DEFAULT_URL), help="Supabase project URL")
+    ap.add_argument("--url", default=env_any(URL_VARS, DEFAULT_URL), help="Supabase project URL")
     ap.add_argument("--dry-run", action="store_true", help="print what would be sent; do not POST")
     args = ap.parse_args()
 
@@ -173,12 +193,14 @@ def main():
         print("--title can only be used with a single file.", file=sys.stderr)
         return 2
 
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    key = env_any(KEY_VARS)
     if not key and not args.dry_run:
-        print("SUPABASE_SERVICE_ROLE_KEY is not set.\n"
+        print("No Supabase secret key set (looked for: %s).\n"
               "  Get it from Supabase → Settings → API → service_role (secret), then:\n"
               "    export SUPABASE_SERVICE_ROLE_KEY='sb_secret_...'\n"
-              "  (Use --dry-run to preview without a key.)", file=sys.stderr)
+              "  (SUPABASE_SECRET_KEY — the name the Next runtime uses — also works.)\n"
+              "  (Use --dry-run to preview without a key.)" % ", ".join(KEY_VARS),
+              file=sys.stderr)
         return 2
 
     print("Publishing %d arc(s) → %s/rest/v1/arcs%s" % (len(files), args.url, "  [DRY RUN]" if args.dry_run else ""))
