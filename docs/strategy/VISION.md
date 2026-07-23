@@ -61,7 +61,7 @@ licensing constraint the frozen stack carries). Full plan: **`STRATEGY-PROPRIETA
   the pipeline for the customer and hand back the read-out. AI-native services shape: we
   sell the *outcome/work*, not a tool the customer has to drive.
 - **ICP = large companies that run lots of ads** (more ads → more time saved, no panel
-  campaigns to stand up, more accurate creative decisions). That is who this is *for*.
+  campaigns to stand up, more variants de-risked before spend). That is who this is *for*.
 - **Reality today: the waitlist is small companies**, on purpose — they're easier to
   process and scale to real results, and there's an **access problem** (we don't have
   Pepsi-exec access yet). Small-co now is the on-ramp to the large-co ICP, not a pivot.
@@ -116,7 +116,8 @@ Everyone else measures reactions from **recruited humans** (panels, webcams, sur
 or **simulates** them by prompting an LLM to role-play a person. Soma predicts the
 **actual cortical response from the file** — no panel, no webcam, no survey — and is
 the only one that **draws — and reports — the line between validated and hypothesis**,
-in our pre-registration and diligence, even when the held-out test comes back null.
+in our pre-registration and diligence, even when the held-out test comes back null —
+and compounds a proprietary **ad×outcome data flywheel** a public-encoder rival can't scrape.
 
 | Camp | Who | How they get the signal | Our line (true today) |
 |---|---|---|---|

@@ -46,8 +46,9 @@ believing the team is rigorous, not overclaiming.
   glass cards, big-number hero-metric template, tiny tracked uppercase eyebrow над
   every section. Soma must not read as "another AI wrapper landing page."
 - **Overclaiming neuro-marketing incumbents** (Realeyes/System1 style "trust our
-  black box"): our whole edge is the *visible* validated-vs-hypothesis line, so the
-  design must never dress a hypothesis up as a result.
+  black box"): our edge is doing the validation honestly — running the held-out test
+  and reporting it, never dressing a hypothesis up as a result — so the design must
+  reflect that discipline, not an opaque score.
 - **Fractured multi-template feel:** the former three-pages-three-fonts state.
   One system, everywhere.
 

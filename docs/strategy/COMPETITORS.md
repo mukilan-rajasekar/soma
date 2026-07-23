@@ -7,7 +7,7 @@ then propagate.*
 
 > **Honesty rule applies to competitors too.** Everything claimed as a Soma
 > advantage below is either (a) true today (cost, "from the file, no panel,"
-> transparency, the *visible* evidence boundary) or (b) explicitly framed as
+> transparency, the held-out validation we actually run) or (b) explicitly framed as
 > roadmap. We do **not** claim Soma is more *accurate* than any incumbent — that
 > requires the held-out validation we're still running. Overclaiming against a
 > competitor is the same diligence risk as overclaiming a result. Competitor facts
@@ -22,12 +22,13 @@ Everyone else measures reactions from **recruited humans** (panels, webcams,
 surveys — Realeyes, System1, Neurons, Nielsen) or **simulates** them by prompting an
 LLM to role-play a person (Aaru, Simile). Soma predicts the **actual cortical
 response** from the video file with a public, benchmark-winning brain-encoding model
-— no panel, no webcam, no survey — and is the only one that draws a **visible line
-between what's validated and what's still a labeled hypothesis.**
+— no panel, no webcam, no survey — and defends it with the **held-out validation
+competitors skip** plus a proprietary **ad×outcome data flywheel** a public-encoder
+rival can't scrape.
 
 ---
 
-## The three axes we win on (true today)
+## The three axes we win on (cost & rigor today; the data flywheel over time)
 
 1. **Signal source (the wedge).** A brain-encoding model trained on real fMRI vs.
    (a) a human panel you have to recruit, run, and pay, or (b) an LLM guessing what a
@@ -39,12 +40,15 @@ between what's validated and what's still a labeled hypothesis.**
    can test *every* cut and variant — not just the one hero spot they can afford to
    panel. Panels cost thousands and take days per ad. This is real today, independent
    of how far the science ladder has climbed.
-3. **Epistemic honesty (the moat nobody copies).** Every claim wears its evidence
-   tier — green validated / amber validating / red hypothesis. Incumbents sell an
-   opaque score you take on faith; the LLM-persona tools present a confident answer
-   with no biology under it. Our whole edge is the *visible* validated-vs-hypothesis
-   boundary. It is a design choice a "trust our black box" incumbent structurally
-   cannot copy without undercutting their own pitch.
+3. **Validation rigor now; the data flywheel over time (the real moat).** Two things
+   a public-encoder rival structurally cannot copy. First, **rigor — true today**: we
+   actually run the held-out validation incumbents skip and report the result,
+   including a null, instead of dressing an unvalidated heuristic as fact. Second,
+   **the data flywheel — the compounding part**: the proprietary
+   **ad × real-outcome × retention** signal design partners generate as they run,
+   which a public model can never scrape and which sharpens the read over time (the
+   flywheel is a roadmap item — see `ROADMAP.md` — not shipped today). Honesty here is
+   a discipline, not a UI gimmick — rigor others won't do, plus data others can't get.
 
 **The moat is not the model.** `facebook/tribev2` is public — Realeyes, VidCognition,
 and anyone else can download the same weights. Defensibility is (1) the honest
@@ -65,7 +69,7 @@ earned by held-out tests, never asserted.
 | **Human panel — neuro/biometric** | Realeyes, Neurons Inc | webcam facial-coding, eye-tracking/gaze, some EEG, on recruited viewers | We predict the cortical response *from the file* — no viewers to recruit, minutes not days, and we predict the brain state, not a facial proxy for it. |
 | **Human panel — survey/emotion** | System1, Nielsen | recruited panels rate ads (facial + self-report), tied to large normative DBs | Built for a handful of hero spots at brand budgets. We serve the high-volume, low-cost end they ignore. |
 | **Synthetic / LLM personas** | Aaru, Simile | prompt an LLM to role-play a consumer and self-report | No biology — predicts what a person might *say* (biased toward agreeable answers), not how a brain responds. We predict the actual neural signal. |
-| **Same model, different bet** | **VidCognition** | *also* Meta TRIBE v2 → per-second "brain engagement" | Same public eye, different lens: they overclaim (present activation→engagement as fact); we ship the visible validated-vs-hypothesis boundary and actually run the held-out validation. Same DTC/performance buyer — the fork is epistemics + the proprietary ad×outcome data flywheel, not the buyer. |
+| **Same model, different bet** | **VidCognition** | *also* Meta TRIBE v2 → per-second "brain engagement" | Same public eye, different lens: they overclaim (present activation→engagement as fact); we actually run the held-out validation they skip and report it. Same DTC/performance buyer — the fork is validation rigor + the proprietary ad×outcome data flywheel, not the buyer. |
 
 ---
 
@@ -80,7 +84,7 @@ earned by held-out tests, never asserted.
 - **How Soma differs:** we predict from the **file** — no webcam, no recruited panel,
   no scheduling — in minutes, at a fraction of the cost, so you can test every
   variant. Their signal is a facial/gaze *proxy* for internal state; ours is a
-  predicted **cortical** response. And we show the evidence tier on every claim.
+  predicted **cortical** response. And we run the held-out validation to back a claim before we make it.
 - **"Why won't Realeyes just build this?"** (interview killer) — A public, transparent,
   from-the-file model directly undercuts their "recruit a panel, trust our score,
   pay per study" business. It's a **business-model conflict, not an engineering
@@ -101,8 +105,8 @@ earned by held-out tests, never asserted.
   Soma predicts the **full cortical response** — attention *and* a coarse affect read
   — from a brain-encoding model. We're priced for performance teams and creators, not
   five-figure enterprise contracts, and we carry the honesty boundary they don't.
-- **Honest caveat:** their attention model is mature; our attention arc is *validating*
-  (amber), not validated. Differentiate on signal breadth, price, and honesty — not
+- **Honest caveat:** their attention model is mature; our attention arc is *validating*,
+  not validated. Differentiate on signal breadth, price, and honesty — not
   on a superiority claim we haven't earned.
 
 ### System1
@@ -151,12 +155,12 @@ earned by held-out tests, never asserted.
      correlation. That 92% is for **video → cortical activation** — it says nothing
      about whether their engagement score predicts completion. This is the exact
      reverse-inference trap we refuse: dressing an unvalidated heuristic as a result.
-     Soma shows the tier and runs the held-out test (TVSum/LIRIS).
+     Soma runs the held-out test (TVSum/LIRIS) and reports the result — including a null.
   2. **Same buyer, different epistemics + data.** VidCognition targets the **same
      DTC/performance-marketing buyer** we do — their site carries DTC/performance
      testimonials and pricing tiers "for DTC teams." So the fork is **not** buyer or
-     willingness to pay: it's the **epistemics** (the visible validated-vs-hypothesis
-     boundary + the held-out test) and the proprietary **ad×outcome data flywheel** tied
+     willingness to pay: it's the **validation rigor** (we run the held-out test and
+     report it; they don't) and the proprietary **ad×outcome data flywheel** tied
      to real media spend, with A/B variant compare. They grade hooks with a "brain
      engagement score"; we sell a decision instrument that sharpens as partners run it.
   3. **Disclosure posture.** We proactively disclose the negative prior (whole-cortex
