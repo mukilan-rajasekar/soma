@@ -57,8 +57,8 @@ proprietary **ad × real-outcome × retention** data flywheel our design partner
 generate, which a public-encoder competitor can never scrape.
 
 **What we do NOT claim (yet):** more accurate than a panel; that the arc predicts
-retention; that activation = interest. Those are on the roadmap (`ROADMAP.md` R1→R3),
-earned by held-out tests, never asserted.
+retention; that activation = interest. Those are on the roadmap (`ROADMAP.md`, the
+rungs above where we are today), earned by held-out tests, never asserted.
 
 ---
 

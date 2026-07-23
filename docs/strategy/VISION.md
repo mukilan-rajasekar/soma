@@ -133,25 +133,26 @@ never asserted. Full breakdown + the four interview-killer answers: **`COMPETITO
 
 ---
 
-## The road to "this level" (R0 → R4)
+## The road to "this level" (Rung 0 → 4)
 
 Each rung is *earned by a held-out test*, never asserted. (Mirrors `ROADMAP.md`.)
 
-- **R0 — now:** frozen encoder + honest attention arc (transparent arithmetic) +
-  the demo. Validated step is Meta's; our arc is a hypothesis, and we say so.
-- **R1 — attention, learned:** train our own read-out *head* on top of frozen
-  TRIBE, evaluated leave-one-video-out on public attention data (TVSum). First
-  weights that are honestly ours. *(`train_head.py`, `head_io.py`, and
-  `head_apply.py` ship the full train → save → apply path; the first 15-clip
-  run is in — aggregate `stouffer_p=0.0005` but only 2/15 clips beat baseline,
-  so the head is **detectable, not yet validated** — this rung is not earned.)*
-- **R2 — 2D affect:** the same head architecture reads out valence/arousal on
-  public human-labeled proxies (LIRIS-ACCEDE), all badged proxy-hypothesis.
-- **R3 — outcomes + the flywheel turns on:** retrain the head on **proprietary ad
-  × real-reaction × retention** data from design partners. This is where
-  "predicts where you lose people" earns its claim — and where the moat begins.
-- **R4 — named emotions:** "amusement," "tension," "warmth," each rung earned by a
-  held-out test, never before.
+- **Rung 0 — attention arc *(shipped)*:** frozen encoder + the honest attention arc,
+  plus the first read-out *head* that's honestly ours (`train_head.py` →
+  `head_apply.py`, the full train → save → apply path). The pre-registered raw-arc
+  test came back null; the head is the exploratory result — first 15-clip run in at
+  aggregate `stouffer_p=0.0005`, but only 2/15 clips beat baseline, so **detectable,
+  not yet validated**.
+- **Rung 1 — 2D affect:** the same head architecture reads out valence/arousal on
+  public human-labeled data (LIRIS-ACCEDE, Emo-FilM), all badged proxy-hypothesis.
+- **Rung 2 — calibrated affect on real ads + the flywheel turns on:** retrain the head
+  on **proprietary ad × real-reaction × retention** data from design partners. This is
+  where "predicts where you lose people" earns its claim — and where the moat begins.
+- **Rung 3 — a few discrete states:** a small set of named states (amusement, tension,
+  disgust, boredom), each shipped one at a time behind an accuracy bar, with an abstain
+  option.
+- **Rung 4 — named emotions, fMRI-earned:** per-second probabilities over a validated
+  subset of the taxonomy, each emotion earned by a held-out test, never before.
 
 **Blocker to clear in parallel:** TRIBE's weights *and* code are both CC-BY-NC-4.0 —
 non-commercial. The frozen encoder powers R&D + the demo, but the paid pipeline needs a
