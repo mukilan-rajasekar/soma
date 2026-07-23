@@ -131,7 +131,7 @@ const BrainSvg = forwardRef<BrainHandle>(function BrainSvg(_props, ref) {
       ref={svgRef}
       viewBox="0 0 300 230"
       role="img"
-      aria-label="Predicted cortical activation, updating with the timeline"
+      aria-label="Cortical activation, updating with the timeline"
       className="block w-full"
     />
   );

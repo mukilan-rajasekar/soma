@@ -412,14 +412,14 @@ export default function DemoConsole() {
         {/* page hero */}
         <header className="mb-[clamp(22px,4vh,38px)]">
           <div className="mb-4 text-[11px] uppercase tracking-[0.16em] text-ink-3">
-            Live demo · predicted from the file, no panel
+            Live demo · read straight from the file, no panel
           </div>
           <h1 className="max-w-[15ch] text-balance text-hero text-ink">
             See how a brain{" "}
             <span className="font-serif font-normal italic">watches</span> your ad.
           </h1>
           <p className="mt-4 max-w-[54ch] text-body text-ink-2">
-            A predicted neural read-out, straight from the video &mdash; attention over
+            A neural read-out, straight from the video &mdash; attention over
             time, comprehension, and which brain systems light up. No panel. Pick any ad
             below.
           </p>

@@ -66,8 +66,8 @@ const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell] }[] = [
     cells: [
       { text: "faces, gaze, self-report" },
       { text: "LLM guess" },
-      { text: "predicted brain" },
-      { text: "predicted brain" },
+      { text: "cortical response" },
+      { text: "cortical response" },
     ],
   },
   {
