@@ -69,11 +69,28 @@ tracking + leading in, so `text-hero` / `text-section` are already correct.
 | UI (buttons, inputs, nav) | `text-ui` | `15px` · `-0.01em` |
 | Meta / label / helper | `text-meta` | `13px` · `1.5` |
 
+### Labels & numeric read-outs — uppercase tracked sans, never mono
+
+Eyebrows, captions, meta labels, and numeric read-outs are the **system sans**,
+uppercase, tracked `0.1–0.12em` at small sizes (`text-meta` / ~10–11px). There is
+**no monospace anywhere on the site — the `/demo` data tool included**; mono was
+pulled out of the demo entirely. Numbers are sans + `tabular-nums` (digits align
+without a monospace face), never `font-mono`.
+
+```tsx
+{/* eyebrow / meta label */}
+<div className="text-[10.5px] uppercase tracking-[0.12em] text-ink-3">In plain english</div>
+
+{/* numeric read-out — sans + tabular-nums, never mono */}
+<b className="tabular-nums text-ink">0.0s</b>
+```
+
 ### The serif-italic accent rule
 
 Exactly **one** accent word per view, on the emotional word, inside an otherwise
 `font-medium` sans heading. It is `font-serif font-normal italic` — nothing else
-gets italicised.
+gets italicised. The live `/demo` headline is the canonical example: "Where this ad
+earns *attention*." — one serif-italic word inside a `text-section` sans head.
 
 ```tsx
 <h2 className="text-section text-ink text-balance">
@@ -186,6 +203,38 @@ fill + thumb on a `line-2` track, ringed in paper.
 
 ---
 
+## Demo / data-tool patterns
+
+The `/demo` data tool obeys the same system as every page — sans labels, one
+serif-italic accent, hairlines, `accent` reserved for data. Two rules are specific
+to it (and to any public read-out):
+
+### Thesis-first read-out
+
+The page **opens with the result**, not the controls. Order, top to bottom:
+
+1. A small meta line naming the selected ad, then a `text-section` headline that
+   carries the single serif-italic accent word: "Where this ad earns *attention*."
+2. The **read-out grid** (`md:grid-cols-[300px_1fr]`):
+   - **left** — the brain viz + the promoted **Cortical Profile** ("where it lights up").
+   - **right** — the **Attention arc** + a **Message / language-load** lane.
+3. A compact **"In plain english"** takeaways row: an uppercase-sans eyebrow over
+   2–3 terse *title + one-line* reads — no numbered markers.
+4. The picker (**"Analyze another ad"**) sits **below** the result.
+
+Keep the copy terse — the charts carry the detail.
+
+### Public read-outs never surface emotion
+
+The emotion networks (**valence / arousal**) are a **private research result**, not a
+customer-facing claim. They must **never** appear on a public page — `/demo` or
+`/story`. Only positive, validated reads are shown publicly: **attention**,
+**comprehension / language load**, and the **cortical profile of the networks that
+light up**. The Cortical Profile filters emotion nets out **by name**
+(`/valence|arousal|emotion/i`); the demo carries **no** valence/arousal lanes.
+
+---
+
 ## Layout note (scrolling)
 
 `globals.css` forces `overflow: hidden` on `html/body` so the fixed landing hero
@@ -201,6 +250,10 @@ Any new full-page route outside `(site)` must do the same, or it won't scroll.
   **Don't** paste `#4a4a4a` / `#fafafa` / `#e2e2e2` — a token covers it.
 - **Do** keep one serif-italic accent word per view.
   **Don't** italicise anything else or add a second accent.
+- **Do** set labels + numbers in uppercase tracked sans (numbers `tabular-nums`).
+  **Don't** reach for `font-mono` — labels are uppercase tracked sans.
+- **Do** show attention, language load, and the lit cortical profile publicly.
+  **Don't** surface valence / arousal (emotion) on `/demo` or `/story` — it's private research.
 - **Do** keep `accent` / `accent-2` inside charts.
   **Don't** use them for buttons, links, or headings.
 - **Do** separate surfaces with hairlines.

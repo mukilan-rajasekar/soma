@@ -209,14 +209,14 @@ function Card({ video, active, dur, onPick }: CardProps) {
         }
       }}
       className={
-        "group cursor-pointer overflow-hidden rounded-2xl border bg-paper transition-all hover:-translate-y-[2px] " +
+        "group cursor-pointer overflow-hidden rounded-xl border bg-paper transition-all hover:-translate-y-[2px] " +
         (active
           ? "border-ink"
           : "border-line hover:border-line-2")
       }
     >
       <div
-        className="relative flex aspect-[16/10] items-end justify-end overflow-hidden p-2.5"
+        className="relative flex aspect-[16/10] items-end justify-end overflow-hidden p-2"
         style={{ background: video.grad }}
       >
         <canvas
@@ -227,22 +227,22 @@ function Card({ video, active, dur, onPick }: CardProps) {
           className="absolute inset-0 block h-full w-full opacity-90"
         />
         {sample ? (
-          <div className="absolute left-2.5 top-2.5 rounded-full border border-line bg-paper px-2 py-[3px] text-[9px] uppercase tracking-[0.06em] text-ink-2">
-            <span className="text-ink-3">◆</span> Illustrative sample
+          <div className="absolute left-1.5 top-1.5 rounded-full border border-line bg-paper px-1.5 py-[2px] text-[8.5px] uppercase tracking-[0.05em] text-ink-2">
+            <span className="text-ink-3">◆</span> sample
           </div>
         ) : null}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink/75 transition-transform group-hover:scale-[1.04]">
-          <svg viewBox="0 0 12 12" className="ml-0.5 h-3 w-3 fill-white">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink/75 transition-transform group-hover:scale-[1.04]">
+          <svg viewBox="0 0 12 12" className="ml-0.5 h-2.5 w-2.5 fill-white">
             <polygon points="2,1 11,6 2,11" />
           </svg>
         </div>
-        <div className="relative rounded-md bg-ink/70 px-1.5 py-0.5 text-[10px] tracking-[0.04em] text-white">
+        <div className="relative rounded bg-ink/70 px-1 py-0.5 text-[9px] tabular-nums tracking-[0.04em] text-white">
           {durLabel(dur)}
         </div>
       </div>
-      <div className="px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] text-ink">
-        {video.title}
-        <span className="mt-[3px] block text-[10px] font-normal uppercase tracking-[0.05em] text-ink-3">
+      <div className="px-2.5 py-2 text-[12px] font-medium leading-snug tracking-[-0.01em] text-ink">
+        <span className="line-clamp-2">{video.title}</span>
+        <span className="mt-1 block truncate text-[9px] font-normal uppercase tracking-[0.05em] text-ink-3">
           {video.src}
         </span>
       </div>
@@ -259,7 +259,7 @@ type Props = {
 
 export default function Picker({ videos, currentId, durations, onPick }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+    <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(148px,1fr))]">
       {videos.map((v) => (
         <Card
           key={v.id}

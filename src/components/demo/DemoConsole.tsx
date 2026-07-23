@@ -29,6 +29,7 @@ import Picker, { VIDEOS, isSample, type VideoItem } from "./Picker";
 import Compare from "./Compare";
 import CorticalProfile from "./CorticalProfile";
 import ReadoutPanel from "./ReadoutPanel";
+import SiteHeader from "@/components/site/SiteHeader";
 import { loadArc, mergeLiveArcs } from "./live";
 
 type LaneBadge = { text: string; color: string } | null;
@@ -417,26 +418,28 @@ export default function DemoConsole() {
 
   return (
     <main className="fixed inset-0 overflow-y-auto bg-paper text-ink">
-      <div className="mx-auto w-full max-w-[1080px] px-[clamp(16px,4vw,28px)] py-[clamp(18px,4vh,30px)]">
-        {/* top bar */}
-        <header className="mb-[clamp(16px,3vh,24px)] flex items-center justify-between">
-          <Link href="/" className="text-wordmark text-ink hover:text-ink">
-            soma
-          </Link>
-          <div className="flex items-center gap-5">
-            <Link
-              href="/story"
-              className="text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
-            >
-              result walkthrough ↗
-            </Link>
-            <Link
-              href="/"
-              className="text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
-            >
-              ← back to home
-            </Link>
+      <SiteHeader />
+      <div className="mx-auto w-full max-w-[1080px] px-[clamp(16px,4vw,28px)] pb-[clamp(18px,4vh,30px)] pt-[clamp(24px,5vh,44px)]">
+        {/* page hero */}
+        <header className="mb-[clamp(22px,4vh,38px)]">
+          <div className="mb-4 text-[11px] uppercase tracking-[0.16em] text-ink-3">
+            Live demo · predicted from the file, no panel
           </div>
+          <h1 className="max-w-[15ch] text-balance text-hero text-ink">
+            See how a brain{" "}
+            <span className="font-serif font-normal italic">watches</span> your ad.
+          </h1>
+          <p className="mt-4 max-w-[54ch] text-body text-ink-2">
+            A predicted neural read-out, straight from the video &mdash; attention over
+            time, comprehension, and which brain systems light up. No panel. Pick any ad
+            below.
+          </p>
+          <Link
+            href="/story"
+            className="mt-5 inline-block text-[13px] text-ink-3 transition-colors hover:text-ink"
+          >
+            result walkthrough ↗
+          </Link>
         </header>
 
         {/* console */}
@@ -458,20 +461,14 @@ export default function DemoConsole() {
             </span>
           </div>
 
-          {/* thesis — the result reads on load; emotion is never surfaced (private) */}
-          <div className="px-[clamp(16px,3vw,20px)] pt-[clamp(18px,3.5vw,26px)]">
-            <div className="mb-3 flex items-center gap-2 text-meta text-ink-3">
-              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true" />
-              <span className="text-ink-2">{activeVideo?.title || "Analysis"}</span>
-            </div>
-            <h2 className="max-w-[18ch] text-section text-ink text-balance">
-              Where this ad earns{" "}
-              <span className="font-serif font-normal italic">attention</span>.
-            </h2>
+          {/* selected-ad label (the page hero carries the thesis; this names the cut) */}
+          <div className="flex items-center gap-2 px-[clamp(16px,3vw,20px)] pt-[clamp(16px,3vw,20px)] text-meta text-ink-3">
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true" />
+            <span className="text-ink">{activeVideo?.title || "Analysis"}</span>
           </div>
 
           {/* read-out (leads the page) */}
-          <div className="px-[clamp(16px,3vw,20px)] pb-[clamp(18px,3vw,22px)] pt-[clamp(16px,2.5vw,20px)]">
+          <div className="px-[clamp(16px,3vw,20px)] pb-[clamp(18px,3vw,22px)] pt-[clamp(12px,2vw,16px)]">
             <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[300px_1fr]">
               {/* brain */}
               <div className="flex flex-col gap-3">
