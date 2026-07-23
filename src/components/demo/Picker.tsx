@@ -27,18 +27,18 @@ export type VideoItem = {
 // per-card sparkline motif carries the real distinction). Never the old neon-on-black.
 export const VIDEOS: VideoItem[] = [
   {
-    id: "real1",
-    title: "Real TRIBE run · TVSum clip",
-    src: "real · TRIBE v2",
-    arc: "/arcs/real_esJrBWj2d8.json",
-    grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
-  },
-  {
     id: "real2",
     title: "Welding-gear DR ad · cut",
     src: "real · trimodal",
     arc: "/arcs/real_meta12.json",
     grad: "linear-gradient(140deg,#ffffff,#eef2f3 60%,#e6ebec)",
+  },
+  {
+    id: "real1",
+    title: "Real TRIBE run · TVSum clip",
+    src: "real · TRIBE v2",
+    arc: "/arcs/real_esJrBWj2d8.json",
+    grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
   },
   {
     id: "hero1",
@@ -53,6 +53,60 @@ export const VIDEOS: VideoItem[] = [
     src: "performance · sample",
     arc: "/arcs/hero2.json",
     grad: "linear-gradient(120deg,#ffffff,#f0f4f5 58%,#e8eded)",
+  },
+  // --- 7 real TikTok Top Ads (from the harvested corpus), spanning the CTR range so the
+  // demo shows the read-outs on winners vs losers. The CTR labels are REAL TikTok data;
+  // the brain arcs are ILLUSTRATIVE SAMPLES (src "· sample" => watermarked) until the
+  // overnight Colab extracts real frozen-TRIBE preds for these clips and regenerates the
+  // arcs (readout_extract → arc_<id>.json). Ordered high → mid → low CTR. ---
+  {
+    id: "tt_60",
+    title: "@editingnews · Games — high CTR (p99)",
+    src: "TikTok Top Ads · sample",
+    arc: "/arcs/tt_60_sample.json",
+    grad: "linear-gradient(135deg,#ffffff,#eef3f2 60%,#e6ecea)",
+  },
+  {
+    id: "tt_28",
+    title: "@wigchichair · Wig & hair — high CTR",
+    src: "TikTok Top Ads · sample",
+    arc: "/arcs/tt_28_sample.json",
+    grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
+  },
+  {
+    id: "tt_150",
+    title: "Food & produce — high CTR",
+    src: "TikTok Top Ads · sample",
+    arc: "/arcs/tt_150_sample.json",
+    grad: "linear-gradient(120deg,#ffffff,#f2f5f4 58%,#eaefed)",
+  },
+  {
+    id: "tt_544",
+    title: "skinguardian · Cosmetics — mid CTR",
+    src: "TikTok Top Ads · sample",
+    arc: "/arcs/tt_544_sample.json",
+    grad: "linear-gradient(135deg,#ffffff,#f0f4f5 60%,#e8eeef)",
+  },
+  {
+    id: "tt_455",
+    title: "Men's shoes — mid CTR",
+    src: "TikTok Top Ads · sample",
+    arc: "/arcs/tt_455_sample.json",
+    grad: "linear-gradient(140deg,#ffffff,#eff3f4 60%,#e7edee)",
+  },
+  {
+    id: "tt_82",
+    title: "@Verb · Beverage — low CTR (p01)",
+    src: "TikTok Top Ads · sample",
+    arc: "/arcs/tt_82_sample.json",
+    grad: "linear-gradient(120deg,#ffffff,#f1f4f4 58%,#e9eeed)",
+  },
+  {
+    id: "tt_74",
+    title: "Short-drama app — low CTR",
+    src: "TikTok Top Ads · sample",
+    arc: "/arcs/tt_74_sample.json",
+    grad: "linear-gradient(135deg,#ffffff,#f2f4f5 60%,#eaeeef)",
   },
 ];
 
@@ -155,14 +209,14 @@ function Card({ video, active, dur, onPick }: CardProps) {
         }
       }}
       className={
-        "group cursor-pointer overflow-hidden rounded-2xl border bg-paper transition-all hover:-translate-y-[2px] " +
+        "group cursor-pointer overflow-hidden rounded-xl border bg-paper transition-all hover:-translate-y-[2px] " +
         (active
           ? "border-ink"
           : "border-line hover:border-line-2")
       }
     >
       <div
-        className="relative flex aspect-[16/10] items-end justify-end overflow-hidden p-2.5"
+        className="relative flex aspect-[16/10] items-end justify-end overflow-hidden p-2"
         style={{ background: video.grad }}
       >
         <canvas
@@ -173,22 +227,22 @@ function Card({ video, active, dur, onPick }: CardProps) {
           className="absolute inset-0 block h-full w-full opacity-90"
         />
         {sample ? (
-          <div className="absolute left-2.5 top-2.5 rounded-full border border-line bg-paper px-2 py-[3px] font-mono text-[9px] uppercase tracking-[0.06em] text-ink-2">
-            <span className="text-ink-3">◆</span> Illustrative sample
+          <div className="absolute left-1.5 top-1.5 rounded-full border border-line bg-paper px-1.5 py-[2px] text-[8.5px] uppercase tracking-[0.05em] text-ink-2">
+            <span className="text-ink-3">◆</span> sample
           </div>
         ) : null}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink/75 transition-transform group-hover:scale-[1.04]">
-          <svg viewBox="0 0 12 12" className="ml-0.5 h-3 w-3 fill-white">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-ink/75 transition-transform group-hover:scale-[1.04]">
+          <svg viewBox="0 0 12 12" className="ml-0.5 h-2.5 w-2.5 fill-white">
             <polygon points="2,1 11,6 2,11" />
           </svg>
         </div>
-        <div className="relative rounded-md bg-ink/70 px-1.5 py-0.5 font-mono text-[10px] tracking-[0.04em] text-white">
+        <div className="relative rounded bg-ink/70 px-1 py-0.5 text-[9px] tabular-nums tracking-[0.04em] text-paper">
           {durLabel(dur)}
         </div>
       </div>
-      <div className="px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] text-ink">
-        {video.title}
-        <span className="mt-[3px] block font-mono text-[10px] font-normal uppercase tracking-[0.05em] text-ink-3">
+      <div className="px-2.5 py-2 text-[12px] font-medium leading-snug tracking-[-0.01em] text-ink">
+        <span className="line-clamp-2">{video.title}</span>
+        <span className="mt-1 block truncate text-[9px] font-normal uppercase tracking-[0.05em] text-ink-3">
           {video.src}
         </span>
       </div>
@@ -205,7 +259,7 @@ type Props = {
 
 export default function Picker({ videos, currentId, durations, onPick }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+    <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(148px,1fr))]">
       {videos.map((v) => (
         <Card
           key={v.id}

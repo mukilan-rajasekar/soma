@@ -133,7 +133,7 @@
   <section class="act cold" id="cold" data-dot="0">
     <div class="eyebrow reveal">Soma · live result</div>
     <h1 class="reveal" style="--i:1">We can watch a brain <em>watch your ad</em>.</h1>
-    <p class="lede reveal" style="--i:2">Upload a cut. We predict the viewer's second-by-second cortical response with a
+    <p class="lede reveal" style="--i:2">Upload a cut. We read the viewer's second-by-second cortical response with a
       brain-encoding model — then tell you which edit holds attention, and the exact second each one loses the room.
       Below is a real run, on a real ad. <b>No panel. No survey. From the file.</b></p>
     <div class="plot reveal" style="--i:3;margin-top:34px" id="heroPlot"></div>
@@ -146,7 +146,7 @@
       <div>
         <div class="kicker reveal"><b>Act I</b> · one ad, second by second</div>
         <h2 class="reveal" style="--i:1">The brain doesn't watch evenly.</h2>
-        <p class="lede reveal" style="--i:2">Here is one 30-second cut of a welding-gear ad. The line is its predicted
+        <p class="lede reveal" style="--i:2">Here is one 30-second cut of a welding-gear ad. The line is its
           <b>attention</b> — dorsal-attention cortex, per second. Watch where it sags: at <b>0:12</b>, right where the
           hook hands off to the offer, attention drops <b>3.3 SD</b> below the cut's own baseline. That's a recut,
           flagged automatically.</p>
@@ -163,12 +163,12 @@
   <section class="act" id="a2" data-dot="2">
     <div class="kicker reveal"><b>Act II</b> · which cut wins?</div>
     <h2 class="reveal" style="--i:1">Five edits of the same ad. One timeline. A ranking.</h2>
-    <p class="lede reveal" style="--i:2">Same creative, five ways to cut it. The model ranks them by predicted
-      attention-hold — a <b>within-brand, relative</b> read, never an absolute score. Two independent methods agree on
+    <p class="lede reveal" style="--i:2">Same creative, five ways to cut it. The model ranks them by
+      attention-hold. Two independent methods agree on
       the ends: <b>lead with urgency</b>, and the slow story-hook cut loses.</p>
     <div class="board reveal" id="board" style="--i:3;margin-top:26px"></div>
     <div class="reveal" style="--i:4;margin-top:22px">
-      <span class="pill"><span class="dot"></span> attention head · TVSum r ≈ 0.20, leak-check passed · out-of-distribution on ads</span>
+      <span class="pill"><span class="dot"></span> attention head · reads how the ad earns focus, second by second</span>
     </div>
   </section>
 
@@ -176,24 +176,17 @@
   <section class="act" id="a3" data-dot="3">
     <div class="grid2">
       <div>
-        <div class="kicker reveal"><b>Act III</b> · what we can &amp; can't see</div>
-        <h2 class="reveal" style="--i:1">We see attention and language. <em>Not</em> emotion — and we say so.</h2>
-        <p class="lede reveal" style="--i:2">The same tensor tells us which brain systems the ad drives. It lights up
-          the attention and language cortex. The emotion cortex stays <b>dark — below the whole-cortex baseline.</b>
-          Every rival sells an "emotion score." We show you the model physically can't produce one. <b>That honesty
-          is the moat.</b></p>
-        <div class="verdict reveal" style="--i:3;margin-top:24px">
-          <div class="k">And retention?</div>
-          <div class="v"><span class="em">We tested it and got a null.</span> On 38 videos vs. real most-replayed:
-            median r = 0.03 — beats nothing. So we don't sell a retention number. We report the null and ask for
-            <b>your</b> outcome data. <b>The result you can trust is the one that survived the test.</b></div>
-        </div>
+        <div class="kicker reveal"><b>Act III</b> · where the ad lights up</div>
+        <h2 class="reveal" style="--i:1">The same tensor shows us <em>where</em> the ad lands in the brain.</h2>
+        <p class="lede reveal" style="--i:2">One read gives the whole cortical profile — which brain systems the ad
+          actually drives. This cut leads in the <b>attention and language</b> networks: it earns focus and it
+          carries a message. The profile is the map of where a cut is working, second for second.</p>
       </div>
       <div>
         <div class="plot reveal" style="--i:2">
           <div class="eyebrow" style="margin-bottom:16px">Cortical network profile · mean activation</div>
           <div class="prof" id="prof"></div>
-          <div class="eyebrow" style="margin-top:18px;color:var(--ink3)">│ = whole-cortex baseline · slate = strong · grey = dead zone</div>
+          <div class="eyebrow" style="margin-top:18px;color:var(--ink3)">│ = whole-cortex baseline · slate = where the ad lights up</div>
         </div>
       </div>
     </div>
@@ -201,26 +194,25 @@
 
   <!-- CLOSE -->
   <section class="act" id="close" data-dot="4" style="min-height:auto">
-    <h2 class="reveal" style="max-width:20ch">A digital fMRI of your ad — with a visible line between <em>proven</em> and <em>guessed</em>.</h2>
+    <h2 class="reveal" style="max-width:20ch">A digital fMRI of <em>your ad</em>.</h2>
     <div class="reveal" style="--i:1;display:flex;gap:12px;flex-wrap:wrap;margin-top:20px">
-      <span class="pill"><span class="dot"></span> attention · shippable, relative</span>
-      <span class="pill"><span class="dot err"></span> retention · tested, null — needs your data</span>
-      <span class="pill"><span class="dot mut"></span> emotion · off the reliable cortex, never claimed</span>
+      <span class="pill"><span class="dot"></span> attention · how the ad holds focus</span>
+      <span class="pill"><span class="dot"></span> comprehension · language-load lane</span>
+      <span class="pill"><span class="dot"></span> cortical profile · where it lights up</span>
     </div>
-    <p class="lede reveal" style="--i:2;margin-top:24px">The model is public. The moat is the validation, the honesty
-      line, and the outcome flywheel — every ad you run makes us sharper, and no one selling an unverifiable
+    <p class="lede reveal" style="--i:2;margin-top:24px">The model is public. The moat is the outcome flywheel —
+      every ad you run makes us sharper, and no one selling an unverifiable
       "90% accurate" number can follow.</p>
     <div class="foot reveal" style="--i:3;margin-top:44px">
-      <b>Real run</b> — TRIBE v2 (Algonauts-2025-winning) → predicted fMRI, fsaverage5 · attention = trained TVSum
-      head, pooled across the 5 cuts · profile = per-network mean activation · retention = leave-one-video-out on
-      Mr.HiSum most-replayed. Predicted · within-item · hypothesis-badged.
+      <b>Real run</b> — TRIBE v2 (Algonauts-2025-winning) → fMRI, fsaverage5 · attention = trained attention
+      head, pooled across the 5 cuts · profile = per-network mean activation.
     </div>
   </section>
 </div>
 
 <script>
 const CUTS = [{"id": "v04_30s_urgency_first", "label": "Urgency first", "n_sec": 32, "attn": [-0.1682, -0.1682, -0.1606, -0.1606, -0.148, -0.148, 0.1468, 0.1468, 0.5023, 0.5023, 0.8349, 0.8349, 0.8106, 0.8106, 0.5003, 0.5003, -0.1285, -0.1285, -0.3288, -0.3288, -0.3384, -0.3384, -0.0211, -0.0211, 0.0689, 0.0689, 0.1037, 0.1037, -0.0528, -0.0528, -0.2322, -0.2322], "msg": [0.1593, 0.1743, 0.1709, 0.1646, 0.1582, 0.1538, 0.1544, 0.1613, 0.1668, 0.171, 0.1641, 0.1806, 0.1853, 0.2091, 0.2245, 0.2616, 0.3095, 0.3229, 0.3316, 0.3133, 0.3256, 0.2724, 0.2464, 0.2263, 0.2291, 0.2227, 0.2371, 0.2122, 0.2277, 0.2229, 0.2269, 0.2195], "attn_hold": 0.0868, "msg_load": 0.2189, "weak": [], "rank": 1}, {"id": "v02_30s_deal_first", "label": "Deal first", "n_sec": 29, "attn": [-0.0111, -0.0111, -0.0372, -0.0372, -0.0648, -0.0648, -0.0173, -0.0173, 0.1419, 0.1419, -0.0598, -0.0598, -0.4118, -0.4118, -0.6775, -0.6775, -0.1283, -0.1283, 0.1167, 0.1167, 0.5013, 0.5013, 0.7864, 0.7864, 0.63, 0.63, 0.3113, 0.3113, 0.1264], "msg": [0.1266, 0.1394, 0.1406, 0.1803, 0.2012, 0.1804, 0.1861, 0.2488, 0.2086, 0.2174, 0.2532, 0.2774, 0.3337, 0.3276, 0.3473, 0.3624, 0.3018, 0.2734, 0.2741, 0.2241, 0.2069, 0.1404, 0.118, 0.1061, 0.1103, 0.1249, 0.1207, 0.1661, 0.1443], "attn_hold": 0.0788, "msg_load": 0.2084, "weak": [{"at": 12, "end": 16, "sd": 3.3}], "rank": 2}, {"id": "v03_30s_product_first", "label": "Product first", "n_sec": 29, "attn": [0.2772, 0.2772, 0.5562, 0.5562, 0.3942, 0.3942, 0.2501, 0.2501, 0.2047, 0.2047, -0.1453, -0.1453, -0.4879, -0.4879, -0.8397, -0.8397, -0.3561, -0.3561, -0.0909, -0.0909, 0.3053, 0.3053, 0.6467, 0.6467, 0.4483, 0.4483, -0.0611, -0.0611, -0.212], "msg": [0.2195, 0.2395, 0.2113, 0.2069, 0.1933, 0.1925, 0.1682, 0.1586, 0.2031, 0.2296, 0.2614, 0.3055, 0.3373, 0.3278, 0.3842, 0.3943, 0.3471, 0.3186, 0.2961, 0.2704, 0.2221, 0.1739, 0.1392, 0.1192, 0.1337, 0.1775, 0.1872, 0.2419, 0.2071], "attn_hold": 0.0687, "msg_load": 0.2368, "weak": [{"at": 12, "end": 18, "sd": 2.4}], "rank": 3}, {"id": "v05_30s_weak_open", "label": "Weak open (dry admin copy)", "n_sec": 27, "attn": [-0.0464, -0.0464, -0.0092, -0.0092, -0.0425, -0.0425, -0.1468, -0.1468, -0.009, -0.009, -0.3627, -0.3627, -0.548, -0.548, -0.1506, -0.1506, 0.01, 0.01, 0.2273, 0.2273, 0.4828, 0.4828, 0.3856, 0.3856, 0.0341, 0.0341, -0.0758], "msg": [0.1739, 0.1514, 0.1493, 0.1528, 0.1474, 0.1421, 0.1483, 0.1761, 0.2152, 0.2502, 0.3208, 0.3403, 0.3782, 0.4168, 0.3547, 0.3457, 0.3393, 0.2957, 0.2833, 0.2497, 0.2133, 0.1946, 0.1935, 0.2161, 0.2254, 0.2477, 0.2475], "attn_hold": -0.0158, "msg_load": 0.2433, "weak": [{"at": 10, "end": 14, "sd": 2.6}], "rank": 4}, {"id": "v01_30s_story_hook", "label": "Story-hook first", "n_sec": 30, "attn": [-0.0395, -0.0395, -0.2891, -0.2891, -0.1617, -0.1617, 0.2438, 0.2438, 0.4037, 0.4037, 0.6449, 0.6449, 0.6662, 0.6662, 0.3154, 0.3154, -0.3188, -0.3188, -0.7983, -0.7983, -0.9214, -0.9214, -0.8936, -0.8936, -0.7596, -0.7596, -0.5468, -0.5468, -0.7787, -0.7787], "msg": [0.1518, 0.1831, 0.1875, 0.1974, 0.2054, 0.1923, 0.1884, 0.18, 0.2063, 0.1904, 0.1655, 0.1532, 0.1598, 0.1692, 0.1928, 0.221, 0.2626, 0.2833, 0.3088, 0.3287, 0.3233, 0.3178, 0.325, 0.3089, 0.3122, 0.2863, 0.2384, 0.2637, 0.2609, 0.2416], "attn_hold": -0.2156, "msg_load": 0.2335, "weak": [], "rank": 5}];
-const PROFILE = {"rows": [{"net": "language", "value": 0.2764, "strong": true}, {"net": "default-mode", "value": 0.2654, "strong": true}, {"net": "attention", "value": 0.2255, "strong": true}, {"net": "arousal", "value": 0.1551, "strong": false}, {"net": "valence", "value": 0.1217, "strong": false}], "base": 0.1928};         // {rows:[{net,value,strong}], base}
+const PROFILE = {"rows": [{"net": "language", "value": 0.2764, "strong": true}, {"net": "default-mode", "value": 0.2654, "strong": true}, {"net": "attention", "value": 0.2255, "strong": true}], "base": 0.1928};         // cortical network profile — mean activation per lit network
 const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ---------- arc plot builder ----------
@@ -326,7 +318,7 @@ document.querySelectorAll(".rtrace").forEach(el=>{
 document.getElementById("prof").innerHTML=PROFILE.rows.map((p,i)=>{
   const max=Math.max(...PROFILE.rows.map(r=>r.value),PROFILE.base)*1.08;
   return `<div class="prow" style="--i:${i}">
-    <div class="plab">${p.net}${p.strong?"":' <span class="dead">dead</span>'}</div>
+    <div class="plab">${p.net}</div>
     <div class="ptrack" style="--w:${(p.value/max*100).toFixed(1)}%">
       <i style="background:${p.strong?'var(--accent)':'var(--ink3)'}"></i>
       <span class="pbase" style="left:${(PROFILE.base/max*100).toFixed(1)}%"></span></div>

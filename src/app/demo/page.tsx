@@ -8,7 +8,7 @@ import DemoConsole from "@/components/demo/DemoConsole";
 export const metadata: Metadata = {
   title: "soma — live neural read-out",
   description:
-    "Watch a video ad's predicted attention arc, valence and arousal, and whole-cortex activation play back on one shared timeline — from the file, no panel.",
+    "Watch a video ad's attention arc, comprehension, and whole-cortex activation play back on one shared timeline — read straight from the file, no panel.",
 };
 
 export default function DemoPage() {

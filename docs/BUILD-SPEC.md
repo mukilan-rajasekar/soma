@@ -836,6 +836,13 @@ The single-screen console: `#brainSvg` brain + 4 canvas lanes + transport + vide
 React drive **all** canvases from one shared time (`useRef` updated by a single rAF loop in an
 effect); each canvas is its own `useRef`. Port math verbatim from `app.js` (report 2 §2–§4).
 
+> **Public no-emotion rule (supersedes the lane list below).** The public `/demo` never surfaces
+> emotion. Valence / arousal are a **private research result**, so the `lanes/Signed.tsx`
+> valence/arousal lanes are **not** shown publicly — the read-out is thesis-first: attention +
+> message/language-load + the emotion-filtered Cortical Profile ("where it lights up"). Emotion
+> nets are dropped by name (`/valence|arousal|emotion/i`). See DESIGN-SYSTEM.md →
+> "Demo / data-tool patterns".
+
 | File | Purpose |
 |---|---|
 | `src/app/demo/page.tsx` | Server component. `export const metadata`. Renders `<DemoConsole/>`. Fixed-viewport (no scroll wrapper). |

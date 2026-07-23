@@ -32,8 +32,16 @@ function drawCompare(canvas: HTMLCanvasElement | null, arcA: Arc, arcB: Arc): nu
   if (!canvas) return 0;
   const x = canvas.getContext("2d");
   if (!x) return 0;
-  const W = canvas.width;
-  const H = canvas.height;
+  // retina: size the backing store to the displayed box × dpr, draw in CSS pixels.
+  const dpr =
+    typeof window !== "undefined" ? Math.min(3, Math.max(1, window.devicePixelRatio || 1)) : 1;
+  const W = Math.round(canvas.clientWidth || canvas.width);
+  const H = Math.round(canvas.clientHeight || canvas.height);
+  const bw = Math.round(W * dpr);
+  const bh = Math.round(H * dpr);
+  if (canvas.width !== bw) canvas.width = bw;
+  if (canvas.height !== bh) canvas.height = bh;
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
   const pad = 10;
   const top = 12;
   const bot = H - 26;
@@ -137,13 +145,13 @@ export default function Compare({ videos }: Props) {
   const titleFor = (id: string) => videos.find((v) => v.id === id)?.title ?? "—";
 
   const selectCls =
-    "cursor-pointer rounded-xl border border-line-2 bg-paper px-3 py-2 font-mono text-[12px] text-ink outline-none transition-colors hover:border-ink focus-visible:border-ink";
+    "cursor-pointer rounded-xl border border-line-2 bg-paper px-3 py-2 text-[12px] text-ink outline-none transition-colors hover:border-ink focus-visible:border-ink";
 
   return (
     <section className="mt-[clamp(16px,3vh,24px)] rounded-2xl border border-line bg-paper p-[clamp(20px,3vw,28px)]">
       <div className="mb-3.5 flex flex-wrap items-start justify-between gap-[18px]">
         <div className="min-w-0">
-          <div className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-ink-3">
+          <div className="mb-2 text-[10.5px] uppercase tracking-[0.12em] text-ink-3">
             3 · Compare · A / B
           </div>
           <h3 className="mb-1.5 text-[20px] font-medium tracking-[-0.02em] text-ink text-balance">
@@ -151,13 +159,12 @@ export default function Compare({ videos }: Props) {
             better, moment to moment?
           </h3>
           <p className="max-w-[58ch] text-[13.5px] leading-[1.55] text-ink-2 text-pretty">
-            Overlay two predicted attention arcs on one timeline &mdash; the read most
-            performance teams actually want. Test every cut, not just the one you can afford to
-            panel.
+            Overlay two attention arcs on one timeline &mdash; the read most performance
+            teams actually want. Test every cut, not just the one you can afford to panel.
           </p>
         </div>
         <div className="flex shrink-0 gap-3">
-          <label className="flex flex-col gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
+          <label className="flex flex-col gap-1.5 text-[10px] uppercase tracking-[0.1em] text-ink-3">
             A
             <select value={aId} onChange={(e) => setAId(e.target.value)} className={selectCls}>
               {videos.map((v) => (
@@ -167,7 +174,7 @@ export default function Compare({ videos }: Props) {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-3">
+          <label className="flex flex-col gap-1.5 text-[10px] uppercase tracking-[0.1em] text-ink-3">
             B
             <select value={bId} onChange={(e) => setBId(e.target.value)} className={selectCls}>
               {videos.map((v) => (
@@ -185,11 +192,11 @@ export default function Compare({ videos }: Props) {
         width={1040}
         height={210}
         role="img"
-        aria-label="Two predicted attention arcs overlaid on one timeline for comparison"
-        className="block h-auto w-full rounded-2xl border border-line bg-paper"
+        aria-label="Two attention arcs overlaid on one timeline for comparison"
+        className="block h-[210px] w-full rounded-2xl border border-line bg-paper"
       />
 
-      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[11px] text-ink-3">
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-ink-3">
         <span className="inline-flex items-center gap-2">
           <i
             className="inline-block h-0 w-4 border-t-[3px] border-solid border-t-ink"
@@ -205,11 +212,11 @@ export default function Compare({ videos }: Props) {
           B · {titleFor(bId)}
         </span>
         <span className="inline-flex items-center gap-2">
-          bottom strip = who&rsquo;s predicted higher, each moment
+          bottom strip = who&rsquo;s higher, each moment
         </span>
       </div>
 
-      <div className="mt-3 min-h-[1.6em] font-mono text-[11.5px] leading-[1.6] tracking-[0.01em] text-ink-3">
+      <div className="mt-3 min-h-[1.6em] text-[11.5px] leading-[1.6] tracking-[0.01em] text-ink-3">
         {status === "same" ? (
           <>
             Pick two <b className="text-ink">different</b> ads to compare.
@@ -218,7 +225,7 @@ export default function Compare({ videos }: Props) {
           "Could not load one of the arcs."
         ) : status === "ok" && pa !== null ? (
           <>
-            <b className="text-ink">A</b> holds higher predicted attention{" "}
+            <b className="text-ink">A</b> holds higher attention{" "}
             <b className="text-ink">{pa}%</b> of the clip; <b className="text-ink">B</b>{" "}
             the other <b className="text-ink">{100 - pa}%</b>.
           </>

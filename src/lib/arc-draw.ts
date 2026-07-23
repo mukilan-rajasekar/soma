@@ -68,9 +68,34 @@ function rgba(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
-// Horizontal position of time `t` (seconds) on a lane canvas.
+// Retina sizing: match the backing store to the displayed CSS box × devicePixelRatio and
+// scale the context so all drawing happens in CSS pixels — crisp lines/text on hi-dpi
+// screens (the fixed 720×150 backing used to upscale and look grainy). Returns the
+// CSS-pixel W/H that the draw functions use as their coordinate space.
+function hidpi(c: HTMLCanvasElement): {
+  x: CanvasRenderingContext2D | null;
+  W: number;
+  H: number;
+} {
+  const x = c.getContext("2d");
+  const dpr =
+    typeof window !== "undefined"
+      ? Math.min(3, Math.max(1, window.devicePixelRatio || 1))
+      : 1;
+  const W = Math.round(c.clientWidth || c.width);
+  const H = Math.round(c.clientHeight || c.height);
+  const bw = Math.round(W * dpr);
+  const bh = Math.round(H * dpr);
+  if (c.width !== bw) c.width = bw;
+  if (c.height !== bh) c.height = bh;
+  if (x) x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { x, W, H };
+}
+
+// Horizontal position of time `t` (seconds) on a lane canvas (CSS pixels).
 export function xAt(c: HTMLCanvasElement, t: number, duration: number): number {
-  return PADL + (duration ? t / duration : 0) * (c.width - PADL - PADR);
+  const W = c.clientWidth || c.width;
+  return PADL + (duration ? t / duration : 0) * (W - PADL - PADR);
 }
 
 // Evenly-spaced time gridlines across the clip (0..duration).
@@ -96,7 +121,7 @@ export function drawGrid(
 ): void {
   const P = pal();
   x.save();
-  x.font = "9px ui-monospace, monospace";
+  x.font = "9px system-ui, -apple-system, Helvetica, Arial, sans-serif";
   x.lineWidth = 1;
   x.textBaseline = "middle";
   x.textAlign = "right";
@@ -129,7 +154,7 @@ export function drawGrid(
 export function drawStats(x: Ctx, W: number, cur: number, s: Stat | null): void {
   if (!s) return;
   x.save();
-  x.font = "9px ui-monospace, monospace";
+  x.font = "9px system-ui, -apple-system, Helvetica, Arial, sans-serif";
   x.textAlign = "right";
   x.textBaseline = "top";
   x.fillStyle = pal().ink2;
@@ -170,11 +195,9 @@ export function drawAttention(
   duration: number,
   stats: ArcStats | null,
 ): void {
-  const x = c.getContext("2d");
+  const { x, W, H } = hidpi(c);
   if (!x) return;
   const P = pal();
-  const W = c.width;
-  const H = c.height;
   const top = 14;
   const bot = H - 22;
   const xs = arc.timestamps;
@@ -273,6 +296,73 @@ export function drawAttention(
   x.arc(xAt(c, t, duration), Y(cur), 3, 0, 7);
   x.fill();
   drawStats(x, W, cur, s);
+}
+
+// ---- message / language-load lane ------------------------------------------------
+// Same 0..1 shape as attention, rendered in neutral ink (the slate accent is reserved
+// for the attention lane). Reads arc.message; a no-op when it is absent. No emotion.
+export function drawMessage(
+  c: HTMLCanvasElement,
+  arc: Arc,
+  t: number,
+  duration: number,
+): void {
+  const seq = arc.message;
+  if (!seq || !seq.length) return;
+  const { x, W, H } = hidpi(c);
+  if (!x) return;
+  const P = pal();
+  const top = 14;
+  const bot = H - 22;
+  const xs = arc.timestamps;
+  x.clearRect(0, 0, W, H);
+  const Y = (v: number) => bot - clamp01(v) * (bot - top);
+  drawGrid(
+    x,
+    c,
+    W,
+    top,
+    bot,
+    [
+      { v: 1, label: "1.0" },
+      { v: 0.5, label: "0.5" },
+      { v: 0, label: "0" },
+    ],
+    Y,
+    duration,
+  );
+  // faint neutral area fill under the curve
+  x.beginPath();
+  xs.forEach((tt, i) => {
+    const px = xAt(c, tt, duration);
+    const py = Y(seq[i]);
+    if (i) x.lineTo(px, py);
+    else x.moveTo(px, py);
+  });
+  x.lineTo(xAt(c, xs[xs.length - 1], duration), bot);
+  x.lineTo(xAt(c, xs[0], duration), bot);
+  x.closePath();
+  x.fillStyle = rgba(P.ink2, 0.05);
+  x.fill();
+  // neutral ink-2 line
+  x.save();
+  x.beginPath();
+  x.lineWidth = 1.8;
+  x.strokeStyle = P.ink2;
+  xs.forEach((tt, i) => {
+    const px = xAt(c, tt, duration);
+    const py = Y(seq[i]);
+    if (i) x.lineTo(px, py);
+    else x.moveTo(px, py);
+  });
+  x.stroke();
+  x.restore();
+  // playhead + current-sample dot
+  playhead(x, c, t, top, bot, duration);
+  x.fillStyle = P.ink2;
+  x.beginPath();
+  x.arc(xAt(c, t, duration), Y(clamp01(valAt(seq, t, duration))), 3, 0, 7);
+  x.fill();
 }
 
 // ---- signed lanes (valence & arousal) -------------------------------------------

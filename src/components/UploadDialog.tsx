@@ -208,7 +208,7 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
         className="absolute inset-0 cursor-default bg-black/30"
       />
 
-      <div className="relative z-[1] w-full max-w-[440px] rounded-2xl border border-[#e2e2e2] bg-white p-7 shadow-[0_24px_70px_rgba(0,0,0,0.18)]">
+      <div className="relative z-[1] w-full max-w-[440px] rounded-2xl border border-[#e2e2e2] bg-paper p-7 shadow-[0_24px_70px_rgba(0,0,0,0.18)]">
         <div className="flex items-start justify-between gap-4">
           <h2
             id="upload-title"
@@ -237,7 +237,7 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
             <button
               type="button"
               onClick={close}
-              className="mt-6 cursor-pointer rounded-xl border border-[#0a0a0a] bg-[#0a0a0a] px-5 py-[13px] text-[15px] font-medium text-white transition-colors hover:border-[#333] hover:bg-[#333]"
+              className="mt-6 cursor-pointer rounded-xl border border-[#0a0a0a] bg-[#0a0a0a] px-5 py-[13px] text-[15px] font-medium text-paper transition-colors hover:border-[#333] hover:bg-[#333]"
             >
               Done
             </button>
@@ -278,7 +278,7 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
               type="email"
               placeholder="you@company.com"
               disabled={pending}
-              className="mt-3 w-full rounded-xl border border-[#d8d8d8] bg-white px-[15px] py-[13px] text-[15px] text-[#0a0a0a] outline-none disabled:opacity-60"
+              className="mt-3 w-full rounded-xl border border-[#d8d8d8] bg-paper px-[15px] py-[13px] text-[15px] text-[#0a0a0a] outline-none disabled:opacity-60"
             />
 
             <textarea
@@ -287,7 +287,7 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
               placeholder="Anything we should know? (optional)"
               rows={2}
               disabled={pending}
-              className="mt-3 w-full resize-none rounded-xl border border-[#d8d8d8] bg-white px-[15px] py-[11px] text-[14px] leading-[1.4] text-[#0a0a0a] outline-none disabled:opacity-60"
+              className="mt-3 w-full resize-none rounded-xl border border-[#d8d8d8] bg-paper px-[15px] py-[11px] text-[14px] leading-[1.4] text-[#0a0a0a] outline-none disabled:opacity-60"
             />
 
             {pending ? (
@@ -312,7 +312,7 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
               <button
                 type="submit"
                 disabled={pending || !file}
-                className="cursor-pointer whitespace-nowrap rounded-xl border border-[#0a0a0a] bg-[#0a0a0a] px-5 py-[13px] text-[15px] font-medium text-white transition-colors hover:border-[#333] hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50"
+                className="cursor-pointer whitespace-nowrap rounded-xl border border-[#0a0a0a] bg-[#0a0a0a] px-5 py-[13px] text-[15px] font-medium text-paper transition-colors hover:border-[#333] hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {pending ? "Uploading…" : "Upload"}
               </button>
@@ -320,7 +320,7 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
                 type="button"
                 onClick={close}
                 disabled={pending}
-                className="cursor-pointer rounded-xl border border-[#d8d8d8] bg-white px-5 py-[13px] text-[15px] font-medium text-[#4a4a4a] transition-colors hover:border-[#0a0a0a] hover:text-[#0a0a0a] disabled:cursor-not-allowed disabled:opacity-50"
+                className="cursor-pointer rounded-xl border border-[#d8d8d8] bg-paper px-5 py-[13px] text-[15px] font-medium text-[#4a4a4a] transition-colors hover:border-[#0a0a0a] hover:text-[#0a0a0a] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>

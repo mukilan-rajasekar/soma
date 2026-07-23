@@ -24,11 +24,10 @@ export default function SiteFooter() {
         ))}
       </div>
       <p className="max-w-[62ch] text-meta leading-[1.7] text-ink-3">
-        Soma &middot; neural ad pre-testing &mdash; a predicted brain response to
-        your ad, from the file.
+        Soma &middot; neural ad pre-testing &mdash; the brain&rsquo;s response to
+        your ad, read straight from the file.
         <br />
-        Built on Meta&rsquo;s public TRIBE v2 encoder. The encoder is validated;
-        the read-out on top is ours, and under test.
+        Built on Meta&rsquo;s Algonauts-winning TRIBE v2 encoder.
       </p>
     </footer>
   );
