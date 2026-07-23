@@ -43,6 +43,16 @@ export type Arc = {
   // --- demoted arithmetic baseline (faint dashed under head arc) ---
   baseline?: { activation: number[] };
 
+  // --- cortical network profile: mean predicted activation per a-priori ROI (the
+  // "where it lights up" figure). strong = TRIBE's reliable cortex (attention/
+  // language/DMN); !strong = the emotion dead zone (valence/arousal), shown not hidden. ---
+  roi_profile?: Array<{ net: string; value: number; strong: boolean }>;
+  roi_baseline?: number; // whole-cortex mean, drawn as the profile's baseline tick
+
+  // --- message / semantic-load lane: language-ROI activation 0..1 (trimodal only).
+  // "where the copy makes the brain work", never "the viewer understood it". ---
+  message?: number[];
+
   // --- affect lanes ---
   affect?: {
     status?: string;

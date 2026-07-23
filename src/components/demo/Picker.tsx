@@ -34,6 +34,13 @@ export const VIDEOS: VideoItem[] = [
     grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
   },
   {
+    id: "real2",
+    title: "Welding-gear DR ad · cut",
+    src: "real · trimodal",
+    arc: "/arcs/real_meta12.json",
+    grad: "linear-gradient(140deg,#ffffff,#eef2f3 60%,#e6ebec)",
+  },
+  {
     id: "hero1",
     title: "Skincare launch",
     src: "DTC · sample",
@@ -50,8 +57,11 @@ export const VIDEOS: VideoItem[] = [
 ];
 
 // real1 is the only real run: everything else (or anything tagged "sample") is illustrative.
+// A card is an ILLUSTRATIVE SAMPLE (synthetic — gets the watermark) only when its
+// source is labelled a sample. Real TRIBE runs (src "real · …") and validated live
+// Supabase rows are real model output and must NOT be watermarked as synthetic.
 export function isSample(v: VideoItem): boolean {
-  return /sample/i.test(v.src || "") || v.id !== "real1";
+  return /sample/i.test(v.src || "");
 }
 
 function durLabel(dur: number | undefined): string {

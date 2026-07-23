@@ -1,0 +1,368 @@
+<title>Soma — Live Result Walkthrough</title>
+<style>
+  :root{
+    --paper:#ffffff; --ink:#0a0a0a; --ink2:#4a4a4a; --ink3:#8a8a8a;
+    --line:#e2e2e2; --line2:#d8d8d8; --fill:#fafafa; --error:#b42318;
+    --accent:#3f6f7a; --accent2:#5f8b99;
+    --sans:"GT Planar","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --serif:Georgia,"Times New Roman",serif;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden}
+  .tnum{font-variant-numeric:tabular-nums}
+  em{font-family:var(--serif);font-style:italic;font-weight:400}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 clamp(20px,5vw,44px)}
+
+  .eyebrow{font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:var(--ink3)}
+  h1{font-size:clamp(34px,6vw,72px);line-height:1.02;letter-spacing:-.03em;font-weight:500;margin:.28em 0;text-wrap:balance}
+  h2{font-size:clamp(26px,3.4vw,40px);line-height:1.05;letter-spacing:-.02em;font-weight:500;margin:0 0 .3em;text-wrap:balance}
+  .lede{color:var(--ink2);font-size:clamp(16px,1.6vw,19px);max-width:56ch;line-height:1.55}
+  .lede b{color:var(--ink);font-weight:500}
+  .num-lg{font-size:clamp(40px,6vw,74px);font-weight:500;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+
+  /* scroll acts */
+  .act{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:clamp(48px,9vh,110px) 0;position:relative}
+  .act.cold{min-height:100vh;justify-content:center}
+  .grid2{display:grid;grid-template-columns:0.85fr 1.15fr;gap:clamp(28px,5vw,64px);align-items:center}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr;gap:32px}}
+  .kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px}
+  .kicker b{color:var(--accent);font-weight:500}
+
+  /* reveal engine */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .7s var(--ease),transform .7s var(--ease);
+    transition-delay:calc(var(--i,0)*90ms)}
+  .in .reveal{opacity:1;transform:none}
+
+  /* arc canvas */
+  .plot{border:1px solid var(--line);border-radius:16px;background:var(--paper);padding:18px;position:relative;overflow:hidden}
+  .plot svg{display:block;width:100%;height:auto}
+  .arc-path{fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round;
+    vector-effect:non-scaling-stroke}
+  .arc-area{fill:var(--accent);opacity:0;transition:opacity 1s ease .6s}
+  .in .arc-area{opacity:.07}
+  .arc-msg{fill:none;stroke:var(--accent2);stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:0;transition:opacity .8s ease .9s}
+  .in .arc-msg{opacity:.85}
+  .zeroline{stroke:var(--ink3);stroke-width:1;stroke-dasharray:2 5}
+  .weakband{fill:var(--error);opacity:0;transition:opacity .5s ease}
+  .in .weakband{opacity:.10}
+  .weakline{stroke:var(--error);stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:0;transition:opacity .5s ease}
+  .in .weakline{opacity:.5}
+  .playhead{stroke:var(--ink);stroke-width:1.4;vector-effect:non-scaling-stroke;opacity:0}
+  .phdot{fill:var(--ink)}
+  .plot .callout{position:absolute;padding:6px 11px;border-radius:999px;background:var(--ink);color:var(--paper);
+    font-size:12px;white-space:nowrap;opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s;pointer-events:none;
+    box-shadow:0 6px 20px rgba(0,0,0,.14)}
+  .plot .callout.show{opacity:1;transform:none}
+  .plot .callout::after{content:"";position:absolute;left:50%;bottom:-4px;width:8px;height:8px;background:var(--ink);
+    transform:translateX(-50%) rotate(45deg)}
+  .axis{fill:var(--ink3);font-size:10px;font-family:var(--sans)}
+
+  /* ranking */
+  .board{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .rrow{display:grid;grid-template-columns:26px 150px 1fr 92px;gap:16px;align-items:center;padding:15px 4px;
+    border-bottom:1px solid var(--line)}
+  @media(max-width:640px){.rrow{grid-template-columns:22px 1fr;row-gap:8px}.rrow .rtrace,.rrow .rmet{grid-column:1/-1}}
+  .rrow.win{background:linear-gradient(90deg,rgba(63,111,122,.05),transparent 70%)}
+  .rrank{text-align:center;color:var(--ink3);font-weight:500;font-variant-numeric:tabular-nums}
+  .rrow.win .rrank{color:var(--accent)}
+  .rname{font-weight:500;font-size:15px;letter-spacing:-.01em}
+  .rname small{display:block;color:var(--ink3);font-size:12px;font-weight:400;margin-top:1px}
+  .rrow.lose .rname,.rrow.lose .rhold{color:var(--ink3)}
+  .rtrace{height:40px}
+  .rmet{text-align:right}
+  .rhold{font-size:18px;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink);letter-spacing:-.01em}
+  .rbar{height:3px;background:var(--line);border-radius:2px;margin:6px 0 3px;overflow:hidden}
+  .rbar i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px;transition:width 1.1s var(--ease)}
+  .in .rbar i{width:var(--w)}
+  .rchip{font-size:11px;color:var(--error);font-variant-numeric:tabular-nums}
+  .rchip.none{color:var(--ink3)}
+
+  /* profile */
+  .prof{display:flex;flex-direction:column;gap:12px}
+  .prow{display:grid;grid-template-columns:120px 1fr 56px;gap:14px;align-items:center;font-size:14px}
+  .prow .plab{text-align:right;color:var(--ink2)}
+  .prow .plab .dead{color:var(--ink3);font-style:italic;font-family:var(--serif)}
+  .ptrack{height:20px;background:var(--fill);border:1px solid var(--line);border-radius:3px;position:relative;overflow:hidden}
+  .ptrack i{position:absolute;inset:0 auto 0 0;width:0;transition:width 1.2s var(--ease);transition-delay:calc(var(--i,0)*120ms)}
+  .in .ptrack i{width:var(--w)}
+  .pbase{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--ink);z-index:2;opacity:.5}
+  .prow .pval{text-align:right;color:var(--ink);font-variant-numeric:tabular-nums;font-size:13px}
+
+  .verdict{border:1px solid var(--line);border-radius:16px;padding:22px 24px;background:var(--fill)}
+  .verdict .k{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}
+  .verdict .v{font-size:17px;margin-top:6px;line-height:1.5}
+  .verdict .v b{font-weight:500}
+  .verdict .v .em{color:var(--error);font-weight:500}
+
+  .pill{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--ink3);border:1px solid var(--line);
+    border-radius:999px;padding:6px 13px}
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .pill .dot.err{background:var(--error)} .pill .dot.mut{background:var(--ink3)}
+
+  .scrollcue{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);color:var(--ink3);font-size:12px;
+    letter-spacing:.1em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .scrollcue span:last-child{animation:bob 1.8s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(5px);opacity:1}}
+
+  .foot{border-top:1px solid var(--line);padding:28px 0 60px;color:var(--ink3);font-size:12.5px;line-height:1.7}
+  .foot b{color:var(--ink2);font-weight:500}
+  .navdots{position:fixed;right:22px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:12px;z-index:20}
+  @media(max-width:860px){.navdots{display:none}}
+  .navdots a{width:8px;height:8px;border-radius:50%;border:1px solid var(--line2);background:transparent;transition:.3s}
+  .navdots a.on{background:var(--ink);border-color:var(--ink)}
+
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .reveal{opacity:1;transform:none;transition:none}
+    .arc-area,.arc-msg,.weakband,.weakline{opacity:1;transition:none}
+    .rbar i,.ptrack i{transition:none}
+    .scrollcue span:last-child{animation:none}
+  }
+</style>
+
+<nav class="navdots" aria-hidden="true">
+  <a href="#cold" class="on"></a><a href="#a1"></a><a href="#a2"></a><a href="#a3"></a><a href="#close"></a>
+</nav>
+
+<div class="wrap">
+  <!-- COLD OPEN -->
+  <section class="act cold" id="cold" data-dot="0">
+    <div class="eyebrow reveal">Soma · live result</div>
+    <h1 class="reveal" style="--i:1">We can watch a brain <em>watch your ad</em>.</h1>
+    <p class="lede reveal" style="--i:2">Upload a cut. We predict the viewer's second-by-second cortical response with a
+      brain-encoding model — then tell you which edit holds attention, and the exact second each one loses the room.
+      Below is a real run, on a real ad. <b>No panel. No survey. From the file.</b></p>
+    <div class="plot reveal" style="--i:3;margin-top:34px" id="heroPlot"></div>
+    <div class="scrollcue" aria-hidden="true"><span>scroll to begin</span><span>↓</span></div>
+  </section>
+
+  <!-- ACT I -->
+  <section class="act" id="a1" data-dot="1">
+    <div class="grid2">
+      <div>
+        <div class="kicker reveal"><b>Act I</b> · one ad, second by second</div>
+        <h2 class="reveal" style="--i:1">The brain doesn't watch evenly.</h2>
+        <p class="lede reveal" style="--i:2">Here is one 30-second cut of a welding-gear ad. The line is its predicted
+          <b>attention</b> — dorsal-attention cortex, per second. Watch where it sags: at <b>0:12</b>, right where the
+          hook hands off to the offer, attention drops <b>3.3 SD</b> below the cut's own baseline. That's a recut,
+          flagged automatically.</p>
+        <div class="reveal" style="--i:3;display:flex;gap:14px;margin-top:26px">
+          <div><div class="num-lg" data-count="12" data-time="1">0:00</div>
+            <div class="eyebrow" style="margin-top:6px">weak spot, flagged</div></div>
+        </div>
+      </div>
+      <div class="plot reveal" style="--i:2" id="act1Plot"></div>
+    </div>
+  </section>
+
+  <!-- ACT II -->
+  <section class="act" id="a2" data-dot="2">
+    <div class="kicker reveal"><b>Act II</b> · which cut wins?</div>
+    <h2 class="reveal" style="--i:1">Five edits of the same ad. One timeline. A ranking.</h2>
+    <p class="lede reveal" style="--i:2">Same creative, five ways to cut it. The model ranks them by predicted
+      attention-hold — a <b>within-brand, relative</b> read, never an absolute score. Two independent methods agree on
+      the ends: <b>lead with urgency</b>, and the slow story-hook cut loses.</p>
+    <div class="board reveal" id="board" style="--i:3;margin-top:26px"></div>
+    <div class="reveal" style="--i:4;margin-top:22px">
+      <span class="pill"><span class="dot"></span> attention head · TVSum r ≈ 0.20, leak-check passed · out-of-distribution on ads</span>
+    </div>
+  </section>
+
+  <!-- ACT III -->
+  <section class="act" id="a3" data-dot="3">
+    <div class="grid2">
+      <div>
+        <div class="kicker reveal"><b>Act III</b> · what we can &amp; can't see</div>
+        <h2 class="reveal" style="--i:1">We see attention and language. <em>Not</em> emotion — and we say so.</h2>
+        <p class="lede reveal" style="--i:2">The same tensor tells us which brain systems the ad drives. It lights up
+          the attention and language cortex. The emotion cortex stays <b>dark — below the whole-cortex baseline.</b>
+          Every rival sells an "emotion score." We show you the model physically can't produce one. <b>That honesty
+          is the moat.</b></p>
+        <div class="verdict reveal" style="--i:3;margin-top:24px">
+          <div class="k">And retention?</div>
+          <div class="v"><span class="em">We tested it and got a null.</span> On 38 videos vs. real most-replayed:
+            median r = 0.03 — beats nothing. So we don't sell a retention number. We report the null and ask for
+            <b>your</b> outcome data. <b>The result you can trust is the one that survived the test.</b></div>
+        </div>
+      </div>
+      <div>
+        <div class="plot reveal" style="--i:2">
+          <div class="eyebrow" style="margin-bottom:16px">Cortical network profile · mean activation</div>
+          <div class="prof" id="prof"></div>
+          <div class="eyebrow" style="margin-top:18px;color:var(--ink3)">│ = whole-cortex baseline · slate = strong · grey = dead zone</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSE -->
+  <section class="act" id="close" data-dot="4" style="min-height:auto">
+    <h2 class="reveal" style="max-width:20ch">A digital fMRI of your ad — with a visible line between <em>proven</em> and <em>guessed</em>.</h2>
+    <div class="reveal" style="--i:1;display:flex;gap:12px;flex-wrap:wrap;margin-top:20px">
+      <span class="pill"><span class="dot"></span> attention · shippable, relative</span>
+      <span class="pill"><span class="dot err"></span> retention · tested, null — needs your data</span>
+      <span class="pill"><span class="dot mut"></span> emotion · off the reliable cortex, never claimed</span>
+    </div>
+    <p class="lede reveal" style="--i:2;margin-top:24px">The model is public. The moat is the validation, the honesty
+      line, and the outcome flywheel — every ad you run makes us sharper, and no one selling an unverifiable
+      "90% accurate" number can follow.</p>
+    <div class="foot reveal" style="--i:3;margin-top:44px">
+      <b>Real run</b> — TRIBE v2 (Algonauts-2025-winning) → predicted fMRI, fsaverage5 · attention = trained TVSum
+      head, pooled across the 5 cuts · profile = per-network mean activation · retention = leave-one-video-out on
+      Mr.HiSum most-replayed. Predicted · within-item · hypothesis-badged.
+    </div>
+  </section>
+</div>
+
+<script>
+const CUTS = [{"id": "v04_30s_urgency_first", "label": "Urgency first", "n_sec": 32, "attn": [-0.1682, -0.1682, -0.1606, -0.1606, -0.148, -0.148, 0.1468, 0.1468, 0.5023, 0.5023, 0.8349, 0.8349, 0.8106, 0.8106, 0.5003, 0.5003, -0.1285, -0.1285, -0.3288, -0.3288, -0.3384, -0.3384, -0.0211, -0.0211, 0.0689, 0.0689, 0.1037, 0.1037, -0.0528, -0.0528, -0.2322, -0.2322], "msg": [0.1593, 0.1743, 0.1709, 0.1646, 0.1582, 0.1538, 0.1544, 0.1613, 0.1668, 0.171, 0.1641, 0.1806, 0.1853, 0.2091, 0.2245, 0.2616, 0.3095, 0.3229, 0.3316, 0.3133, 0.3256, 0.2724, 0.2464, 0.2263, 0.2291, 0.2227, 0.2371, 0.2122, 0.2277, 0.2229, 0.2269, 0.2195], "attn_hold": 0.0868, "msg_load": 0.2189, "weak": [], "rank": 1}, {"id": "v02_30s_deal_first", "label": "Deal first", "n_sec": 29, "attn": [-0.0111, -0.0111, -0.0372, -0.0372, -0.0648, -0.0648, -0.0173, -0.0173, 0.1419, 0.1419, -0.0598, -0.0598, -0.4118, -0.4118, -0.6775, -0.6775, -0.1283, -0.1283, 0.1167, 0.1167, 0.5013, 0.5013, 0.7864, 0.7864, 0.63, 0.63, 0.3113, 0.3113, 0.1264], "msg": [0.1266, 0.1394, 0.1406, 0.1803, 0.2012, 0.1804, 0.1861, 0.2488, 0.2086, 0.2174, 0.2532, 0.2774, 0.3337, 0.3276, 0.3473, 0.3624, 0.3018, 0.2734, 0.2741, 0.2241, 0.2069, 0.1404, 0.118, 0.1061, 0.1103, 0.1249, 0.1207, 0.1661, 0.1443], "attn_hold": 0.0788, "msg_load": 0.2084, "weak": [{"at": 12, "end": 16, "sd": 3.3}], "rank": 2}, {"id": "v03_30s_product_first", "label": "Product first", "n_sec": 29, "attn": [0.2772, 0.2772, 0.5562, 0.5562, 0.3942, 0.3942, 0.2501, 0.2501, 0.2047, 0.2047, -0.1453, -0.1453, -0.4879, -0.4879, -0.8397, -0.8397, -0.3561, -0.3561, -0.0909, -0.0909, 0.3053, 0.3053, 0.6467, 0.6467, 0.4483, 0.4483, -0.0611, -0.0611, -0.212], "msg": [0.2195, 0.2395, 0.2113, 0.2069, 0.1933, 0.1925, 0.1682, 0.1586, 0.2031, 0.2296, 0.2614, 0.3055, 0.3373, 0.3278, 0.3842, 0.3943, 0.3471, 0.3186, 0.2961, 0.2704, 0.2221, 0.1739, 0.1392, 0.1192, 0.1337, 0.1775, 0.1872, 0.2419, 0.2071], "attn_hold": 0.0687, "msg_load": 0.2368, "weak": [{"at": 12, "end": 18, "sd": 2.4}], "rank": 3}, {"id": "v05_30s_weak_open", "label": "Weak open (dry admin copy)", "n_sec": 27, "attn": [-0.0464, -0.0464, -0.0092, -0.0092, -0.0425, -0.0425, -0.1468, -0.1468, -0.009, -0.009, -0.3627, -0.3627, -0.548, -0.548, -0.1506, -0.1506, 0.01, 0.01, 0.2273, 0.2273, 0.4828, 0.4828, 0.3856, 0.3856, 0.0341, 0.0341, -0.0758], "msg": [0.1739, 0.1514, 0.1493, 0.1528, 0.1474, 0.1421, 0.1483, 0.1761, 0.2152, 0.2502, 0.3208, 0.3403, 0.3782, 0.4168, 0.3547, 0.3457, 0.3393, 0.2957, 0.2833, 0.2497, 0.2133, 0.1946, 0.1935, 0.2161, 0.2254, 0.2477, 0.2475], "attn_hold": -0.0158, "msg_load": 0.2433, "weak": [{"at": 10, "end": 14, "sd": 2.6}], "rank": 4}, {"id": "v01_30s_story_hook", "label": "Story-hook first", "n_sec": 30, "attn": [-0.0395, -0.0395, -0.2891, -0.2891, -0.1617, -0.1617, 0.2438, 0.2438, 0.4037, 0.4037, 0.6449, 0.6449, 0.6662, 0.6662, 0.3154, 0.3154, -0.3188, -0.3188, -0.7983, -0.7983, -0.9214, -0.9214, -0.8936, -0.8936, -0.7596, -0.7596, -0.5468, -0.5468, -0.7787, -0.7787], "msg": [0.1518, 0.1831, 0.1875, 0.1974, 0.2054, 0.1923, 0.1884, 0.18, 0.2063, 0.1904, 0.1655, 0.1532, 0.1598, 0.1692, 0.1928, 0.221, 0.2626, 0.2833, 0.3088, 0.3287, 0.3233, 0.3178, 0.325, 0.3089, 0.3122, 0.2863, 0.2384, 0.2637, 0.2609, 0.2416], "attn_hold": -0.2156, "msg_load": 0.2335, "weak": [], "rank": 5}];
+const PROFILE = {"rows": [{"net": "language", "value": 0.2764, "strong": true}, {"net": "default-mode", "value": 0.2654, "strong": true}, {"net": "attention", "value": 0.2255, "strong": true}, {"net": "arousal", "value": 0.1551, "strong": false}, {"net": "valence", "value": 0.1217, "strong": false}], "base": 0.1928};         // {rows:[{net,value,strong}], base}
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// ---------- arc plot builder ----------
+function buildPlot(el, cut, {msg=false, big=false, h=0}={}){
+  el._big=big;
+  const A=cut.attn, n=A.length;
+  let lo=Math.min(...A), hi=Math.max(...A);
+  if(msg && cut.msg){ lo=Math.min(lo,...cut.msg); hi=Math.max(hi,...cut.msg); }
+  const pd=(hi-lo)*0.16; lo-=pd; hi+=pd;
+  const W=560,H=h||(big?230:200),PX=10,PY=16;
+  const X=i=>PX+(i/(n-1))*(W-2*PX), Y=v=>H-PY-((v-lo)/(hi-lo))*(H-2*PY);
+  const d=A.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join("");
+  const area=d+`L${X(n-1).toFixed(1)},${(H-PY).toFixed(1)}L${X(0).toFixed(1)},${(H-PY).toFixed(1)}Z`;
+  const zeroY=Y(0);
+  let bands="";
+  (cut.weak||[]).forEach(w=>{
+    const x0=X(w.at),x1=X(Math.min(n-1,w.end));
+    bands+=`<rect class="weakband" x="${x0.toFixed(1)}" y="${PY}" width="${Math.max(2,x1-x0).toFixed(1)}" height="${H-2*PY}"/>`;
+    bands+=`<line class="weakline" x1="${x0.toFixed(1)}" y1="${PY}" x2="${x0.toFixed(1)}" y2="${H-PY}"/>`;
+  });
+  const msgPath = (msg&&cut.msg)? `<path class="arc-msg" d="${cut.msg.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join("")}"/>`:"";
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="attention over time">
+    <line class="zeroline" x1="${PX}" y1="${zeroY.toFixed(1)}" x2="${W-PX}" y2="${zeroY.toFixed(1)}"/>
+    ${bands}
+    <path class="arc-area" d="${area}"/>
+    ${msgPath}
+    <path class="arc-path" d="${d}"/>
+    <line class="playhead" x1="${PX}" y1="${PY}" x2="${PX}" y2="${H-PY}"/>
+    <circle class="phdot" r="0" cx="${PX}" cy="${Y(A[0]).toFixed(1)}"/>
+  </svg>`;
+  // dash setup for draw-on
+  const p=el.querySelector(".arc-path"); const L=p.getTotalLength();
+  p.style.strokeDasharray=L; p.style.strokeDashoffset=RM?0:L;
+  el._geo={X,Y,A,n,W,H,PX,PY,len:L};
+  return el;
+}
+
+function runPlot(el, dur=1600){
+  const g=el._geo; if(!g) return;
+  const p=el.querySelector(".arc-path"), ph=el.querySelector(".playhead"), dot=el.querySelector(".phdot");
+  if(RM){ dot.setAttribute("r","0"); if(el._big) showCallouts(el); return; }
+  p.style.transition=`stroke-dashoffset ${dur}ms cubic-bezier(.4,.5,.2,1)`;
+  requestAnimationFrame(()=>{ p.style.strokeDashoffset=0; });
+  // playhead sweep synced to the draw
+  const svg=el.querySelector("svg"), t0=performance.now();
+  ph.style.opacity=".55"; dot.setAttribute("r","3.4");
+  function step(t){
+    const u=Math.min(1,(t-t0)/dur);
+    const fi=u*(g.n-1), x=g.X(fi);
+    const i=Math.floor(fi), fr=fi-i, y=g.Y(g.A[i]+((g.A[Math.min(i+1,g.n-1)]-g.A[i])*fr));
+    ph.setAttribute("x1",x); ph.setAttribute("x2",x);
+    dot.setAttribute("cx",x); dot.setAttribute("cy",y);
+    if(u<1) requestAnimationFrame(step);
+    else { ph.style.transition="opacity .6s"; ph.style.opacity="0"; if(el._big) showCallouts(el); }
+  }
+  requestAnimationFrame(step);
+}
+
+function showCallouts(el){
+  const cut=el._cut; if(!cut||!cut.weak) return;
+  const g=el._geo, rect=el.getBoundingClientRect(), svg=el.querySelector("svg");
+  const sr=svg.getBoundingClientRect();
+  cut.weak.forEach(w=>{
+    const px = sr.left-rect.left + (g.X(w.at)/g.W)*sr.width;
+    const py = sr.top-rect.top + (g.Y(g.A[w.at])/g.H)*sr.height;
+    const c=document.createElement("div"); c.className="callout";
+    c.textContent=`attention drops · ${mmss(w.at)} · ${w.sd} SD`;
+    c.style.left=px+"px"; c.style.top=(py-40)+"px"; c.style.transform="translateX(-50%)";
+    el.appendChild(c); requestAnimationFrame(()=>c.classList.add("show"));
+  });
+}
+const mmss=s=>{s=Math.round(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
+
+// ---------- build content ----------
+const byRank=[...CUTS].sort((a,b)=>a.rank-b.rank);
+const hero = CUTS.find(c=>c.id==="v02_30s_deal_first")||byRank[0];
+const heroEl=document.getElementById("heroPlot"); heroEl._cut=hero; buildPlot(heroEl,hero,{msg:true,big:true});
+const a1El=document.getElementById("act1Plot"); a1El._cut=hero; buildPlot(a1El,hero,{big:true});
+
+// ranking rows
+const holds=CUTS.map(c=>c.attn_hold), hmin=Math.min(...holds), hmax=Math.max(...holds);
+const DESC={v04_30s_urgency_first:"Scarcity → deal → CTA",v02_30s_deal_first:"Offer before the story",
+  v03_30s_product_first:"Product-led open",v05_30s_weak_open:"Dry admin, then hook",v01_30s_story_hook:"The slow narrative open"};
+document.getElementById("board").innerHTML=byRank.map(c=>{
+  const cls=c.rank===1?"win":(c.rank===byRank.length?"lose":"");
+  const w=((c.attn_hold-hmin)/(hmax-hmin)*100).toFixed(0);
+  const chip=(c.weak&&c.weak.length)?`<span class="rchip">▼ ${mmss(c.weak[0].at)}</span>`:`<span class="rchip none">clean</span>`;
+  return `<div class="rrow ${cls}">
+    <div class="rrank tnum">${c.rank}</div>
+    <div class="rname">${c.label.replace(/^v\d+ /,'')}<small>${DESC[c.id]||""}</small></div>
+    <div class="rtrace" data-arc='${c.rank}'></div>
+    <div class="rmet"><div class="rhold">${c.attn_hold>=0?"+":""}${c.attn_hold.toFixed(3)}</div>
+      <div class="rbar" style="--w:${Math.max(4,w)}%"><i></i></div>${chip}</div>
+  </div>`;
+}).join("");
+// mini traces in each row
+document.querySelectorAll(".rtrace").forEach(el=>{
+  const c=byRank[+el.dataset.arc-1]; el._cut=c; buildPlot(el,c,{h:52});
+  const p=el.querySelector(".arc-path"); p.style.strokeWidth="1.8";
+});
+
+// profile rows
+document.getElementById("prof").innerHTML=PROFILE.rows.map((p,i)=>{
+  const max=Math.max(...PROFILE.rows.map(r=>r.value),PROFILE.base)*1.08;
+  return `<div class="prow" style="--i:${i}">
+    <div class="plab">${p.net}${p.strong?"":' <span class="dead">dead</span>'}</div>
+    <div class="ptrack" style="--w:${(p.value/max*100).toFixed(1)}%">
+      <i style="background:${p.strong?'var(--accent)':'var(--ink3)'}"></i>
+      <span class="pbase" style="left:${(PROFILE.base/max*100).toFixed(1)}%"></span></div>
+    <div class="pval tnum">${p.value.toFixed(3)}</div>
+  </div>`;
+}).join("");
+
+// count-up
+function countUp(el){
+  const target=+el.dataset.count, time=el.dataset.time, pre=el.dataset.prefix||"", suf=el.dataset.suffix||"";
+  const fmtv=v=>time?mmss(v):pre+Math.round(v)+suf;
+  if(RM){ el.textContent=fmtv(target); return; }
+  const t0=performance.now(), dur=1100;
+  (function tick(t){const u=Math.min(1,(t-t0)/dur);const e=1-Math.pow(1-u,3);
+    el.textContent=fmtv(target*e); if(u<1)requestAnimationFrame(tick);})(performance.now());
+}
+
+// ---------- observers ----------
+const seen=new Set();
+const io=new IntersectionObserver((ents)=>{
+  ents.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add("in");
+      const id=e.target.id;
+      if(!seen.has(id)){
+        seen.add(id);
+        if(id==="cold") setTimeout(()=>runPlot(heroEl,1900),500);
+        if(id==="a1"){ setTimeout(()=>runPlot(a1El,1700),250);
+          e.target.querySelectorAll("[data-count]").forEach(el=>setTimeout(()=>countUp(el),650)); }
+        if(id==="a2") document.querySelectorAll(".rtrace").forEach((el,k)=>setTimeout(()=>runPlot(el,900),300+k*160));
+      }
+      // nav dots
+      const dot=e.target.dataset.dot;
+      document.querySelectorAll(".navdots a").forEach((a,k)=>a.classList.toggle("on",String(k)===dot));
+    }
+  });
+},{threshold:0.35});
+document.querySelectorAll(".act").forEach(s=>io.observe(s));
+</script>

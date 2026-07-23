@@ -27,6 +27,7 @@ import BrainSvg, { type BrainHandle } from "./BrainSvg";
 import Transport from "./Transport";
 import Picker, { VIDEOS, isSample, type VideoItem } from "./Picker";
 import Compare from "./Compare";
+import CorticalProfile from "./CorticalProfile";
 import { loadArc, mergeLiveArcs } from "./live";
 
 type LaneBadge = { text: string; color: string } | null;
@@ -390,12 +391,20 @@ export default function DemoConsole() {
           <Link href="/" className="text-wordmark text-ink hover:text-ink">
             soma
           </Link>
-          <Link
-            href="/"
-            className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
-          >
-            ← back to home
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link
+              href="/story"
+              className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
+            >
+              result walkthrough ↗
+            </Link>
+            <Link
+              href="/"
+              className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-3 transition-colors hover:text-ink"
+            >
+              ← back to home
+            </Link>
+          </div>
         </header>
 
         {/* console */}
@@ -449,6 +458,7 @@ export default function DemoConsole() {
                     Whole-cortex activation magnitude · average viewer · normalized 0&ndash;1 · 1&nbsp;Hz.
                   </div>
                 </div>
+                {!failed && arc?.roi_profile ? <CorticalProfile arc={arc} /> : null}
               </div>
 
               {/* lanes */}
