@@ -38,13 +38,20 @@ import * as THREE from "three";
 // scrolling jumps the firing/tumble further ahead per unit of scroll. Landing feeds ~1 unit of
 // progress per vigorous scroll gesture, so this is roughly "seconds of phase per full scroll".
 const SCROLL_GAIN = 3.5;
-// Idle advance: seconds of phase per real second when nobody scrolls (keeps it alive).
-const IDLE_RATE = 1.0;
+// Idle advance: seconds of phase per real second when nobody scrolls. Kept LOW so very little
+// happens without scrolling — the cortex is mostly calm at rest and comes alive as you scroll.
+const IDLE_RATE = 0.32;
 // dt-damping rate (1/sec) applied to the scroll accumulator so scrubbing glides, never snaps.
 const SCROLL_DAMP = 6;
 // Lab-mode (no progressRef) input gains — mirror Landing's own accumulator.
 const WHEEL_GAIN = 0.0007;
 const TOUCH_GAIN = 0.0018;
+// Direct per-axis rotation added by scroll (radians per unit of accumulated scroll), so every
+// scroll also tumbles the cortex a little in ALL THREE dimensions, accumulating as you go.
+// Different per-axis gains → it tumbles in 3D rather than spinning about one axis. Tune freely.
+const SCROLL_ROT_X = 0.5;
+const SCROLL_ROT_Y = 0.45;
+const SCROLL_ROT_Z = 0.85;
 
 // ── FIRING (dominant) ──────────────────────────────────────────────────────────────────────
 const NSEED = 3;
@@ -64,6 +71,13 @@ const FIRE_GAIN_MIN = 0.6; //   firing loudness floor (still dominant at its qui
 const FIRE_GAIN_MAX = 1.0; //   firing loudness peak
 const BREATH_GAIN_MIN = 0.25; // breathing floor
 const BREATH_GAIN_MAX = 0.5; //  breathing lift when firing eases back (still under the firing)
+
+// ── COLOUR (firing sweeps through the spectrum) ────────────────────────────────────────────
+// The firing colour is a muted HSV rainbow: hue varies smoothly around the cortex (azimuth), so
+// travelling wavefronts sweep through the spectrum, and the whole wheel turns slowly with phase.
+const HUE_RATE = 0.05; // spectrum turns per unit of phase (slow → idle stays calm)
+const FIRE_SAT = 0.52; // muted saturation — a soft spectrum on white, never neon
+const FIRE_VAL = 0.72; // sub-white value so source-over never clips
 
 // ── DRIFT (slow organic multi-axis tumble) ─────────────────────────────────────────────────
 const BASE_TILT = -0.12;
@@ -112,12 +126,15 @@ const VERT = /* glsl */ `
   uniform float uSizeScale;
   uniform float uPixelRatio;
   attribute float aRand;
+  attribute float aHue;
   varying float vFire;
   varying float vBreath;
   varying float vRand;
+  varying float vHue;
 
   void main() {
     vRand = aRand;
+    vHue = aHue;
 
     // Firing = the strongest single wavefront touching this point (max, not sum → bounded by 1,
     // so overlapping fronts can never pile up into a blown-out core). Scaled by the mood gain.
@@ -155,14 +172,22 @@ const VERT = /* glsl */ `
 
 const FRAG = /* glsl */ `
   precision highp float;
-  uniform vec3 uAccent;
   uniform vec3 uBreathCol;
   uniform vec3 uGrey;
   uniform float uBaseAlpha;
   uniform float uFireAlpha;
+  uniform float uHueBase;
+  uniform float uSat;
+  uniform float uVal;
   varying float vFire;
   varying float vBreath;
   varying float vRand;
+  varying float vHue;
+
+  vec3 hsv2rgb(vec3 c) {
+    vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0);
+    return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+  }
 
   void main() {
     // Round, soft point sprite.
@@ -175,7 +200,9 @@ const FRAG = /* glsl */ `
     // tints strongly on top. All targets are sub-white, so source-over never clips to white.
     vec3 base = uGrey * mix(0.92, 1.06, vRand);
     vec3 col = mix(base, uBreathCol, vBreath * 0.6);
-    col = mix(col, uAccent, vFire);
+    // Firing tints toward a muted spectrum colour whose hue sweeps around the cortex.
+    vec3 fireCol = hsv2rgb(vec3(fract(uHueBase + vHue), uSat, uVal));
+    col = mix(col, fireCol, vFire);
 
     // Firing dominates the alpha lift; breathing contributes only a gentle rise.
     float act = max(vFire, vBreath * 0.5);
@@ -291,7 +318,9 @@ export default function BrainField({
       // Colours authored as literal sRGB values (numeric Color ctor = no colour-management
       // conversion), so what the shader writes is what the sRGB framebuffer shows.
       uGrey: { value: new THREE.Color(0.62, 0.62, 0.63) },
-      uAccent: { value: new THREE.Color(0.4, 0.46, 0.78) }, // muted indigo/slate (firing)
+      uHueBase: { value: 0 }, // rotating base hue for the firing spectrum (advanced by phase)
+      uSat: { value: FIRE_SAT },
+      uVal: { value: FIRE_VAL },
       uBreathCol: { value: new THREE.Color(0.42, 0.52, 0.58) }, // quieter dusty teal (breathing)
       uBaseAlpha: { value: 0.62 },
       uFireAlpha: { value: 0.9 },
@@ -325,6 +354,14 @@ export default function BrainField({
       const rand = new Float32Array(vCount);
       for (let i = 0; i < vCount; i++) rand[i] = Math.random();
       geo.setAttribute("aRand", new THREE.BufferAttribute(rand, 1));
+
+      // Per-point hue for the firing spectrum: azimuth around the vertical (+z) axis, 0..1, so the
+      // firing colour sweeps smoothly through the spectrum around the cortex as wavefronts travel.
+      const hue = new Float32Array(vCount);
+      for (let i = 0; i < vCount; i++) {
+        hue[i] = Math.atan2(pos[i * 3], -pos[i * 3 + 1]) / (Math.PI * 2) + 0.5;
+      }
+      geo.setAttribute("aHue", new THREE.BufferAttribute(hue, 1));
 
       // Scale ripple travel + shell thickness to the actual cortex size.
       geo.computeBoundingSphere();
@@ -388,11 +425,13 @@ export default function BrainField({
       }
     }
 
-    // Slow organic multi-axis tumble — summed incommensurate sines, never a plain single spin.
-    function updatePose(phase: number) {
-      rotator.rotation.x = BASE_TILT + driftAngle(DRIFT_X, phase);
-      rotator.rotation.y = driftAngle(DRIFT_Y, phase);
-      rotator.rotation.z = driftAngle(DRIFT_Z, phase);
+    // Slow organic multi-axis tumble (summed incommensurate sines) PLUS a direct accumulating
+    // tumble driven by scroll on all three axes (different gains → real 3D rotation), so every
+    // scroll visibly rotates the cortex a little; idle leaves this term constant (no idle spin).
+    function updatePose(phase: number, scroll: number) {
+      rotator.rotation.x = BASE_TILT + driftAngle(DRIFT_X, phase) + scroll * SCROLL_ROT_X;
+      rotator.rotation.y = driftAngle(DRIFT_Y, phase) + scroll * SCROLL_ROT_Y;
+      rotator.rotation.z = driftAngle(DRIFT_Z, phase) + scroll * SCROLL_ROT_Z;
     }
 
     // Mood macro cycle (driven by the steady idle clock so the two moods swing predictably):
@@ -415,9 +454,10 @@ export default function BrainField({
       // A calm, representative frame for prefers-reduced-motion.
       uniforms.uFireGain.value = 0.85;
       uniforms.uBreathGain.value = 0.4;
+      uniforms.uHueBase.value = STATIC_PHASE * HUE_RATE;
       updateSeeds(STATIC_PHASE);
       updateBreath(STATIC_PHASE);
-      updatePose(STATIC_PHASE);
+      updatePose(STATIC_PHASE, 0);
       renderer.render(scene, camera);
     }
 
@@ -447,7 +487,8 @@ export default function BrainField({
       const phase = effectivePhase();
       updateSeeds(phase);
       updateBreath(phase);
-      updatePose(phase);
+      updatePose(phase, smoothedScroll);
+      uniforms.uHueBase.value = phase * HUE_RATE;
       updateMood(tAccum);
       renderer.render(scene, camera);
     }
