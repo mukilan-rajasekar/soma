@@ -518,8 +518,8 @@ export default function BrainField() {
       const dy = e.clientY - lastY;
       lastX = e.clientX;
       lastY = e.clientY;
-      tgtYaw -= dx * DRAG_GAIN; // reversed to match scroll
-      tgtPitch += dy * DRAG_GAIN; // reversed + unclamped to match scroll (never-ending pitch)
+      tgtYaw += dx * DRAG_GAIN; // drag: original direction (independent of the reversed scroll)
+      tgtPitch -= dy * DRAG_GAIN; // drag: original direction; unclamped → never-ending pitch
     };
     const endDrag = (e: PointerEvent) => {
       dragging = false;
