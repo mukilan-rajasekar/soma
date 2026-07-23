@@ -75,7 +75,9 @@ const DRAG_GAIN = 0.0018;
 // Clamp per wheel event so one trackpad momentum spike can't jump a whole region.
 const MAX_EVENT_DELTA = 100;
 // Ease rate (1/sec) chasing the scroll target — the glide that makes the tour feel scrubbed, not cut.
-const TOUR_DAMP = 5.5;
+// Lower = a longer, softer glide after your fingers stop, so the pose eases into rest instead of
+// arriving abruptly. Pairs with the quintic pose ease for an overall smoother settle.
+const TOUR_DAMP = 4.0;
 
 // Pinch (ctrl+wheel) delta → world units of camera dolly. Higher = pinch zooms faster.
 const ZOOM_GAIN = 0.012;
@@ -282,6 +284,14 @@ function clamp01(x: number) {
 function smoothstep01(t: number) {
   t = clamp01(t);
   return t * t * (3 - 2 * t);
+}
+
+// Quintic ease (Perlin's smootherstep): 6t⁵−15t⁴+10t³. Like smoothstep but with zero SECOND
+// derivative at both ends too, so acceleration — not just velocity — is continuous across a stop.
+// That removes the little snap you feel each time the tour settles on / leaves a region.
+function smootherstep01(t: number) {
+  t = clamp01(t);
+  return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 // Narrow, periodic, C1 raised-cosine bump: 1 at phase 0, smoothly to 0 by ±PULSE_WIDTH.
@@ -520,10 +530,10 @@ export default function BrainField() {
     function applyTour(p: number) {
       const f = clamp01(p) * (N_STOPS - 1);
       const i = Math.min(Math.floor(f), N_STOPS - 2);
-      const t = smoothstep01(f - i);
+      const t = smootherstep01(f - i);
       const acts = uniforms.uTourAct.value;
       for (let r = 0; r < NTOUR; r++) {
-        acts[r] = smoothstep01(1 - Math.abs(f - (r + 1)));
+        acts[r] = smootherstep01(1 - Math.abs(f - (r + 1)));
       }
       return {
         rotZ: lerp(STOPS[i].rotZ, STOPS[i + 1].rotZ, t),
