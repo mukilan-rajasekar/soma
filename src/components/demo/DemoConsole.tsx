@@ -57,24 +57,45 @@ function deriveReadout(arc: Arc): Readout {
   const lang = lit.find((p) => /language/i.test(p.net));
 
   const takeaways: Takeaway[] = [
-    { n: "01", title: "Attention builds to a peak.", body: "Highest at " + peak + " — where the ad holds best." },
+    { n: "", title: "Attention builds to a peak.", body: "Highest at " + peak + " — where the ad holds best." },
   ];
   const w = (arc.weak_spots || [])[0];
   if (w) {
     takeaways.push({
-      n: "02",
+      n: "",
       title: "Soft open.",
       body: "Weakest from " + fmt(w.start) + " to " + fmt(w.end) + " — re-cut here first.",
     });
   }
   if (att && lang) {
     takeaways.push({
-      n: "03",
+      n: "",
       title: "A rational sell.",
       body: "Attention and language lead — it works on focus and message.",
     });
   }
-  return { takeaways };
+  // Purchase intent — say what the number is, then read this ad's result off its arc.
+  const pi = arc.readout?.purchase_intent;
+  if (Array.isArray(pi) && pi.length) {
+    const q = Math.max(1, Math.round(pi.length * 0.25));
+    const endLean = pi.slice(-q).reduce((s, v) => s + v, 0) / q;
+    const crossIdx = pi.findIndex((v) => v > 0.02);
+    const when = crossIdx > 0 ? fmt(arc.timestamps?.[crossIdx] ?? crossIdx) : null;
+    const result =
+      endLean > 0.05
+        ? "Here it" + (when ? " swings positive around " + when + " and" : "") + " ends leaning toward buying."
+        : endLean < -0.05
+          ? "Here it never swings positive — this cut informs more than it sells."
+          : "Here it holds near neutral — no strong buy-lean either way.";
+    takeaways.push({
+      n: "",
+      title: "Purchase intent = the buy-signal.",
+      body:
+        "The brain's value response — a positive number means the ad is building a reason to buy, negative means it isn't yet. " +
+        result,
+    });
+  }
+  return { takeaways: takeaways.map((t, i) => ({ ...t, n: String(i + 1).padStart(2, "0") })) };
 }
 
 // Boot on the REAL welding-ad run (honesty: never default to a synthetic/illustrative
@@ -203,15 +224,22 @@ export default function DemoConsole() {
     data._baseline = data.baseline && Array.isArray(data.baseline.activation) ? data.baseline.activation : null;
     arcRef.current = data;
     const ts = data.timestamps || [];
-    durationRef.current = data.duration_sec || ts[ts.length - 1] || 0;
+    // The lanes are plotted over the TIMESTAMP domain [ts0 .. tsN-1] and the playhead +
+    // current-sample dot are positioned off the SAME `duration`. duration_sec is the
+    // sample COUNT (one more than the last timestamp at 1 Hz), so using it would ride the
+    // dot slightly off the line and let the playhead run a full step past the line's end.
+    // The transport domain therefore IS the timestamp span (also closer to the true clip
+    // length than the rounded-up sample count).
+    const span = ts.length > 1 ? ts[ts.length - 1] - ts[0] : 0;
+    durationRef.current = span || data.duration_sec || ts[ts.length - 1] || 0;
     statsRef.current = computeStats(data);
     setupVideo(data);
     failedRef.current = false;
     setFailed(false);
     setArc(data);
-    if (typeof data.duration_sec === "number") {
-      const d = data.duration_sec;
-      setDurations((prev) => ({ ...prev, [item.id]: d }));
+    const badge = span || data.duration_sec;
+    if (typeof badge === "number" && badge > 0) {
+      setDurations((prev) => ({ ...prev, [item.id]: badge }));
     }
   };
 

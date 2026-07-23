@@ -14,7 +14,7 @@ type LaneSpec = {
 const LANES: LaneSpec[] = [
   { key: "comprehension", label: "Comprehension", blurb: "how hard the language system works — is the message landing" },
   { key: "recall", label: "Recall", blurb: "cortical encoding — what viewers are likely to remember" },
-  { key: "purchase_intent", label: "Purchase intent", blurb: "the cortical value signal — the buy-lean", signed: true },
+  { key: "purchase_intent", label: "Purchase intent", blurb: "the brain's value signal — a positive lean means it's building a reason to buy", signed: true },
 ];
 
 function mean(a: number[]): number {
