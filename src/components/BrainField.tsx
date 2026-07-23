@@ -21,13 +21,14 @@ import * as THREE from "three";
  *   MOOD      — a slow macro cycle eases the emphasis between loud firing and calmer breathing
  *               and back (firing dominant overall).
  *
- * INTERACTION — BrainField OWNS all input (its own window/canvas listeners):
- *   · Two-finger trackpad SCROLL (wheel, no ctrlKey) → orbit: deltaX yaws, deltaY pitches.
+ * INTERACTION — scroll scrubs the FLOW, it does not orbit the model (BrainField owns all input):
+ *   · Two-finger trackpad SCROLL (wheel, no ctrlKey) → scrub the flow timeline forward / back:
+ *     the colour sweeps the spectrum, the firing pulses advance, and the cortex gently rotates,
+ *     all coupled. Input injects VELOCITY; friction glides it to rest (fluid, never janky).
+ *   · POINTER DRAG (mouse / single-finger touch) → scrub the same flow 1:1, with a release fling.
  *   · PINCH (ctrl+wheel on Mac trackpad; two-finger distance on touch) → camera DOLLY zoom.
- *   · POINTER DRAG (mouse drag / single-finger touch) → orbit: dx yaws, dy pitches.
- *   Yaw AND pitch are free turntables about their axes — both never-ending (up/down flips right
- *   zoom is clamped. Everything is DAMPED + framerate-independent, and the cortex STAYS exactly
- *   where the user leaves it (no auto drift / no scroll-scrub) — that's the point of "controllable".
+ *   At idle the scrub holds (no yaw drift) but the cortex gently NODS top-bottom for life; that
+ *   nod resets to level the moment you scroll again. A slow baseline keeps the pulse + colour alive.
  *
  * HARD visual rules: NO post-processing (no EffectComposer / UnrealBloom), NO dark stage /
  * vignette. Transparent canvas over the pure-white page (alpha:true, clearAlpha 0). Glow reads
@@ -35,12 +36,37 @@ import * as THREE from "three";
  * additive, never a blown-out white core. Camera / scale / placement reuse Brain.tsx.
  */
 
-// ── INTERACTION (tune these; signs are trivially flippable) ─────────────────────────────────
-// Wheel (two-finger trackpad scroll) delta → radians of orbit. Flip the += / -= below (or this
-// sign) to reverse a direction if it reads inverted on your hardware.
-const ROT_GAIN = 0.005;
-// Pointer-drag pixels → radians of orbit (mouse drag AND single-finger touch).
-const DRAG_GAIN = 0.008;
+// ── INTERACTION — scroll scrubs the FLOW, it does not orbit the model ────────────────────────
+// The wheel (and drag) don't grab the cortex — they scrub a living TIMELINE. Advancing the flow
+// sweeps the colour through the spectrum, pushes the firing pulses along, AND gently rotates the
+// cortex, all coupled together. Input injects VELOCITY into the scrub and friction bleeds it off,
+// so the flow surges then glides to rest — fluid, never janky (trackpad deltas arrive noisy +
+// quantised + with a momentum tail; here they only nudge a velocity that's always smoothed). At
+// idle the scrub holds still (no drift); a slow baseline keeps the pulse + colour quietly alive.
+
+// Wheel (two-finger trackpad scroll) → flow-seconds/sec of scrub velocity injected per px of delta.
+const SCROLL_IMPULSE = 0.02;
+// Pointer-drag pixels → flow-seconds of scrub, applied 1:1 while dragging.
+const DRAG_SCRUB = 0.01;
+// Friction (1/sec): how fast injected scrub velocity bleeds off. Higher = settles sooner.
+const FRICTION = 5.0;
+// Hard cap on scrub speed (flow-seconds/sec) so a violent flick can't blur the whole piece.
+const MAX_VEL = 4.5;
+// Clamp per wheel event so one momentum spike / mouse-wheel notch can't over-inject.
+const MAX_EVENT_DELTA = 100;
+// Radians of cortex rotation per flow-second of scrub — how tightly the spin tracks the flow.
+const YAW_PER_SCRUB = 0.35;
+
+// ── IDLE PITCH NOD (top-bottom life when you're not scrolling; resets the moment you do) ──────
+// Yaw holds at idle, but pitch gently nods so the cortex still feels alive. It fades in after a
+// short stillness and snaps back to level as soon as you scroll / drag again.
+const IDLE_NOD_AMP = 0.22; //   radians (~13°) of peak top-bottom nod
+const IDLE_NOD_W1 = 0.483; //   rad/sec — slow wander component A (~13s period)
+const IDLE_NOD_W2 = 0.739; //   rad/sec — slow wander component B (~8.5s, incommensurate → no loop)
+const IDLE_NOD_DELAY = 0.7; //  seconds of stillness before the nod begins fading in
+const IDLE_ONSET_RATE = 0.7; // ease rate (1/sec) fading the nod IN  (gentle)
+const IDLE_RESET_RATE = 7.0; // ease rate (1/sec) fading the nod OUT (quick reset on scroll)
+
 // Pinch (ctrl+wheel) delta → world units of camera dolly. Higher = pinch zooms faster.
 const ZOOM_GAIN = 0.012;
 // Two-finger TOUCH pinch: pixels of finger-spread → world units of dolly (mobile only).
@@ -48,7 +74,7 @@ const PINCH_GAIN = 0.01;
 // Camera dolly clamp (distance from the lookAt target). Smaller = closer = bigger cortex.
 const ZOOM_MIN = 1.6; // closest the camera may dolly in
 const ZOOM_MAX = 4.6; // furthest the camera may dolly out
-// Ease rate (1/sec) for current → target on yaw/pitch/zoom. Higher = snappier, lower = floatier.
+// Ease rate (1/sec) for current → target ZOOM (zoom stays position-eased; scrub is velocity-driven).
 const DAMP = 9;
 
 // ── FIRING (dominant) ──────────────────────────────────────────────────────────────────────
@@ -319,16 +345,21 @@ export default function BrainField() {
     const geo = new THREE.BufferGeometry();
     let mat: THREE.ShaderMaterial | null = null;
 
-    // ── User-controlled orientation + zoom: damped current → target each frame ──
-    let curYaw = 0;
-    let tgtYaw = 0;
-    let curPitch = 0;
-    let tgtPitch = 0;
+    // ── Scroll-driven flow: a scrub timeline with inertia + eased zoom ──
+    // `scrub` is your position on the flow timeline (a slow idle baseline is added on top each
+    // frame). Input injects velocity into it; friction bleeds off. Rotation, hue and pulse all read
+    // the resulting flow, so scrolling sweeps them together — it is not a camera orbit.
+    let scrub = 0;
+    let scrubVel = 0; // flow-seconds per second, friction-decayed
+    let idleTime = 0; // seconds since the last scroll / drag (drives the idle pitch nod)
+    let idlePitchGain = 0; // eased 0..1 envelope for the nod (0 while you interact, 1 when idle)
+    const pitchPhase = Math.random() * 100; // per-load phase so the nod isn't identical every visit
     let curZoom = BASE_DIST;
     let tgtZoom = BASE_DIST;
 
     const clampZoom = (v: number) =>
       Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, v));
+    const clampVel = (v: number) => Math.max(-MAX_VEL, Math.min(MAX_VEL, v));
 
     (async () => {
       const [pos, idx] = await Promise.all([
@@ -452,25 +483,44 @@ export default function BrainField() {
       const dt = Math.min(clock.getDelta(), 0.05); // clamp tab-switch spikes → dt-smoothed
       tAccum += dt;
 
-      // Ease current → target (framerate-independent) so all input glides, never snaps.
-      const k = 1 - Math.exp(-dt * DAMP);
-      curYaw += (tgtYaw - curYaw) * k;
-      curPitch += (tgtPitch - curPitch) * k;
-      curZoom += (tgtZoom - curZoom) * k;
+      // Integrate the scrub flywheel: velocity advances the flow, friction bleeds it off (both
+      // framerate-independent). While dragging we freeze this and drive scrub directly so the
+      // finger stays glued; release hands the drag's velocity back for a fling.
+      if (!dragging) {
+        scrub += scrubVel * dt;
+        scrubVel *= Math.exp(-dt * FRICTION);
+      }
+      // Zoom eases toward its target (position control — smooth + precise for a dolly).
+      curZoom += (tgtZoom - curZoom) * (1 - Math.exp(-dt * DAMP));
 
-      // Direct orientation: free turntable yaw about +z, clamped tilt about x.
-      rotator.rotation.z = curYaw;
-      rotator.rotation.x = BASE_TILT + curPitch;
+      // The master flow = a slow idle baseline (keeps the pulse + colour quietly alive) plus your
+      // scrub. Colour, pulse AND rotation all read it, so scrolling sweeps them together.
+      const flow = tAccum + scrub;
+      const phase = flow * IDLE_RATE;
+      updateSeeds(phase);
+      updateBreath(phase);
+      updateMood(tAccum); // mood balance stays steady (independent of scrub) so gains don't jump
+
+      // ONE hue for all firing points, swept through the spectrum by the flow.
+      uniforms.uHueBase.value = flow * HUE_RATE;
+
+      // Idle pitch nod: fades in after a beat of stillness, snaps back to level the moment you
+      // scroll (idleTime is reset to 0 in the input handlers). A slow two-sine wander reads "random".
+      idleTime += dt;
+      const nodTarget = idleTime > IDLE_NOD_DELAY ? 1 : 0;
+      const nodRate = nodTarget < idlePitchGain ? IDLE_RESET_RATE : IDLE_ONSET_RATE;
+      idlePitchGain += (nodTarget - idlePitchGain) * (1 - Math.exp(-dt * nodRate));
+      const nod =
+        Math.sin((tAccum + pitchPhase) * IDLE_NOD_W1) * 0.6 +
+        Math.sin((tAccum + pitchPhase) * IDLE_NOD_W2 + 1.3) * 0.4;
+
+      // Rotation is COUPLED to the scrub (not a free orbit): the cortex turns as the flow moves.
+      // At idle scrub holds → yaw rests where you left it; scroll advances flow → it rotates along.
+      rotator.rotation.z = scrub * YAW_PER_SCRUB;
+      rotator.rotation.x = BASE_TILT + idlePitchGain * IDLE_NOD_AMP * nod;
       // Dolly the camera along its fixed sight-line: smaller distance = closer = bigger cortex.
       camera.position.copy(LOOK).addScaledVector(camDir, curZoom);
 
-      // Firing self-animates at the calm idle rate; the geometry only moves when the user does.
-      const phase = tAccum * IDLE_RATE;
-      updateSeeds(phase);
-      updateBreath(phase);
-      updateMood(tAccum);
-      // ONE hue for all firing points, cycled steadily through the spectrum by the wall clock.
-      uniforms.uHueBase.value = tAccum * HUE_RATE;
       renderer.render(scene, camera);
     }
 
@@ -487,26 +537,41 @@ export default function BrainField() {
     // ── Direct-manipulation input (BrainField owns it all) ──────────────────────────────────
     // Two-finger trackpad scroll rotates; Mac pinch (ctrl+wheel) dollies. preventDefault the
     // wheel — the hero is a fixed full-screen page, so there is no page scroll to lose.
+    const normDelta = (d: number, mode: number) => {
+      // Normalise wheel units to pixels (Firefox mouse wheels report lines / pages), then clamp so
+      // one momentum spike or mouse-wheel notch can't over-inject scrub.
+      const px = mode === 1 ? d * 16 : mode === 2 ? d * window.innerHeight : d;
+      return Math.max(-MAX_EVENT_DELTA, Math.min(MAX_EVENT_DELTA, px));
+    };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      idleTime = 0; // any wheel input (scroll or pinch) resets the idle nod back to level
       if (e.ctrlKey) {
         // Pinch: trackpad pinch-out emits deltaY<0 → dolly closer (zoom in); pinch-in zooms out.
         tgtZoom = clampZoom(tgtZoom + e.deltaY * ZOOM_GAIN);
       } else {
-        // Orbit (reversed): horizontal → yaw, vertical → pitch. Pitch is UNclamped → never-ending.
-        tgtYaw -= e.deltaX * ROT_GAIN;
-        tgtPitch += e.deltaY * ROT_GAIN;
+        // Scroll scrubs the flow: vertical is primary, horizontal adds in. Scroll-down pushes the
+        // flow forward (colour + pulse advance, cortex rotates along). Sign is trivially flippable.
+        const d = normDelta(e.deltaY, e.deltaMode) + normDelta(e.deltaX, e.deltaMode);
+        scrubVel = clampVel(scrubVel + d * SCROLL_IMPULSE);
       }
     };
 
-    // Pointer drag = mouse drag AND single-finger touch (pointer events unify both).
+    // Pointer drag = mouse drag AND single-finger touch (pointer events unify both). Dragging
+    // scrubs the same flow 1:1 and estimates a release velocity, so a flick keeps the flow gliding.
     let dragging = false;
     let lastX = 0;
     let lastY = 0;
+    let lastMoveT = 0;
+    let dragScrubVel = 0;
     const onPointerDown = (e: PointerEvent) => {
       dragging = true;
       lastX = e.clientX;
       lastY = e.clientY;
+      lastMoveT = e.timeStamp;
+      idleTime = 0; // grabbing counts as interaction → reset the idle nod
+      scrubVel = 0; // stop any coasting so the grab is precise
+      dragScrubVel = 0;
       try {
         canvas.setPointerCapture(e.pointerId);
       } catch {}
@@ -514,14 +579,20 @@ export default function BrainField() {
     };
     const onPointerMove = (e: PointerEvent) => {
       if (!dragging) return;
+      idleTime = 0; // sustained drag keeps the nod suppressed
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
       lastX = e.clientX;
       lastY = e.clientY;
-      tgtYaw += dx * DRAG_GAIN; // drag: original direction (independent of the reversed scroll)
-      tgtPitch -= dy * DRAG_GAIN; // drag: original direction; unclamped → never-ending pitch
+      // Drag right / up pushes the flow forward (one coherent scrub gesture, both axes projected).
+      const ds = (dx - dy) * DRAG_SCRUB;
+      scrub += ds; // 1:1 while held
+      const mdt = Math.max((e.timeStamp - lastMoveT) / 1000, 1 / 240);
+      lastMoveT = e.timeStamp;
+      dragScrubVel = dragScrubVel * 0.7 + (ds / mdt) * 0.3; // smoothed release velocity
     };
     const endDrag = (e: PointerEvent) => {
+      if (dragging) scrubVel = clampVel(dragScrubVel); // fling: hand momentum to the flywheel
       dragging = false;
       try {
         canvas.releasePointerCapture(e.pointerId);
@@ -546,6 +617,7 @@ export default function BrainField() {
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2 && pinchDist != null) {
         e.preventDefault();
+        idleTime = 0; // two-finger pinch is interaction → reset the idle nod
         const d = touchDist(e);
         // Fingers apart (d grows) → dolly closer (zoom in); pinch together → zoom out.
         tgtZoom = clampZoom(tgtZoom - (d - pinchDist) * PINCH_GAIN);
