@@ -28,8 +28,8 @@ const TABS: {
     id: "fusion",
     label: "Fusion (hero)",
     caption:
-      "Fusion — the hero brain: point-cloud firing (dominant) with folded-in drift + breathing, scrubbable by scroll.",
-    // No progressRef in the lab → BrainField self-listens to wheel/touch so scroll is testable.
+      "Fusion — the hero brain: point-cloud firing (dominant) with folded-in drift + breathing, on the scroll tour of the cortical regions.",
+    // BrainField self-listens to wheel/touch, so the scroll tour is testable here too.
     Component: () => <BrainField />,
   },
   {
