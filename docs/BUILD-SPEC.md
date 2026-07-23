@@ -22,7 +22,7 @@ and all content pages therefore live on **separate routes**, not appended below 
 |---|---|---|---|
 | `/` | 1, 5 | client hero | Brain hero + waitlist + Upload button. Unchanged shell; Brain rewrite in Phase 5. |
 | `/demo` | 2, 3 | client console | Arc player (brain + 4 lanes + transport + picker), then A/B compare + live Supabase arcs. |
-| `/science` | 4 | **server** | Honesty page: ad_backtest / validation stats hydrated server-side at request time. |
+| `/science` | 4 | **server** | Honesty page. Ships as a **static** server component (metadata + illustrative sparklines); the earlier ad_backtest request-time hydration was reverted — see F.3. |
 | `/compare` | 4 | server + client island | Marketing comparison page (soma vs survey/panel testing). Distinct from the `/demo` A/B canvas. |
 | `/faq` | 4 | server | FAQ with `FAQPage` JSON-LD. |
 | `/pitch` | 4 | server | Investor/pitch narrative page. |
@@ -877,17 +877,20 @@ All are **Server Components** (export `metadata`); push any interactivity into s
 | File | Purpose |
 |---|---|
 | `src/app/(site)/layout.tsx` | Scroll wrapper `<main className="fixed inset-0 overflow-y-auto bg-white">{children}</main>` so these routes scroll despite the global `overflow:hidden`. Shared top nav / `soma` wordmark + `<Link>`s back to `/` and to siblings. |
-| `src/app/(site)/science/page.tsx` | **ad_backtest hydration.** Server component, read at **request time** (Cache Components is OFF → no `use cache`; just fetch in the async component, or set `export const revalidate = 300` for light ISR). Source = the `ad_backtest` data (a Supabase table/view or the pipeline's `results.json`-shaped rows; confirm source with the user). Read server-side via `serviceClient()` (or public `arcs` read), then render the honesty strip: `n`, `attention_r`, `permutation_p`, `beats_baseline`, `feature`, `null_result`, `tag` (aliases `n_videos`/`r`/`p`). Show null results honestly — do not hide `null_result:true`. No client JS needed unless a chart is interactive. |
+| `src/app/(site)/science/page.tsx` | **ad_backtest hydration was reverted — do NOT build it.** The `ad_backtest` data/UI path (`src/lib/ad-backtest.ts`, `public/ad_backtest.json`, the evidence-tier `Tier.tsx` component) was deleted from the repo. `/science` now ships as a **static** server component: `export const metadata` + prose + illustrative sparklines, **no** request-time fetch and no evidence-tier UI. Leave it static. Any future re-add of honesty stats (read server-side; Cache Components is OFF → no `use cache`; show `null_result` honestly) is a fresh product decision, not a task spec'd here. |
 | `src/app/(site)/compare/page.tsx` | Marketing comparison (soma vs survey/panel/A-B-in-market). Static server content; a client island only if a toggle/tab is interactive. **Distinct** from the `/demo` A/B canvas. |
 | `src/app/(site)/faq/page.tsx` | FAQ content + **`FAQPage` JSON-LD** via a plain escaped `<script type="application/ld+json">` (A.4). Keep the visible Q&A and the JSON-LD `mainEntity` in sync (drive both from one array). |
 | `src/app/(site)/pitch/page.tsx` | Investor/pitch narrative. Static server content; can reuse `docs/GTM` / `docs/strategy` copy. `export const metadata` with `robots: { index: false }` if it should stay unlisted. |
 
-**Conventions for all Phase-4 pages (report 5):** 100% inline Tailwind utilities with arbitrary
-values (`text-[clamp(...)]`, raw hex like `text-[#4a4a4a]`), no CSS modules / no `style={}` / no
-`clsx`; HTML entities in JSX text (`&rsquo;`, `&mdash;`); `next/link` for internal nav, `next/image`
-for images; serif via the `font-serif` utility for editorial accents; brand face is "GT Planar" via
-the `@theme inline` CSS var (no `next/font`). Single light look — no dark mode. `@/*` for cross-tree
-imports, `./` for siblings.
+**Conventions for all Phase-4 pages (report 5):** Tailwind v4 utilities, reaching first for the
+semantic design tokens defined in DESIGN-SYSTEM.md (`bg-paper`, `text-ink` / `text-ink-2` /
+`text-ink-3`, `border-line`, `stroke-accent`, …) — never paste a raw hex that a token already
+covers; use arbitrary values (`text-[clamp(...)]`) only for one-off geometry a token cannot express.
+No CSS modules / no `style={}` / no `clsx`; HTML entities in JSX text (`&rsquo;`, `&mdash;`);
+`next/link` for internal nav, `next/image` for images; serif-italic accent via the `font-serif`
+utility (Georgia). The brand sans is **Geist**, self-hosted via `next/font/google` in
+`src/app/layout.tsx` (the `--font-geist-sans` variable feeds the tokens' `--font-sans` slot). Single
+light look — no dark mode. `@/*` for cross-tree imports, `./` for siblings.
 
 ---
 
@@ -897,7 +900,9 @@ imports, `./` for siblings.
 - Components: `src/components/<Name>.tsx`, PascalCase, **default export**.
 - Routes: `src/app/<route>/page.tsx`; handlers: `src/app/api/<name>/route.ts` (Web `Request`/`Response`).
 - Shared code: `src/lib/<name>.ts`, imported via `@/lib/...` (this repo establishes `src/lib`).
-- Tailwind v4 inline utilities only; arbitrary values in `[]`; raw hex, not theme tokens.
+- Tailwind v4 utilities; reach first for the semantic design tokens in DESIGN-SYSTEM.md (`bg-paper`,
+  `text-ink-2`, `border-line`, `stroke-accent`, …) — never paste a raw hex a token already covers;
+  arbitrary values in `[]` only for one-off geometry.
 - TS strict: no `any`, no unused symbols. 2-space indent, double quotes, semicolons. `pnpm/npm lint`
   (`eslint`) must pass — watch `no-unescaped-entities`, `no-img-element`, `no-html-link-for-pages`.
 - Supabase: server-side only, `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SECRET_KEY`, auth options

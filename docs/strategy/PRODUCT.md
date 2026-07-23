@@ -4,10 +4,10 @@
 
 brand
 
-_(The `demo/` surface is a marketing + demo site whose job is to make a YC-grade
-first impression and communicate the honest-science positioning. Design IS the
-product here. The embedded read-out console is an interactive product artifact
-inside that brand surface, but the primary register is brand.)_
+_(The site (`src/`, the Next.js app) is a marketing + demo surface whose job is to
+make a YC-grade first impression and communicate the honest-science positioning.
+Design IS the product here. The `/demo` read-out console is an interactive product
+artifact inside that brand surface, but the primary register is brand.)_
 
 ## Users
 
@@ -24,8 +24,9 @@ inside that brand surface, but the primary register is brand.)_
 ## Product Purpose
 
 Soma predicts an average viewer's second-by-second cortical response to a video ad
-(via Meta's public TRIBE v2 encoder), then reads an **attention arc**, a coarse
-**affect arc**, and **weak-spot callouts** off it — from the file, no human panel.
+(via Meta's public TRIBE v2 encoder), then reads an **attention arc**, a
+**comprehension / language-load** lane, and **weak-spot callouts** off it — from the
+file, no human panel.
 The site's purpose is to convey that capability *and its honest evidence ladder*
 credibly enough to win a conversation. Success = a skeptical expert leaves
 believing the team is rigorous, not overclaiming.
@@ -47,19 +48,20 @@ believing the team is rigorous, not overclaiming.
 - **Overclaiming neuro-marketing incumbents** (Realeyes/System1 style "trust our
   black box"): our whole edge is the *visible* validated-vs-hypothesis line, so the
   design must never dress a hypothesis up as a result.
-- **Fractured multi-template feel:** the current three-pages-three-fonts state.
+- **Fractured multi-template feel:** the former three-pages-three-fonts state.
   One system, everywhere.
 
 ## Design Principles
 
-1. **Honesty is the interface.** Every claim wears its evidence tier
-   (green=validated / amber=validating / red=hypothesis). Color carries meaning;
-   never decorate with the tier colors, never soften a red into an amber.
+1. **Honesty is the interface.** Show plainly what the model shows; never dress a
+   hypothesis up as a result. Colour never encodes an evidence tier — the old
+   green/amber/red tier UI is gone, and the one muted slate/teal is reserved
+   strictly for data-viz lanes (see `docs/DESIGN-SYSTEM.md`).
 2. **The instrument, not the skin.** Chrome, telemetry labels, and the read-out
    console should feel like a real scientific tool. Restraint reads as rigor.
 3. **One coherent system.** A single type scale, palette, spacing rhythm, and
-   motion language across index / waitlist / pitch. No page looks like a different
-   product.
+   motion language across demo / science / compare / faq / pitch. No page looks like
+   a different product.
 4. **Decoration is fenced from data.** The beautiful cortex visuals are explicitly
    labeled decoration; the only pixels bound to model output live in the console
    and are captioned as such. This separation is a feature, not a disclaimer.
@@ -69,9 +71,8 @@ believing the team is rigorous, not overclaiming.
 ## Accessibility & Inclusion
 
 - Target WCAG 2.1 AA: body text ≥4.5:1, large/label text ≥3:1, including muted
-  greys on the near-black surfaces (verify, don't assume).
+  greys on the white surfaces (verify, don't assume).
 - Full `prefers-reduced-motion` support: the 3D flythrough, scroll flashes, and
   section reveals all degrade to static, legible states.
-- Keyboard-operable transport, picker, and forms; visible focus rings on the ice
-  accent; `aria-live` on status/callout regions.
-- The evidence tiers must not rely on color alone — each carries a text label too.
+- Keyboard-operable transport, picker, and forms; visible focus rings;
+  `aria-live` on status/callout regions.

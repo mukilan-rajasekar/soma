@@ -17,15 +17,26 @@ a customer slide as a result — it lives in the greyed "Vision" panel only.
 
 ---
 
-## Rung 0 — Attention arc  *(shipped)*
+## Rung 0 — Attention arc  *(shipped; primary null, head exploratory)*
 - **Goal:** relative moment-to-moment attention/salience over an ad.
-- **How:** within-video arc from TRIBE cortical predictions, validated vs **TVSum**
+- **How:** within-video arc from TRIBE cortical predictions, tested vs **TVSum**
   (20-annotator human interest) with a **circular-shift permutation null**
-  (`honest_corr_timeseries.py`).
+  (`honest_corr_timeseries.py`). The pre-registered **primary** — the *raw* DMN-ROI
+  arc, first-differenced vs the human interest arc — came back **null**
+  (signed-Stouffer p ≈ 0.69 across n=15 videos), consistent with the published
+  global-drive-vs-replay prior. What actually ships is the **exploratory trained
+  read-out head** (`train_head.py` → `head_apply.py`), which promotes a learned
+  ROI-feature lane into `arc.activation`.
 - **Data:** already have — TRIBE fsaverage5 preds + public TVSum. No new data.
-- **Honest claim:** "relative attention over this ad, validated vs TVSum, beats a
-  circular-shift null." No emotion, no absolute scale.
-- **Timeframe:** now (this sprint).
+- **Honest claim:** the pre-registered raw-arc test was **null**; separately and
+  **exploratorily**, a trained head over a-priori ROI features tracks the human
+  interest curve out-of-sample but does not yet clear the raw arc at significance.
+  From `validation/head_incremental.csv` (verbatim footer): `median_raw=0.1719
+  median_partial=0.1784 adds=2/15 stouffer_p=0.0005` — a weak aggregate signal
+  (combined Stouffer p=0.0005) where only **2 of 15** clips individually beat the
+  ffmpeg baseline. A learned hypothesis, **not** a validated engagement model. No
+  emotion, no absolute scale.
+- **Timeframe:** shipped (n=15 TVSum run frozen 2026-07-20).
 
 ## Rung 1 — 2D affect arc (valence + arousal)  *(near-term, public-data validated)*
 - **Goal:** relative valence (feels good↔bad) + arousal (calm↔excited) over time.

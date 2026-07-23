@@ -1,9 +1,9 @@
 # Competitors — how Soma is different (and where it's honestly better)
 
-*The single source of truth for competitive positioning. The demo comparison pages
-(`demo/compare.html`), the pitch deck, and the YC-interview "why won't Realeyes just
-build it?" answer all draw from here — change positioning **here first**, then
-propagate.*
+*The single source of truth for competitive positioning. The live `/compare` page
+(`src/app/(site)/compare/page.tsx`), the pitch deck, and the YC-interview "why won't
+Realeyes just build it?" answer all draw from here — change positioning **here first**,
+then propagate.*
 
 > **Honesty rule applies to competitors too.** Everything claimed as a Soma
 > advantage below is either (a) true today (cost, "from the file, no panel,"
@@ -166,7 +166,7 @@ earned by held-out tests, never asserted.
 - **What to borrow from them (not fight):** their public science/education page,
   their plain-English region→pattern translation, their comparison pages, and their
   low-friction "one free analysis" funnel are all good playbook. Match their
-  production values; **do not** match their epistemics. (See `demo/CONTENT-PLAN.md`.)
+  production values; **do not** match their epistemics.
 - **Moat vs. VidCognition specifically:** validation rigor + the proprietary
   ad×outcome data flywheel — *not* the model (neither of us owns TRIBE). Whoever
   earns real validation and accumulates real outcome data first wins the honest

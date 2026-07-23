@@ -97,7 +97,7 @@ plus the proprietary ad-outcome data that sharpens the lens over time.
 | Capability in the pitch | Where it really is |
 |---|---|
 | Video → brain activation | ✅ **Validated** — Meta's TRIBE v2, benchmarked vs real fMRI. Not ours; we say so. |
-| Attention arc | 🟡 **Validating now** — pre-registered vs a human-interest curve (TVSum), permutation-tested. May return null; we report it either way. |
+| Attention arc | 🟡 **Tested — primary null, exploratory signal weak.** The pre-registered raw-arc vs human-attention test (TVSum, n=15) came back **null**. An exploratory trained read-out head shows a weak aggregate signal but only 2/15 clips individually beat the plain ffmpeg baseline (`validation/head_incremental.csv` footer: `median_raw=0.1719 median_partial=0.1784 adds=2/15 stouffer_p=0.0005`). Not a validated win; we report it as-is. |
 | Emotion at each point | 🔴 **Hypothesis** — cortical proxy (OFC/insula for valence/arousal), explicitly unvalidated, never a confident single named emotion. |
 | "Loses people" / retention | 🎯 **The outcome we're proving** — does the predicted signal forecast real drop-off? Being tested; known to be hard (a public result finds whole-brain drive does *not* predict replay). This is the crux of the company, framed as what we validate, not a shipped feature. |
 | Multiple-run / variant compare | ⚙️ **Product mechanic** — straightforward to build; the value is in the read-out it compares. |
@@ -115,14 +115,15 @@ generate, which a public-encoder competitor can never scrape.
 Everyone else measures reactions from **recruited humans** (panels, webcams, surveys)
 or **simulates** them by prompting an LLM to role-play a person. Soma predicts the
 **actual cortical response from the file** — no panel, no webcam, no survey — and is
-the only one that draws a **visible line between validated and hypothesis.**
+the only one that **draws — and reports — the line between validated and hypothesis**,
+in our pre-registration and diligence, even when the held-out test comes back null.
 
 | Camp | Who | How they get the signal | Our line (true today) |
 |---|---|---|---|
 | Panel · neuro/biometric | Realeyes, Neurons Inc | webcam facial-coding, eye-tracking, some EEG on recruited viewers | From the *file*, minutes not days, cheap enough to test every variant — a predicted brain state, not a facial proxy. |
 | Panel · survey/emotion | System1, Nielsen | recruited panels rate ads, tied to norms | Built for a few hero spots at brand budgets; we serve the high-volume low end they ignore. |
 | Synthetic · LLM personas | Aaru, Simile | prompt an LLM to role-play a consumer | No biology — predicts what a person would *say* (agreeable-answer bias), not how a brain responds. |
-| Same model, different bet | **VidCognition** | *also* Meta TRIBE v2 → per-second "brain engagement" | Same public eye, **same DTC/performance buyer** — we differ on **honesty** (we show the validated-vs-hypothesis boundary and actually run the held-out test; they present it as fact) and the proprietary **ad×outcome data flywheel** a public-encoder rival can't scrape. |
+| Same model, different bet | **VidCognition** | *also* Meta TRIBE v2 → per-second "brain engagement" | Same public eye, **same DTC/performance buyer** — we differ on **honesty** (we actually run the held-out test and report the result — including a null — while they present it as fact) and the proprietary **ad×outcome data flywheel** a public-encoder rival can't scrape. |
 
 **The wedge is the signal source, not the arc's shape** — incumbents already ship
 per-second curves; we change where the signal comes from. We do **not** claim to be
@@ -136,11 +137,13 @@ never asserted. Full breakdown + the four interview-killer answers: **`COMPETITO
 Each rung is *earned by a held-out test*, never asserted. (Mirrors `ROADMAP.md`.)
 
 - **R0 — now:** frozen encoder + honest attention arc (transparent arithmetic) +
-  the demo. Validated step is Meta's; our arc is a hypothesis, badged as such.
+  the demo. Validated step is Meta's; our arc is a hypothesis, and we say so.
 - **R1 — attention, learned:** train our own read-out *head* on top of frozen
-  TRIBE, validated leave-one-video-out on public attention data (TVSum). First
-  weights that are honestly ours. *(`train_head.py` is scaffolded; needs a real
-  10–20 clip GPU run.)*
+  TRIBE, evaluated leave-one-video-out on public attention data (TVSum). First
+  weights that are honestly ours. *(`train_head.py`, `head_io.py`, and
+  `head_apply.py` ship the full train → save → apply path; the first 15-clip
+  run is in — aggregate `stouffer_p=0.0005` but only 2/15 clips beat baseline,
+  so the head is **detectable, not yet validated** — this rung is not earned.)*
 - **R2 — 2D affect:** the same head architecture reads out valence/arousal on
   public human-labeled proxies (LIRIS-ACCEDE), all badged proxy-hypothesis.
 - **R3 — outcomes + the flywheel turns on:** retrain the head on **proprietary ad
