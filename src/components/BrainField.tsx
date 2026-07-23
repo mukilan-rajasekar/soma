@@ -25,7 +25,7 @@ import * as THREE from "three";
  *   · Two-finger trackpad SCROLL (wheel, no ctrlKey) → orbit: deltaX yaws, deltaY pitches.
  *   · PINCH (ctrl+wheel on Mac trackpad; two-finger distance on touch) → camera DOLLY zoom.
  *   · POINTER DRAG (mouse drag / single-finger touch) → orbit: dx yaws, dy pitches.
- *   Yaw is a free turntable about the superior +z axis; pitch is clamped so it can't flip over;
+ *   Yaw AND pitch are free turntables about their axes — both never-ending (up/down flips right
  *   zoom is clamped. Everything is DAMPED + framerate-independent, and the cortex STAYS exactly
  *   where the user leaves it (no auto drift / no scroll-scrub) — that's the point of "controllable".
  *
@@ -50,8 +50,6 @@ const ZOOM_MIN = 1.6; // closest the camera may dolly in
 const ZOOM_MAX = 4.6; // furthest the camera may dolly out
 // Ease rate (1/sec) for current → target on yaw/pitch/zoom. Higher = snappier, lower = floatier.
 const DAMP = 9;
-// Pitch clamp (radians) so the cortex tilts but never flips over. Yaw is left free (full turns).
-const PITCH_LIMIT = 1.2;
 
 // ── FIRING (dominant) ──────────────────────────────────────────────────────────────────────
 // Idle advance: seconds of firing phase per real second. The firing self-animates at this calm
@@ -329,8 +327,6 @@ export default function BrainField() {
     let curZoom = BASE_DIST;
     let tgtZoom = BASE_DIST;
 
-    const clampPitch = (v: number) =>
-      Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, v));
     const clampZoom = (v: number) =>
       Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, v));
 
@@ -497,9 +493,9 @@ export default function BrainField() {
         // Pinch: trackpad pinch-out emits deltaY<0 → dolly closer (zoom in); pinch-in zooms out.
         tgtZoom = clampZoom(tgtZoom + e.deltaY * ZOOM_GAIN);
       } else {
-        // Orbit: horizontal → yaw (flip this sign to reverse), vertical → pitch.
-        tgtYaw += e.deltaX * ROT_GAIN;
-        tgtPitch = clampPitch(tgtPitch - e.deltaY * ROT_GAIN);
+        // Orbit (reversed): horizontal → yaw, vertical → pitch. Pitch is UNclamped → never-ending.
+        tgtYaw -= e.deltaX * ROT_GAIN;
+        tgtPitch += e.deltaY * ROT_GAIN;
       }
     };
 
@@ -522,8 +518,8 @@ export default function BrainField() {
       const dy = e.clientY - lastY;
       lastX = e.clientX;
       lastY = e.clientY;
-      tgtYaw += dx * DRAG_GAIN; // drag right → content follows right (flip sign to reverse)
-      tgtPitch = clampPitch(tgtPitch - dy * DRAG_GAIN); // drag down → reveal the superior surface
+      tgtYaw -= dx * DRAG_GAIN; // reversed to match scroll
+      tgtPitch += dy * DRAG_GAIN; // reversed + unclamped to match scroll (never-ending pitch)
     };
     const endDrag = (e: PointerEvent) => {
       dragging = false;
