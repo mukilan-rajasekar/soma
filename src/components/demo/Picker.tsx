@@ -34,29 +34,16 @@ export const VIDEOS: VideoItem[] = [
     arc: "/arcs/real_meta12.json",
     grad: "linear-gradient(140deg,#ffffff,#eef2f3 60%,#e6ebec)",
   },
-  // --- 10 real ads from the overnight trimodal extract, curated for a spread of
-  // attention shapes (front-loaded → mid → late-peak) and lengths (8s → 82s). Titles
-  // name each ad by its advertiser/product, from the harvested TikTok/Meta metadata. ---
+  // --- 10 real ads from the overnight trimodal extract, curated to look like Soma's own
+  // prospects: small DTC brands / indie sellers (growth.supplements, CASPARA, marllin,
+  // packout, unattributed sellers) across 10 verticals — no megabrands, studios, or the
+  // platform itself. Titles name each ad's product, from the harvested TikTok metadata. ---
   {
-    id: "tt_318",
-    title: "Stanley Quencher",
+    id: "tt_307",
+    title: "Whey protein",
     src: "trimodal",
-    arc: "/arcs/arc_tt_318.json",
+    arc: "/arcs/arc_tt_307.json",
     grad: "linear-gradient(135deg,#ffffff,#f0f4f5 60%,#e8eeef)",
-  },
-  {
-    id: "tt_342",
-    title: "Spider-Man trailer",
-    src: "trimodal",
-    arc: "/arcs/arc_tt_342.json",
-    grad: "linear-gradient(140deg,#ffffff,#eff3f4 60%,#e7edee)",
-  },
-  {
-    id: "tt_702",
-    title: "Dr.G K-beauty",
-    src: "trimodal",
-    arc: "/arcs/arc_tt_702.json",
-    grad: "linear-gradient(135deg,#ffffff,#f2f4f5 60%,#eaeeef)",
   },
   {
     id: "tt_449",
@@ -66,10 +53,24 @@ export const VIDEOS: VideoItem[] = [
     grad: "linear-gradient(135deg,#ffffff,#eef3f2 60%,#e6ecea)",
   },
   {
-    id: "tt_506",
-    title: "Sneaker drop",
+    id: "tt_401",
+    title: "Fashion drop",
     src: "trimodal",
-    arc: "/arcs/arc_tt_506.json",
+    arc: "/arcs/arc_tt_401.json",
+    grad: "linear-gradient(140deg,#ffffff,#eff3f4 60%,#e7edee)",
+  },
+  {
+    id: "tt_313",
+    title: "Streetwear cap",
+    src: "trimodal",
+    arc: "/arcs/arc_tt_313.json",
+    grad: "linear-gradient(140deg,#ffffff,#eef2f3 60%,#e6ebec)",
+  },
+  {
+    id: "tt_471",
+    title: "Lip tint",
+    src: "trimodal",
+    arc: "/arcs/arc_tt_471.json",
     grad: "linear-gradient(120deg,#ffffff,#f2f5f4 58%,#eaefed)",
   },
   {
@@ -80,32 +81,32 @@ export const VIDEOS: VideoItem[] = [
     grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
   },
   {
-    id: "tt_44",
-    title: "Lip balm",
+    id: "tt_128",
+    title: "Evening-wear",
     src: "trimodal",
-    arc: "/arcs/arc_tt_44.json",
+    arc: "/arcs/arc_tt_128.json",
     grad: "linear-gradient(120deg,#ffffff,#f1f4f4 58%,#e9eeed)",
   },
   {
-    id: "tt_313",
-    title: "Duckbill cap",
+    id: "tt_607",
+    title: "Ice-cream shop",
     src: "trimodal",
-    arc: "/arcs/arc_tt_313.json",
-    grad: "linear-gradient(140deg,#ffffff,#eef2f3 60%,#e6ebec)",
-  },
-  {
-    id: "tt_102",
-    title: "Retro photo filter",
-    src: "trimodal",
-    arc: "/arcs/arc_tt_102.json",
+    arc: "/arcs/arc_tt_607.json",
     grad: "linear-gradient(135deg,#ffffff,#f2f5f6 62%,#eaeeef)",
   },
   {
-    id: "meta_01",
-    title: "Meta ad",
+    id: "tt_131",
+    title: "Charm bracelet",
     src: "trimodal",
-    arc: "/arcs/arc_meta_01.json",
+    arc: "/arcs/arc_tt_131.json",
     grad: "linear-gradient(120deg,#ffffff,#f0f4f5 58%,#e8eded)",
+  },
+  {
+    id: "tt_33",
+    title: "Tool clearance",
+    src: "trimodal",
+    arc: "/arcs/arc_tt_33.json",
+    grad: "linear-gradient(135deg,#ffffff,#f2f4f5 60%,#eaeeef)",
   },
 ];
 
