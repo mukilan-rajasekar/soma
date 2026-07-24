@@ -4,34 +4,31 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 /**
- * BrainField — the fused cortical hero: the point-cloud brain on the ORIGINAL scroll tour.
+ * BrainField — the fused cortical hero, now a DIRECTLY CONTROLLABLE 3D model.
  *
- * TWO things are fused here, and the split is deliberate:
+ * ONE brain that is "Point Firing MAINLY, with elements of Pulse & Drift", rendered on the
+ * dotted point-cloud geometry. The user orbits + zooms it like a model viewer; the firing keeps
+ * animating in place, and the firing colour is a single hue that slowly cycles through the
+ * spectrum over time.
  *
- *   LOOK  — the point-cloud cortex (kept). The fsaverage6 surface (81,924 vertices) as a fine
- *           grey POINT CLOUD, alive with firing ripples + a quieter breathing pulse under a slow
- *           mood cycle. Nothing about the dots changed.
- *   MOTION — the original scroll tour (restored, from the first hero). Scroll does NOT free-spin
- *           the cortex; it walks a bounded 0→1 timeline through five POSES. Pose 0 is the bare
- *           front view; poses 1–4 each rotate a cortical region to face you and BLOOM it in its
- *           own two-stop colour gradient. Scroll back and the tour rewinds. Rotation and highlight
- *           are driven purely by scroll — the pose never animates on its own.
+ *   BASE (dominant)  — the fsaverage6 surface (81,924 vertices) as a fine grey POINT CLOUD.
+ *                      Activation travels as expanding ripples: a few seeds fire in sequence,
+ *                      each radiating a soft wavefront; points caught by an advancing front
+ *                      brighten to the current firing hue and scale up, then settle.
+ *   FOLDED-IN (quieter)
+ *     · BREATHE — a handful of regions gently pulse UNDER the firing on golden-ratio phase
+ *                 offsets, always quieter than the firing.
+ *   MOOD      — a slow macro cycle eases the emphasis between loud firing and calmer breathing
+ *               and back (firing dominant overall).
  *
- * The colour lands on the DOTS (not on a fill under a wireframe, as the original did): every point
- * inside an active region is tinted by that region's gradient — centre colour at the core, edge
- * colour at the rim — and lifted in size + opacity, so the highlight reads as a bloom in the cloud.
- *
- * COLOUR IS EARNED BY SCROLLING. At rest the whole cortex is monochrome: grey dots, graphite firing,
- * not a hint of hue anywhere. Colour exists only as a function of tour progress — the region bloom
- * fades in as its pose comes to front, and the firing/breathing tints are pulled off neutral by the
- * same weight, so the cortex agrees with itself. Scroll back to the top and all colour drains away.
- *
- * INTERACTION (BrainField owns all input):
- *   · Two-finger trackpad SCROLL / wheel → walk the tour forward / back (clamped 0..1, damped).
- *   · POINTER DRAG (mouse / single-finger touch) → drag up to advance the tour, down to rewind.
+ * INTERACTION — scroll scrubs the FLOW, it does not orbit the model (BrainField owns all input):
+ *   · Two-finger trackpad SCROLL (wheel, no ctrlKey) → scrub the flow timeline forward / back:
+ *     the colour sweeps the spectrum, the firing pulses advance, and the cortex gently rotates,
+ *     all coupled. Input injects VELOCITY; friction glides it to rest (fluid, never janky).
+ *   · POINTER DRAG (mouse / single-finger touch) → scrub the same flow 1:1, with a release fling.
  *   · PINCH (ctrl+wheel on Mac trackpad; two-finger distance on touch) → camera DOLLY zoom.
- *   The pose NEVER moves on its own: at idle the cortex holds exactly where you left it — no spin,
- *   no drift, no nod. Only the firing keeps breathing in place, and only scroll turns the cortex.
+ *   At idle the scrub holds (no yaw drift) but the cortex gently NODS top-bottom for life; that
+ *   nod resets to level the moment you scroll again. A slow baseline keeps the pulse + colour alive.
  *
  * HARD visual rules: NO post-processing (no EffectComposer / UnrealBloom), NO dark stage /
  * vignette. Transparent canvas over the pure-white page (alpha:true, clearAlpha 0). Glow reads
@@ -39,45 +36,36 @@ import * as THREE from "three";
  * additive, never a blown-out white core. Camera / scale / placement reuse Brain.tsx.
  */
 
-// ── THE SCROLL TOUR ─────────────────────────────────────────────────────────────────────────
-// Region centres in fsaverage6 local space (x = L→R, y = posterior→anterior, z = inf→sup), each
-// with a two-stop gradient (centre colour → edge colour). Straight from the original hero.
-const TOUR = [
-  { center: [0.0, 0.66, -0.46], a: 0x8b5cf6, b: 0xec4899 }, // frontal   — violet → magenta
-  { center: [0.66, -0.05, -0.34], a: 0x22d3ee, b: 0x6366f1 }, // temporal  — cyan → indigo
-  { center: [0.0, -0.92, -0.06], a: 0xf59e0b, b: 0xef4444 }, // occipital — amber → red
-  { center: [0.0, -0.52, 0.42], a: 0x34d399, b: 0x0ea5e9 }, // parietal  — emerald → sky
-] as const;
-const NTOUR = TOUR.length;
+// ── INTERACTION — scroll scrubs the FLOW, it does not orbit the model ────────────────────────
+// The wheel (and drag) don't grab the cortex — they scrub a living TIMELINE. Advancing the flow
+// sweeps the colour through the spectrum, pushes the firing pulses along, AND gently rotates the
+// cortex, all coupled together. Input injects VELOCITY into the scrub and friction bleeds it off,
+// so the flow surges then glides to rest — fluid, never janky (trackpad deltas arrive noisy +
+// quantised + with a momentum tail; here they only nudge a velocity that's always smoothed). At
+// idle the scrub holds still (no drift); a slow baseline keeps the pulse + colour quietly alive.
 
-// Scroll stops. STOPS[0] is the bare front view (no region). STOPS[i+1] faces TOUR[i]. rotZ spins
-// the upright cortex left/right (turntable about the superior axis); rotX tilts to reveal the crown.
-const STOPS = [
-  { rotZ: 0.0, rotX: 0.0 }, //        bare front
-  { rotZ: 0.0, rotX: -0.12 }, //      frontal
-  { rotZ: Math.PI / 2, rotX: 0.02 }, // temporal  (bring +x to front)
-  { rotZ: Math.PI, rotX: 0.02 }, //   occipital (bring -y to front)
-  { rotZ: Math.PI, rotX: -0.55 }, //  parietal  (back + tilt to show the crown)
-];
-const N_STOPS = STOPS.length;
-
-// Spatial reach of a region's bloom in the cloud (local units).
-const TOUR_RADIUS = 0.62;
-// How completely an active region's gradient overrides the grey/firing colour of its dots.
-const TOUR_MIX = 0.95;
-// Extra point-size lift for dots inside an active region (on top of the firing/breath lift).
-const TOUR_GROW = 0.75;
-
-// Wheel px → tour progress. 1/SCROLL_GAIN px of scroll walks the whole tour (~1430px end to end).
-const SCROLL_GAIN = 0.0007;
-// Pointer-drag px → tour progress (drag up advances). Coarser than the wheel: fingers travel less.
-const DRAG_GAIN = 0.0018;
-// Clamp per wheel event so one trackpad momentum spike can't jump a whole region.
+// Wheel (two-finger trackpad scroll) → flow-seconds/sec of scrub velocity injected per px of delta.
+const SCROLL_IMPULSE = 0.02;
+// Pointer-drag pixels → flow-seconds of scrub, applied 1:1 while dragging.
+const DRAG_SCRUB = 0.01;
+// Friction (1/sec): how fast injected scrub velocity bleeds off. Higher = settles sooner.
+const FRICTION = 5.0;
+// Hard cap on scrub speed (flow-seconds/sec) so a violent flick can't blur the whole piece.
+const MAX_VEL = 4.5;
+// Clamp per wheel event so one momentum spike / mouse-wheel notch can't over-inject.
 const MAX_EVENT_DELTA = 100;
-// Ease rate (1/sec) chasing the scroll target — the glide that makes the tour feel scrubbed, not cut.
-// Lower = a longer, softer glide after your fingers stop, so the pose eases into rest instead of
-// arriving abruptly. Pairs with the quintic pose ease for an overall smoother settle.
-const TOUR_DAMP = 4.0;
+// Radians of cortex rotation per flow-second of scrub — how tightly the spin tracks the flow.
+const YAW_PER_SCRUB = 0.35;
+
+// ── IDLE PITCH NOD (top-bottom life when you're not scrolling; resets the moment you do) ──────
+// Yaw holds at idle, but pitch gently nods so the cortex still feels alive. It fades in after a
+// short stillness and snaps back to level as soon as you scroll / drag again.
+const IDLE_NOD_AMP = 0.22; //   radians (~13°) of peak top-bottom nod
+const IDLE_NOD_W1 = 0.483; //   rad/sec — slow wander component A (~13s period)
+const IDLE_NOD_W2 = 0.739; //   rad/sec — slow wander component B (~8.5s, incommensurate → no loop)
+const IDLE_NOD_DELAY = 0.7; //  seconds of stillness before the nod begins fading in
+const IDLE_ONSET_RATE = 0.7; // ease rate (1/sec) fading the nod IN  (gentle)
+const IDLE_RESET_RATE = 7.0; // ease rate (1/sec) fading the nod OUT (quick reset on scroll)
 
 // Pinch (ctrl+wheel) delta → world units of camera dolly. Higher = pinch zooms faster.
 const ZOOM_GAIN = 0.012;
@@ -86,12 +74,12 @@ const PINCH_GAIN = 0.01;
 // Camera dolly clamp (distance from the lookAt target). Smaller = closer = bigger cortex.
 const ZOOM_MIN = 1.6; // closest the camera may dolly in
 const ZOOM_MAX = 4.6; // furthest the camera may dolly out
-// Ease rate (1/sec) for current → target ZOOM.
+// Ease rate (1/sec) for current → target ZOOM (zoom stays position-eased; scrub is velocity-driven).
 const DAMP = 9;
 
 // ── FIRING (dominant) ──────────────────────────────────────────────────────────────────────
-// The firing self-animates on the wall clock at this calm rate forever — it is ambient life, not
-// scroll-driven: scroll owns the POSE and the region highlight, nothing else.
+// Idle advance: seconds of firing phase per real second. The firing self-animates at this calm
+// rate forever (the geometry only moves when the user orbits/zooms it).
 const IDLE_RATE = 0.32;
 const NSEED = 3;
 const SEED_PERIOD = 4.6; // seconds for one ripple to travel seed → far edge
@@ -111,20 +99,20 @@ const FIRE_GAIN_MAX = 1.0; //   firing loudness peak
 const BREATH_GAIN_MIN = 0.25; // breathing floor
 const BREATH_GAIN_MAX = 0.5; //  breathing lift when firing eases back (still under the firing)
 
-// ── COLOUR (scroll is the ONLY source of hue) ───────────────────────────────────────────────
-// At tour 0 the cortex is strictly monochrome: firing reads as denser graphite ink on the white
-// page and breathing as a barely-there grey shift — no hue anywhere. Both tints are then lerped
-// toward the active region's palette by that region's own activation, so hue only ever exists in
-// proportion to how far the scroll has pushed a region to the front.
-const FIRE_NEUTRAL: [number, number, number] = [0.38, 0.39, 0.42]; //  cool graphite (colourless firing)
-const BREATH_NEUTRAL: [number, number, number] = [0.52, 0.53, 0.55]; // a whisper under the grey
+// ── COLOUR (ONE hue that rotates through the spectrum over time) ────────────────────────────
+// Every firing point shares a single hue at any instant; that hue cycles steadily through the
+// whole spectrum on a wall clock (independent of the firing phase). ~one full cycle every ~30s.
+const HUE_RATE = 0.033; // spectrum cycles per second (1 / HUE_RATE ≈ 30s per full rotation)
+const FIRE_SAT = 0.5; // muted saturation — a soft spectrum on white, never neon
+const FIRE_VAL = 0.72; // sub-white value so source-over never clips
 
-// Static pose held under prefers-reduced-motion: the frontal region facing front, mid-bloom.
-const STATIC_PROGRESS = 0.25;
-const STATIC_PHASE = 3.4; // seconds of firing phase for that frame
+// ── POSE ────────────────────────────────────────────────────────────────────────────────────
+const BASE_TILT = -0.12; // resting pitch (added to the user's pitch)
 
-// 6 regions hugging the lateral surface across both hemispheres (the breathing set — distinct
-// from the TOUR set above, which scroll drives).
+// Static pose (seconds of phase) held under prefers-reduced-motion — a calm representative frame.
+const STATIC_PHASE = 3.4;
+
+// 6 regions hugging the lateral surface across both hemispheres (a subset of Pulse & Drift's).
 const REGIONS: [number, number, number][] = [
   [-0.46, 0.74, 0.12], // L frontal
   [0.46, 0.72, 0.1], // R frontal
@@ -138,7 +126,6 @@ const VERT = /* glsl */ `
   precision highp float;
   #define NSEED ${NSEED}
   #define NREG ${NREG}
-  #define NTOUR ${NTOUR}
   uniform vec3 uSeedCenter[NSEED];
   uniform float uSeedRadius[NSEED];
   uniform float uSeedAmp[NSEED];
@@ -146,12 +133,6 @@ const VERT = /* glsl */ `
   uniform vec3 uRegion[NREG];
   uniform float uRegAct[NREG];
   uniform float uRegRadius;
-  uniform vec3 uTourCenter[NTOUR];
-  uniform vec3 uTourA[NTOUR];
-  uniform vec3 uTourB[NTOUR];
-  uniform float uTourAct[NTOUR];
-  uniform float uTourRadius;
-  uniform float uTourGrow;
   uniform float uFireGain;
   uniform float uBreathGain;
   uniform float uBasePx;
@@ -162,8 +143,6 @@ const VERT = /* glsl */ `
   attribute float aRand;
   varying float vFire;
   varying float vBreath;
-  varying float vTour;
-  varying vec3 vTourCol;
   varying float vRand;
 
   void main() {
@@ -191,29 +170,11 @@ const VERT = /* glsl */ `
     }
     vBreath = clamp(breath * uBreathGain, 0.0, 1.0);
 
-    // SCROLL TOUR — the region the tour currently faces blooms in its own two-stop gradient:
-    // centre colour at the core of the region, edge colour out at the rim. Contributions are
-    // summed then normalised by their own weight, so neighbouring regions cross-fade cleanly
-    // during the walk between two stops instead of stacking into a brighter blob.
-    vec3 tourCol = vec3(0.0);
-    float tourW = 0.0;
-    for (int i = 0; i < NTOUR; i++) {
-      float d = distance(position, uTourCenter[i]);
-      float t = clamp(d / uTourRadius, 0.0, 1.0);
-      float falloff = pow(smoothstep(uTourRadius, 0.0, d), 1.4);
-      float w = uTourAct[i] * falloff;
-      tourCol += mix(uTourA[i], uTourB[i], t) * w;
-      tourW += w;
-    }
-    vTourCol = tourCol / max(tourW, 0.0001);
-    vTour = clamp(tourW, 0.0, 1.0);
-
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
 
-    // Fine points with per-point size jitter; firing scales up strongly, breathing softly, and a
-    // highlighted region lifts its dots so the bloom has body as well as colour.
+    // Fine points with per-point size jitter; firing scales up strongly, breathing softly.
     float sizeVar = mix(0.82, 1.18, aRand);
-    float px = uBasePx * sizeVar * (1.0 + vFire * uGrow + vBreath * uBreathGrow + vTour * uTourGrow);
+    float px = uBasePx * sizeVar * (1.0 + vFire * uGrow + vBreath * uBreathGrow);
     float ps = px * (uSizeScale / max(-mv.z, 0.001));
     gl_PointSize = clamp(ps, 0.0, 7.0 * uPixelRatio);
 
@@ -224,16 +185,20 @@ const VERT = /* glsl */ `
 const FRAG = /* glsl */ `
   precision highp float;
   uniform vec3 uBreathCol;
-  uniform vec3 uFireCol;
   uniform vec3 uGrey;
   uniform float uBaseAlpha;
   uniform float uFireAlpha;
-  uniform float uTourMix;
+  uniform float uHueBase;
+  uniform float uSat;
+  uniform float uVal;
   varying float vFire;
   varying float vBreath;
-  varying float vTour;
-  varying vec3 vTourCol;
   varying float vRand;
+
+  vec3 hsv2rgb(vec3 c) {
+    vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0);
+    return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+  }
 
   void main() {
     // Round, soft point sprite.
@@ -246,15 +211,13 @@ const FRAG = /* glsl */ `
     // tints strongly on top. All targets are sub-white, so source-over never clips to white.
     vec3 base = uGrey * mix(0.92, 1.06, vRand);
     vec3 col = mix(base, uBreathCol, vBreath * 0.6);
-    // Firing tints toward ONE muted hue shared by every point — cycling the spectrum off-tour,
-    // pulled into the active region's palette while the tour holds on a region.
-    col = mix(col, uFireCol, vFire);
-    // The scroll tour paints last: dots inside the region the tour faces take its gradient.
-    col = mix(col, vTourCol, vTour * uTourMix);
+    // Firing tints toward ONE muted hue shared by every point — that hue cycles through the
+    // spectrum over time (driven by uHueBase), spatially uniform at any instant.
+    vec3 fireCol = hsv2rgb(vec3(fract(uHueBase), uSat, uVal));
+    col = mix(col, fireCol, vFire);
 
-    // Firing dominates the alpha lift; the tour highlight lifts nearly as hard so the region
-    // reads as a bloom; breathing contributes only a gentle rise.
-    float act = max(max(vFire, vTour * 0.85), vBreath * 0.5);
+    // Firing dominates the alpha lift; breathing contributes only a gentle rise.
+    float act = max(vFire, vBreath * 0.5);
     float a = mix(uBaseAlpha, uFireAlpha, smoothstep(0.0, 1.0, act)) * mask;
     gl_FragColor = vec4(col, a);
   }
@@ -273,41 +236,11 @@ function fract(x: number) {
   return x - Math.floor(x);
 }
 
-function lerp(a: number, b: number, t: number) {
-  return a + (b - a) * t;
-}
-
-function clamp01(x: number) {
-  return Math.max(0, Math.min(1, x));
-}
-
-function smoothstep01(t: number) {
-  t = clamp01(t);
-  return t * t * (3 - 2 * t);
-}
-
-// Quintic ease (Perlin's smootherstep): 6t⁵−15t⁴+10t³. Like smoothstep but with zero SECOND
-// derivative at both ends too, so acceleration — not just velocity — is continuous across a stop.
-// That removes the little snap you feel each time the tour settles on / leaves a region.
-function smootherstep01(t: number) {
-  t = clamp01(t);
-  return t * t * t * (t * (t * 6 - 15) + 10);
-}
-
 // Narrow, periodic, C1 raised-cosine bump: 1 at phase 0, smoothly to 0 by ±PULSE_WIDTH.
 function bump(phase01: number) {
   const d = Math.min(phase01, 1 - phase01);
   const t = Math.min(d / PULSE_WIDTH, 1);
   return 0.5 * (1 + Math.cos(t * Math.PI));
-}
-
-// Literal sRGB triple from a hex literal (no colour-management conversion).
-function hexToColor(hex: number) {
-  return new THREE.Color(
-    ((hex >> 16) & 255) / 255,
-    ((hex >> 8) & 255) / 255,
-    (hex & 255) / 255,
-  );
 }
 
 export default function BrainField() {
@@ -360,7 +293,7 @@ export default function BrainField() {
     group.scale.setScalar(1.1);
     scene.add(group);
 
-    // inner group: carries the tour orientation (turntable yaw about +z, tilt about x).
+    // inner group: carries the user-controlled orientation (turntable yaw about +z, tilt about x).
     const rotator = new THREE.Group();
     group.add(rotator);
 
@@ -376,14 +309,6 @@ export default function BrainField() {
       (r) => new THREE.Vector3(r[0], r[1], r[2]),
     );
 
-    // ── Tour state (the scroll-driven region highlight) ──
-    const tourCenters = TOUR.map((r) => new THREE.Vector3(...r.center));
-    const tourA = TOUR.map((r) => hexToColor(r.a));
-    const tourB = TOUR.map((r) => hexToColor(r.b));
-    // Live tints, rewritten each frame from tour activation alone (neutral until you scroll).
-    const fireCol = new THREE.Color(...FIRE_NEUTRAL);
-    const breathCol = new THREE.Color(...BREATH_NEUTRAL);
-
     const uniforms = {
       uSeedCenter: { value: seedCenters },
       uSeedRadius: { value: seedRadius },
@@ -392,13 +317,6 @@ export default function BrainField() {
       uRegion: { value: regionCenters },
       uRegAct: { value: new Array<number>(NREG).fill(0) },
       uRegRadius: { value: REGION_RADIUS },
-      uTourCenter: { value: tourCenters },
-      uTourA: { value: tourA },
-      uTourB: { value: tourB },
-      uTourAct: { value: new Array<number>(NTOUR).fill(0) },
-      uTourRadius: { value: TOUR_RADIUS },
-      uTourGrow: { value: TOUR_GROW },
-      uTourMix: { value: TOUR_MIX },
       uFireGain: { value: FIRE_GAIN_MAX },
       uBreathGain: { value: BREATH_GAIN_MIN },
       uBasePx: { value: 0.011 },
@@ -409,8 +327,10 @@ export default function BrainField() {
       // Colours authored as literal sRGB values (numeric Color ctor = no colour-management
       // conversion), so what the shader writes is what the sRGB framebuffer shows.
       uGrey: { value: new THREE.Color(0.62, 0.62, 0.63) },
-      uFireCol: { value: fireCol }, //   firing tint  — neutral graphite until the tour earns hue
-      uBreathCol: { value: breathCol }, // breath tint — neutral grey until the tour earns hue
+      uHueBase: { value: 0 }, // single firing hue; cycled steadily through the spectrum by time
+      uSat: { value: FIRE_SAT },
+      uVal: { value: FIRE_VAL },
+      uBreathCol: { value: new THREE.Color(0.42, 0.52, 0.58) }, // quieter dusty teal (breathing)
       uBaseAlpha: { value: 0.62 },
       uFireAlpha: { value: 0.9 },
     };
@@ -419,22 +339,27 @@ export default function BrainField() {
     let raf = 0;
     let disposed = false;
     let ready = false;
-    let tAccum = 0; // wall clock — accumulated, tab-spike-clamped time (drives firing + hue)
+    let tAccum = 0; // idle clock — accumulated, tab-spike-clamped time (drives firing + hue)
     let maxR = 1;
     let anchors: THREE.Vector3[] = [];
     const geo = new THREE.BufferGeometry();
     let mat: THREE.ShaderMaterial | null = null;
 
-    // ── The scroll tour: a bounded 0..1 timeline, damped toward wherever scroll left it ──
-    // `tourTarget` is where the wheel / drag has pushed you; `tour` chases it so the walk between
-    // two poses glides instead of cutting. Rotation AND region highlight read `tour` — nothing else.
-    let tour = 0;
-    let tourTarget = 0;
+    // ── Scroll-driven flow: a scrub timeline with inertia + eased zoom ──
+    // `scrub` is your position on the flow timeline (a slow idle baseline is added on top each
+    // frame). Input injects velocity into it; friction bleeds off. Rotation, hue and pulse all read
+    // the resulting flow, so scrolling sweeps them together — it is not a camera orbit.
+    let scrub = 0;
+    let scrubVel = 0; // flow-seconds per second, friction-decayed
+    let idleTime = 0; // seconds since the last scroll / drag (drives the idle pitch nod)
+    let idlePitchGain = 0; // eased 0..1 envelope for the nod (0 while you interact, 1 when idle)
+    const pitchPhase = Math.random() * 100; // per-load phase so the nod isn't identical every visit
     let curZoom = BASE_DIST;
     let tgtZoom = BASE_DIST;
 
     const clampZoom = (v: number) =>
       Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, v));
+    const clampVel = (v: number) => Math.max(-MAX_VEL, Math.min(MAX_VEL, v));
 
     (async () => {
       const [pos, idx] = await Promise.all([
@@ -494,7 +419,7 @@ export default function BrainField() {
     }
 
     // Advance the firing seeds along the effective phase: each cycles birth→travel→fade,
-    // staggered so ~1–2 peak at a time. The wall clock feeds `phase`.
+    // staggered so ~1–2 peak at a time. The idle clock feeds `phase`.
     function updateSeeds(phase: number) {
       for (let i = 0; i < NSEED; i++) {
         const local = phase / SEED_PERIOD + PHASE_OFFSET[i];
@@ -515,7 +440,8 @@ export default function BrainField() {
       }
     }
 
-    // Mood macro cycle: eases emphasis between loud firing and calmer breathing. Firing dominant.
+    // Mood macro cycle (driven by the steady idle clock so the two moods swing predictably):
+    // eases emphasis between loud firing and calmer breathing. Firing dominant overall.
     function updateMood(t: number) {
       const macro = 0.5 + 0.5 * Math.sin((Math.PI * 2 * t) / MACRO_PERIOD);
       uniforms.uFireGain.value =
@@ -524,76 +450,16 @@ export default function BrainField() {
         BREATH_GAIN_MIN + (BREATH_GAIN_MAX - BREATH_GAIN_MIN) * (1 - macro);
     }
 
-    // ── The tour itself: progress 0..1 → pose + which region is blooming ──
-    // p maps onto N_STOPS poses; region r peaks exactly when the tour sits on stop r+1, and
-    // neighbours cross-fade in between so the colour hands off as the cortex turns.
-    function applyTour(p: number) {
-      const f = clamp01(p) * (N_STOPS - 1);
-      const i = Math.min(Math.floor(f), N_STOPS - 2);
-      const t = smootherstep01(f - i);
-      const acts = uniforms.uTourAct.value;
-      for (let r = 0; r < NTOUR; r++) {
-        acts[r] = smootherstep01(1 - Math.abs(f - (r + 1)));
-      }
-      return {
-        rotZ: lerp(STOPS[i].rotZ, STOPS[i + 1].rotZ, t),
-        rotX: lerp(STOPS[i].rotX, STOPS[i + 1].rotX, t),
-      };
-    }
-
-    // Firing + breathing tints, derived ENTIRELY from tour activation: colourless neutrals at
-    // tour 0, lerped toward the active region's palette (centre colour for the firing, edge colour
-    // for the breath) by that region's weight. No wall clock anywhere — sit still and no hue can
-    // appear; the only way to get colour on this cortex is to scroll a region to the front.
-    function updateTints() {
-      const acts = uniforms.uTourAct.value as number[];
-      let w = 0;
-      let ar = 0;
-      let ag = 0;
-      let ab = 0;
-      let br = 0;
-      let bg = 0;
-      let bb = 0;
-      for (let i = 0; i < NTOUR; i++) {
-        const a = acts[i];
-        if (a <= 0) continue;
-        w += a;
-        ar += tourA[i].r * a;
-        ag += tourA[i].g * a;
-        ab += tourA[i].b * a;
-        br += tourB[i].r * a;
-        bg += tourB[i].g * a;
-        bb += tourB[i].b * a;
-      }
-      if (w <= 1e-4) {
-        fireCol.setRGB(...FIRE_NEUTRAL);
-        breathCol.setRGB(...BREATH_NEUTRAL);
-        return;
-      }
-      const k = Math.min(w, 1); // how much hue this frame has earned
-      fireCol.setRGB(
-        lerp(FIRE_NEUTRAL[0], ar / w, k),
-        lerp(FIRE_NEUTRAL[1], ag / w, k),
-        lerp(FIRE_NEUTRAL[2], ab / w, k),
-      );
-      breathCol.setRGB(
-        lerp(BREATH_NEUTRAL[0], br / w, k),
-        lerp(BREATH_NEUTRAL[1], bg / w, k),
-        lerp(BREATH_NEUTRAL[2], bb / w, k),
-      );
-    }
-
     function renderStatic() {
       if (!ready) return;
       // A calm, representative frame for prefers-reduced-motion — fixed pose, no rAF.
       uniforms.uFireGain.value = 0.85;
       uniforms.uBreathGain.value = 0.4;
+      uniforms.uHueBase.value = STATIC_PHASE * HUE_RATE;
       updateSeeds(STATIC_PHASE);
       updateBreath(STATIC_PHASE);
-      const pose = applyTour(STATIC_PROGRESS);
-      updateTints();
-      rotator.rotation.z = pose.rotZ;
-      rotator.rotation.x = pose.rotX;
+      rotator.rotation.z = 0;
+      rotator.rotation.x = BASE_TILT;
       camera.position.copy(LOOK).addScaledVector(camDir, BASE_DIST);
       renderer.render(scene, camera);
     }
@@ -617,23 +483,41 @@ export default function BrainField() {
       const dt = Math.min(clock.getDelta(), 0.05); // clamp tab-switch spikes → dt-smoothed
       tAccum += dt;
 
-      // Ease the tour toward wherever scroll left it, and the camera toward its zoom target
-      // (both framerate-independent).
-      tour += (tourTarget - tour) * (1 - Math.exp(-dt * TOUR_DAMP));
+      // Integrate the scrub flywheel: velocity advances the flow, friction bleeds it off (both
+      // framerate-independent). While dragging we freeze this and drive scrub directly so the
+      // finger stays glued; release hands the drag's velocity back for a fling.
+      if (!dragging) {
+        scrub += scrubVel * dt;
+        scrubVel *= Math.exp(-dt * FRICTION);
+      }
+      // Zoom eases toward its target (position control — smooth + precise for a dolly).
       curZoom += (tgtZoom - curZoom) * (1 - Math.exp(-dt * DAMP));
 
-      // Ambient life runs on the wall clock — the firing never stops, whether you scroll or not.
-      const phase = tAccum * IDLE_RATE;
+      // The master flow = a slow idle baseline (keeps the pulse + colour quietly alive) plus your
+      // scrub. Colour, pulse AND rotation all read it, so scrolling sweeps them together.
+      const flow = tAccum + scrub;
+      const phase = flow * IDLE_RATE;
       updateSeeds(phase);
       updateBreath(phase);
-      updateMood(tAccum);
+      updateMood(tAccum); // mood balance stays steady (independent of scrub) so gains don't jump
 
-      // Scroll owns the pose AND the colour: this is the whole tour. Nothing else touches the
-      // rotation, so a cortex nobody is scrolling sits perfectly still.
-      const pose = applyTour(tour);
-      updateTints();
-      rotator.rotation.z = pose.rotZ;
-      rotator.rotation.x = pose.rotX;
+      // ONE hue for all firing points, swept through the spectrum by the flow.
+      uniforms.uHueBase.value = flow * HUE_RATE;
+
+      // Idle pitch nod: fades in after a beat of stillness, snaps back to level the moment you
+      // scroll (idleTime is reset to 0 in the input handlers). A slow two-sine wander reads "random".
+      idleTime += dt;
+      const nodTarget = idleTime > IDLE_NOD_DELAY ? 1 : 0;
+      const nodRate = nodTarget < idlePitchGain ? IDLE_RESET_RATE : IDLE_ONSET_RATE;
+      idlePitchGain += (nodTarget - idlePitchGain) * (1 - Math.exp(-dt * nodRate));
+      const nod =
+        Math.sin((tAccum + pitchPhase) * IDLE_NOD_W1) * 0.6 +
+        Math.sin((tAccum + pitchPhase) * IDLE_NOD_W2 + 1.3) * 0.4;
+
+      // Rotation is COUPLED to the scrub (not a free orbit): the cortex turns as the flow moves.
+      // At idle scrub holds → yaw rests where you left it; scroll advances flow → it rotates along.
+      rotator.rotation.z = scrub * YAW_PER_SCRUB;
+      rotator.rotation.x = BASE_TILT + idlePitchGain * IDLE_NOD_AMP * nod;
       // Dolly the camera along its fixed sight-line: smaller distance = closer = bigger cortex.
       camera.position.copy(LOOK).addScaledVector(camDir, curZoom);
 
@@ -651,33 +535,43 @@ export default function BrainField() {
     }
 
     // ── Direct-manipulation input (BrainField owns it all) ──────────────────────────────────
-    // Two-finger trackpad scroll walks the tour; Mac pinch (ctrl+wheel) dollies. preventDefault
-    // the wheel — the hero is a fixed full-screen page, so there is no page scroll to lose.
+    // Two-finger trackpad scroll rotates; Mac pinch (ctrl+wheel) dollies. preventDefault the
+    // wheel — the hero is a fixed full-screen page, so there is no page scroll to lose.
     const normDelta = (d: number, mode: number) => {
       // Normalise wheel units to pixels (Firefox mouse wheels report lines / pages), then clamp so
-      // one momentum spike or mouse-wheel notch can't jump a whole region.
+      // one momentum spike or mouse-wheel notch can't over-inject scrub.
       const px = mode === 1 ? d * 16 : mode === 2 ? d * window.innerHeight : d;
       return Math.max(-MAX_EVENT_DELTA, Math.min(MAX_EVENT_DELTA, px));
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      idleTime = 0; // any wheel input (scroll or pinch) resets the idle nod back to level
       if (e.ctrlKey) {
         // Pinch: trackpad pinch-out emits deltaY<0 → dolly closer (zoom in); pinch-in zooms out.
         tgtZoom = clampZoom(tgtZoom + e.deltaY * ZOOM_GAIN);
       } else {
-        // Scroll down walks the tour forward through the regions; scroll up rewinds it.
-        const d = normDelta(e.deltaY, e.deltaMode);
-        tourTarget = clamp01(tourTarget + d * SCROLL_GAIN);
+        // Scroll scrubs the flow: vertical is primary, horizontal adds in. Scroll-down pushes the
+        // flow forward (colour + pulse advance, cortex rotates along). Sign is trivially flippable.
+        const d = normDelta(e.deltaY, e.deltaMode) + normDelta(e.deltaX, e.deltaMode);
+        scrubVel = clampVel(scrubVel + d * SCROLL_IMPULSE);
       }
     };
 
-    // Pointer drag = mouse drag AND single-finger touch (pointer events unify both). Dragging UP
-    // advances the tour, matching the direction a scroll-down gesture moves content.
+    // Pointer drag = mouse drag AND single-finger touch (pointer events unify both). Dragging
+    // scrubs the same flow 1:1 and estimates a release velocity, so a flick keeps the flow gliding.
     let dragging = false;
+    let lastX = 0;
     let lastY = 0;
+    let lastMoveT = 0;
+    let dragScrubVel = 0;
     const onPointerDown = (e: PointerEvent) => {
       dragging = true;
+      lastX = e.clientX;
       lastY = e.clientY;
+      lastMoveT = e.timeStamp;
+      idleTime = 0; // grabbing counts as interaction → reset the idle nod
+      scrubVel = 0; // stop any coasting so the grab is precise
+      dragScrubVel = 0;
       try {
         canvas.setPointerCapture(e.pointerId);
       } catch {}
@@ -685,10 +579,20 @@ export default function BrainField() {
     };
     const onPointerMove = (e: PointerEvent) => {
       if (!dragging) return;
-      tourTarget = clamp01(tourTarget + (lastY - e.clientY) * DRAG_GAIN);
+      idleTime = 0; // sustained drag keeps the nod suppressed
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX = e.clientX;
       lastY = e.clientY;
+      // Drag right / up pushes the flow forward (one coherent scrub gesture, both axes projected).
+      const ds = (dx - dy) * DRAG_SCRUB;
+      scrub += ds; // 1:1 while held
+      const mdt = Math.max((e.timeStamp - lastMoveT) / 1000, 1 / 240);
+      lastMoveT = e.timeStamp;
+      dragScrubVel = dragScrubVel * 0.7 + (ds / mdt) * 0.3; // smoothed release velocity
     };
     const endDrag = (e: PointerEvent) => {
+      if (dragging) scrubVel = clampVel(dragScrubVel); // fling: hand momentum to the flywheel
       dragging = false;
       try {
         canvas.releasePointerCapture(e.pointerId);
@@ -706,13 +610,14 @@ export default function BrainField() {
     };
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
-        dragging = false; // a second finger cancels the single-finger scrub
+        dragging = false; // a second finger cancels the single-finger orbit
         pinchDist = touchDist(e);
       }
     };
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2 && pinchDist != null) {
         e.preventDefault();
+        idleTime = 0; // two-finger pinch is interaction → reset the idle nod
         const d = touchDist(e);
         // Fingers apart (d grows) → dolly closer (zoom in); pinch together → zoom out.
         tgtZoom = clampZoom(tgtZoom - (d - pinchDist) * PINCH_GAIN);

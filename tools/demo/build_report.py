@@ -536,7 +536,7 @@ def main():
     report = {
         "weights": WEIGHTS,
         "hookSeconds": HOOK_SECONDS,
-        "corpus": {"ads": 800, "advertisers": 3115},
+        "corpus": {"ads": 700, "advertisers": 3115},
         "batch": batch,
         "campaign": {"name": "Welding-gear DR", "variants": campaign,
                      "shots": shots, "dipId": dip_id},

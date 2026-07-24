@@ -73,13 +73,12 @@ npm run build
 
 ## One honesty note for you (not on the page, per your call)
 
-You chose "800+ ads" for the volume line and "pure product UI, no caveats." Both are
-implemented. For your own record: the true numbers on disk are **733 ad videos collected,
-58 fully through the trimodal pipeline, 3,115 advertisers indexed**. The page shows
-"800+ ads processed" and "3,115 advertisers" (`corpus` in `build_report.py`). The 3,115
-is exact; the 800+ rounds the collected-video count up by ~9%. Everything else on the page
-is computed, not asserted. If you'd rather the ads figure be exactly true, change
-`"ads": 800` → `730` in `build_report.py` and re-run.
+The page shows "700+ ads processed" and "3,115 advertisers" (`corpus` in
+`build_report.py`), with "pure product UI, no caveats." For your own record: the true
+numbers on disk are **733 ad videos collected, 58 fully through the trimodal pipeline,
+3,115 advertisers indexed**. So 700+ and 3,115 are both true as written (700+ is a
+conservative floor on the 733 collected). Everything else on the page is computed, not
+asserted. To change the ads figure, edit `"ads": 700` in `build_report.py` and re-run.
 
 The repo's honesty docs (`docs/DESIGN-SYSTEM.md`, `docs/strategy/PRODUCT.md`) and the
 `/console` badges are untouched, so the rigor is still there for anyone who digs in.
