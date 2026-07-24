@@ -1,0 +1,412 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-24T00:00:00Z",
+  "title": "Design System: Soma",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Lab Paper",
+        "canonical": "oklch(100.0% 0.0000 89.9)",
+        "hex": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ],
+        "purpose": "The default surface for every route. bg-paper. 36 uses."
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "oklch(14.5% 0.0000 89.9)",
+        "hex": "#0a0a0a",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ],
+        "purpose": "Primary text and black fill. The most-used token on the site (129 uses). 19.80:1 on paper."
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Pencil",
+        "canonical": "oklch(40.9% 0.0000 89.9)",
+        "hex": "#4a4a4a",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ],
+        "purpose": "Secondary and body copy (55 uses). 8.86:1 on paper — clears AAA."
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Annotation Grey",
+        "canonical": "oklch(55.2% 0.0000 89.9)",
+        "hex": "#727272",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ],
+        "purpose": "Tertiary, meta and muted labels (69 uses). 4.81:1 on paper, 4.61:1 on fill — clears AA at the 10-13px sizes it is actually used at. Superseded #8a8a8a (3.45:1), which failed."
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Ruled Hairline",
+        "canonical": "oklch(91.3% 0.0000 89.9)",
+        "hex": "#e2e2e2",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ],
+        "purpose": "The site's only divider and card border (59 uses). Always 1px."
+      },
+      "line-2": {
+        "role": "neutral",
+        "displayName": "Field Rule",
+        "canonical": "oklch(88.2% 0.0000 89.9)",
+        "hex": "#d8d8d8",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ],
+        "purpose": "Stronger hairline reserved for form controls, so inputs read as inputs (27 uses)."
+      },
+      "fill": {
+        "role": "neutral",
+        "displayName": "Bench White",
+        "canonical": "oklch(98.5% 0.0000 89.9)",
+        "hex": "#fafafa",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ],
+        "purpose": "The ONE raised step (23 uses). Never invent a grey between paper and fill."
+      },
+      "error": {
+        "role": "state",
+        "displayName": "Flag Red",
+        "canonical": "oklch(50.0% 0.1821 29.5)",
+        "hex": "#b42318",
+        "tonalRamp": [
+          "#3b0000",
+          "#620000",
+          "#8a0000",
+          "#b12015",
+          "#da4a3b",
+          "#ff705e",
+          "#ff9681",
+          "#ffbba5"
+        ],
+        "purpose": "Validation and error text; also the weak-spot callout tint at 6% alpha."
+      },
+      "accent": {
+        "role": "accent",
+        "displayName": "Instrument Slate",
+        "canonical": "oklch(51.2% 0.0549 214.1)",
+        "hex": "#3f6f7a",
+        "tonalRamp": [
+          "#001019",
+          "#002b35",
+          "#174954",
+          "#396974",
+          "#5b8b97",
+          "#7daeba",
+          "#a1d3df",
+          "#c5f9ff"
+        ],
+        "purpose": "Data-viz lane A / primary curve. Chart geometry ONLY — never chrome."
+      },
+      "accent-2": {
+        "role": "accent",
+        "displayName": "Reading Teal",
+        "canonical": "oklch(61.0% 0.0525 219.8)",
+        "hex": "#5f8b99",
+        "tonalRamp": [
+          "#000f1a",
+          "#002b36",
+          "#1d4855",
+          "#3d6876",
+          "#5e8a98",
+          "#80adbc",
+          "#a4d2e1",
+          "#c8f8ff"
+        ],
+        "purpose": "Data-viz lane B, dashed so lanes differ by colour AND dash, not hue alone. 3.72:1 — fails AA as text; graphics only."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Hero",
+        "purpose": "Route-opening headline. clamp(30px,3.4vw,46px) / 1.04 / -0.02em / 500. Token: --text-hero."
+      },
+      "headline": {
+        "displayName": "Section",
+        "purpose": "Section heading. clamp(28px,3vw,34px) / 1.1 / -0.02em / 500. Token: --text-section."
+      },
+      "title": {
+        "displayName": "UI Title",
+        "purpose": "NO DEDICATED TOKEN. Filled in practice by `text-ui font-medium` (15px / -0.01em / 500). A real gap in the scale."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running copy. 16px / 1.5. Token: --text-body. Cap measure at 58-65ch."
+      },
+      "label": {
+        "displayName": "Meta",
+        "purpose": "Labels, captions, numeric read-outs. 13px / 1.5. Token: --text-meta. Uppercase tracked 0.1-0.12em at 10-11px; numbers get tabular-nums, never a monospace face."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "The 'soma' wordmark only. 23px / 1 / -0.01em / 500. Token: --text-wordmark. One use site-wide (SiteHeader)."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay",
+        "value": "0 24px 70px rgba(0,0,0,0.18)",
+        "purpose": "The ONLY true drop shadow in src/. Modal/dialog panels exclusively (UploadDialog). Flat surfaces get a hairline instead — never a shadow."
+      },
+      {
+        "name": "scrim",
+        "value": "background: rgba(0,0,0,0.30)",
+        "purpose": "Full-viewport dim behind a modal. Not elevation; occlusion."
+      },
+      {
+        "name": "thumb-knockout",
+        "value": "0 0 0 3px var(--color-paper)",
+        "purpose": "A paper ring that lets the scrubber thumb read against both the ink fill and the track. A knockout, not a shadow."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 2px solid var(--color-ink); outline-offset: 4px",
+        "purpose": "The system's established focus treatment (globals.css:159). Apply to every interactive control."
+      }
+    ],
+    "motion": [
+      {
+        "name": "default",
+        "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Tailwind v4's inherited default. 28 of the site's 30 transitions declare no duration or easing and land here — the effective house curve, though never written down."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0, 0, 0.2, 1)",
+        "purpose": "Explicit ease-out, used on the upload progress bar."
+      },
+      {
+        "name": "story-ease",
+        "value": "cubic-bezier(.22,.61,.36,1)",
+        "purpose": "The standalone /story walkthrough's reveal curve (public/story.html --ease). Not shared with the app."
+      },
+      {
+        "name": "hover-lift",
+        "value": "translateY(-2px) or scale(1.02)",
+        "purpose": "The only permitted interactive lift. There is no shadow-based hover state anywhere."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "The only structural breakpoint that carries real layout weight — the /demo read-out grid collapses below it (md:grid-cols-[300px_1fr])."
+      },
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Used sparingly for inline type and spacing adjustments."
+      }
+    ],
+    "containers": [
+      {
+        "name": "faq",
+        "value": "800px"
+      },
+      {
+        "name": "science",
+        "value": "920px"
+      },
+      {
+        "name": "compare",
+        "value": "960px"
+      },
+      {
+        "name": "demo",
+        "value": "1080px"
+      },
+      {
+        "name": "pitch",
+        "value": "1100px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink fill, paper text. The single call to action on any view.",
+      "html": "<button class=\"ds-btn-primary\">Request access</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-xl,12px);background:var(--color-ink,#0a0a0a);color:var(--color-paper,#fff);padding:13px 20px;font-size:15px;letter-spacing:-0.01em;font-weight:500;border:none;cursor:pointer;transition:background-color 150ms cubic-bezier(.4,0,.2,1)}.ds-btn-primary:hover{background:color-mix(in srgb,var(--color-ink,#0a0a0a) 85%,transparent)}.ds-btn-primary:focus-visible{outline:2px solid var(--color-ink,#0a0a0a);outline-offset:4px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Paper plus a hairline. Ink-2 text that darkens to ink on hover.",
+      "html": "<button class=\"ds-btn-secondary\">Learn more</button>",
+      "css": ".ds-btn-secondary{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-xl,12px);background:var(--color-paper,#fff);color:var(--color-ink-2,#4a4a4a);border:1px solid var(--color-line-2,#d8d8d8);padding:13px 20px;font-size:15px;letter-spacing:-0.01em;font-weight:500;cursor:pointer;transition:color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1)}.ds-btn-secondary:hover{color:var(--color-ink,#0a0a0a);border-color:var(--color-ink,#0a0a0a)}.ds-btn-secondary:focus-visible{outline:2px solid var(--color-ink,#0a0a0a);outline-offset:4px}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Hairline field on paper. NOTE: the shipped inputs (Landing.tsx:84, UploadDialog.tsx:281) use raw hex and `outline-none` with NO replacement ring — a confirmed a11y defect. The focus ring below applies the system's own established treatment (globals.css:159) and is what new work should use.",
+      "html": "<input class=\"ds-input-text\" placeholder=\"you@company.com\" />",
+      "css": ".ds-input-text{border-radius:var(--radius-xl,12px);border:1px solid var(--color-line-2,#d8d8d8);background:var(--color-paper,#fff);padding:13px 15px;font-size:15px;letter-spacing:-0.01em;color:var(--color-ink,#0a0a0a);width:100%}.ds-input-text::placeholder{color:var(--color-ink-3,#727272)}.ds-input-text:focus-visible{outline:2px solid var(--color-ink,#0a0a0a);outline-offset:4px}"
+    },
+    {
+      "name": "Card / Panel",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The raised step: 16px radius, one hairline, bg-fill. Never a shadow. Nested cards are never correct.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-eyebrow\">In plain english</div><p class=\"ds-card-body\">Attention builds to a peak at 0:12.</p></div>",
+      "css": ".ds-card{border-radius:var(--radius-2xl,16px);border:1px solid var(--color-line,#e2e2e2);background:var(--color-fill,#fafafa);padding:14px}.ds-card-eyebrow{margin-bottom:12px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.12em;color:var(--color-ink-3,#727272)}.ds-card-body{margin:0;font-size:16px;line-height:1.5;color:var(--color-ink-2,#4a4a4a)}"
+    },
+    {
+      "name": "Navigation Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Sticky header link. Ink-2 at rest, ink when active or hovered; active carries aria-current.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link\" href=\"#\">Science</a><a class=\"ds-nav-link\" href=\"#\" aria-current=\"page\">Demo</a></nav>",
+      "css": ".ds-nav{display:flex;gap:22px;align-items:center}.ds-nav-link{font-size:15px;letter-spacing:-0.01em;color:var(--color-ink-2,#4a4a4a);text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1)}.ds-nav-link:hover{color:var(--color-ink,#0a0a0a)}.ds-nav-link[aria-current=page]{color:var(--color-ink,#0a0a0a);font-weight:500}.ds-nav-link:focus-visible{outline:2px solid var(--color-ink,#0a0a0a);outline-offset:4px}"
+    },
+    {
+      "name": "Dialog / Overlay",
+      "kind": "custom",
+      "refersTo": "dialog",
+      "description": "The one place a drop shadow is permitted. Paper panel over a 30% scrim.",
+      "html": "<div class=\"ds-dialog\"><h2 class=\"ds-dialog-title\">Send us an ad</h2><p class=\"ds-dialog-body\">We'll analyze it and email the arc.</p></div>",
+      "css": ".ds-dialog{border-radius:var(--radius-2xl,16px);border:1px solid var(--color-line,#e2e2e2);background:var(--color-paper,#fff);padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.18);max-width:420px}.ds-dialog-title{margin:0 0 8px;font-size:20px;font-weight:500;letter-spacing:-0.02em;color:var(--color-ink,#0a0a0a)}.ds-dialog-body{margin:0;font-size:15px;line-height:1.5;color:var(--color-ink-2,#4a4a4a)}"
+    },
+    {
+      "name": "Timeline Scrubber",
+      "kind": "custom",
+      "refersTo": "scrubber",
+      "description": "Signature component. Ink progress fill on a line-2 track, ink thumb ringed in paper. Drives the /demo playhead via a per-frame --val custom property. NOTE: 6px tall with a 6x18px thumb — below the 24x24 minimum target size.",
+      "html": "<input class=\"ds-scrub\" type=\"range\" min=\"0\" max=\"100\" value=\"38\" aria-label=\"Timeline scrubber\" style=\"--val:38%\" />",
+      "css": ".ds-scrub{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:999px;background:linear-gradient(var(--color-ink,#0a0a0a) 0 0) 0/var(--val,0%) 100% no-repeat,var(--color-line-2,#d8d8d8);cursor:pointer}.ds-scrub::-webkit-slider-thumb{-webkit-appearance:none;width:6px;height:18px;border-radius:3px;background:var(--color-ink,#0a0a0a);box-shadow:0 0 0 3px var(--color-paper,#fff);cursor:pointer}.ds-scrub:focus-visible{outline:2px solid var(--color-ink,#0a0a0a);outline-offset:4px}"
+    },
+    {
+      "name": "Serif-Italic Accent",
+      "kind": "custom",
+      "refersTo": "accent-word",
+      "description": "The system's one expressive gesture: exactly ONE serif-italic word per view, on the emotional word, inside an otherwise medium-weight sans heading.",
+      "html": "<h2 class=\"ds-accent-head\">Where this ad earns <span class=\"ds-accent-word\">attention</span>.</h2>",
+      "css": ".ds-accent-head{font-size:clamp(28px,3vw,34px);line-height:1.1;letter-spacing:-0.02em;font-weight:500;color:var(--color-ink,#0a0a0a);text-wrap:balance;margin:0}.ds-accent-word{font-family:Georgia,'Times New Roman',serif;font-style:italic;font-weight:400}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calibrated Record",
+    "overview": "Swiss/editorial minimalism where restraint is the argument. The surface is near-monochrome by conviction, not by timidity: a seven-step achromatic ramp carries one hundred percent of the interface, and the single muted slate/teal pair is held in reserve for readings — chart geometry only, never chrome. Depth is drawn, not lit. In the whole application there is exactly one true drop shadow, and it belongs to the modal; every other surface separates by a one-pixel hairline and a four-percent step from paper to fill.\n\nThe expressive budget is spent once per view, on a single serif-italic word inside an otherwise medium-weight sans heading. That one gesture is the whole personality — a term set down by hand in an otherwise typeset page. Everything else is calibrated: tabular figures, uppercase tracked labels, no monospace anywhere, and geometry that resolves its colours from the same tokens the interface uses.\n\nThe name holds three readings at once. Calibrated, because restraint here is precision rather than reticence, and nothing uncalibrated is admitted to the surface. Record, because the page is a notebook that writes down what actually happened. And under the current product thesis, Record carries a third sense: the corpus itself, growing one ad at a time.",
+    "keyCharacteristics": [
+      "Near-monochrome: a 7-step achromatic ramp carries the entire UI",
+      "One reserved accent pair, admitted to charts and nothing else",
+      "Depth by hairline and a single 4% surface step — not by shadow",
+      "Exactly one serif-italic accent word per view",
+      "Tabular figures and uppercase tracked labels; no monospace anywhere",
+      "Light-only — there is no dark mode, verified across the entire repo",
+      "Calm, short, ease-out motion; every 3D surface holds a static pose under reduced-motion"
+    ],
+    "rules": [
+      {
+        "name": "The Data-Only Accent Rule",
+        "section": "colors",
+        "body": "--color-accent and --color-accent-2 are admitted to chart geometry and nothing else. Never a button, link, heading, bullet, or checkmark. At 3.72:1, accent-2 is not a legal text colour."
+      },
+      {
+        "name": "The Single Raised Step Rule",
+        "section": "colors",
+        "body": "There is exactly one step above paper, and it is fill (#fafafa). Do not invent a grey in between."
+      },
+      {
+        "name": "The One Accent Word Rule",
+        "section": "typography",
+        "body": "Exactly one serif-italic word per view, on the emotional word. Nothing else is italicised, and a second accent is never added."
+      },
+      {
+        "name": "The No-Monospace Rule",
+        "section": "typography",
+        "body": "There is no monospace anywhere, the /demo data tool included. Numbers are sans with tabular-nums — digits that align without a monospace face. This applies to canvas ctx.font strings and SVG font-family attributes too, where a grep for className will never find them."
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "section": "elevation",
+        "body": "Flat surfaces get a 1px hairline, never a shadow and never a glow. The one permitted drop shadow belongs to overlays. Interactive lift is a 2px translate or a 1.02 scale — never a shadow bloom."
+      },
+      {
+        "name": "The Fenced Decoration Rule",
+        "section": "elevation",
+        "body": "Decorative geometry and model output are visually separable, and decoration is labelled as such. Decoration never borrows the accent reserved for real readings."
+      }
+    ],
+    "dos": [
+      "Do use semantic tokens (text-ink-2, bg-fill, border-line).",
+      "Do keep one serif-italic accent word per view.",
+      "Do set labels + numbers in uppercase tracked sans (numbers tabular-nums).",
+      "Do show attention, language load, and the lit cortical profile publicly.",
+      "Do keep accent / accent-2 inside charts.",
+      "Do separate surfaces with hairlines.",
+      "Do leave the hero (Landing.tsx / Brain.tsx) untouched."
+    ],
+    "donts": [
+      "Don't paste #4a4a4a / #fafafa / #e2e2e2 — a token covers it.",
+      "Don't italicise anything else or add a second accent.",
+      "Don't reach for font-mono — labels are uppercase tracked sans.",
+      "Don't surface valence / arousal (emotion) on /demo or /story — it's private research.",
+      "Don't use accent / accent-2 for buttons, links, or headings.",
+      "Don't add shadows to flat surfaces or glows to curves.",
+      "Don't invent greys between paper and fill."
+    ]
+  }
+}

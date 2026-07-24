@@ -1,25 +1,23 @@
 # Product
 
-## Register
+<!-- impeccable:product-schema 1 -->
 
-brand
+## Platform
 
-_(The site (`src/`, the Next.js app) is a marketing + demo surface whose job is to
-make a YC-grade first impression and communicate the honest-science positioning.
-Design IS the product here. The `/demo` read-out console is an interactive product
-artifact inside that brand surface, but the primary register is brand.)_
+web
 
 ## Users
 
-- **Primary:** YC partners, angels, and design-partner prospects (DTC brand /
-  performance-marketing leads) evaluating Soma. They arrive skeptical, technical,
-  and time-poor. They are testing two things at once: "is this real science?" and
-  "would this help me ship better ads?"
-- **Context:** desktop first (a pitch, a shared link, a laptop demo), but must hold
+- **Primary — advertisers (DTC brand and performance-marketing leads).** They send a
+  video ad through the waitlist / free trial and get a read-out back. Their job to be
+  done: see what an ad does to a viewer second by second, and know which stretch to
+  re-cut. They are the moat's mechanism as well as its customer — every ad they send
+  is an ingestion event (see Positioning).
+- **Secondary — investors and design-partner prospects** (YC partners, angels). They
+  arrive skeptical, technical, and time-poor, testing two things at once: "is this real
+  science?" and "is this defensible?"
+- **Context:** desktop first — a pitch, a shared link, a laptop demo — but it must hold
   up on a phone passed across a table. Often viewed live while a founder narrates.
-- **Job to be done:** in under a minute, understand what Soma predicts, see it move
-  on a real timeline, and trust the boundary between what's validated and what's a
-  labeled hypothesis.
 
 ## Product Purpose
 
@@ -27,53 +25,159 @@ Soma predicts an average viewer's second-by-second cortical response to a video 
 (via Meta's public TRIBE v2 encoder), then reads an **attention arc**, a
 **comprehension / language-load** lane, and **weak-spot callouts** off it — from the
 file, no human panel.
-The site's purpose is to convey that capability *and its honest evidence ladder*
-credibly enough to win a conversation. Success = a skeptical expert leaves
-believing the team is rigorous, not overclaiming.
 
-## Brand Personality
+The product being built on top of that is the **trained layer that translates cortical
+output into advertising outcomes** (CTR, retention, engagement). Success is an
+advertiser pointing at a timestamp and knowing what to change.
 
+## Positioning
+
+The encoder is not the moat. TRIBE v2 is public; anyone can run it and produce a score,
+and a raw score is not defensible.
+
+Two things are:
+
+1. **The corpus.** Customer ad videos paired with that ad's real performance metrics,
+   assembled through the trial and waitlist. More signups produce more videos, which
+   produce better training data. A public-model competitor cannot scrape this pairing.
+2. **The translation layer the corpus makes possible.** TRIBE v2, as used here, reads a
+   **cortical surface** (fsaverage5) and does not resolve **subcortical** structures. The
+   single strongest neural predictor of real-world ad-market response — the ventral
+   striatum — is subcortical, so a raw TRIBE read is blind to it (see Evidence on Hand
+   for the sources). A competitor running TRIBE raw therefore cannot read the
+   best-established outcome signal directly; it has to be learned from a corpus. **Framing
+   caution:** the defensible claim is "the strongest single predictor is subcortical and
+   out of TRIBE's reach," NOT "cortical signal is useless" — a cortical region (MPFC) is
+   itself an established predictor of campaign outcome. Do not overstate this publicly.
+
+So: **Soma is not TRIBE v2. Soma is the trained layer between the cortical map and the
+outcome.** The corpus is what makes that layer trainable, and the trial is what builds
+the corpus.
+
+## Operating Context
+
+- Advertisers arrive via waitlist or free trial, submit an ad, and receive a read-out.
+  The trial is an **ingestion mechanism**, not only an acquisition channel; the flow
+  should be designed with that dual job in mind.
+- Real performance metrics for submitted ads come from the customer's Meta Ads Library.
+- The pipeline is `video → TRIBE v2 cortical arc → trained read-out → arc_<id>.json`.
+  Arcs reach the site either bundled (`public/arcs/*.json`) or published live through
+  Supabase, so a new arc appears without a redeploy.
+- Public surfaces: `/` (landing), `/demo` (read-out console), `/science`, `/compare`,
+  `/faq`, `/pitch`, `/story`. `/brain-lab` is internal and noindex.
+
+## Capabilities and Constraints
+
+**Shipping today:** attention arc, comprehension / language-load lane, weak-spot
+callouts, cortical profile, A/B compare, cross-lineup compare.
+
+**In training, not validated:** the cortical→performance translation layer. Early
+results exist; nothing is validated. **No public surface may present it as a working
+capability or quote its outputs as results.** It carries the same honesty treatment as
+the read-out head.
+
+**Constraints:**
+
+- The TRIBE v2 encoder is frozen and Meta's. The read-out weights are Soma's.
+- Emotion lanes (valence / arousal) are a private research result and must never appear
+  on a public page — `/demo` and `/story` included.
+- Decoration and model output must remain visually separable, and decoration is labeled.
+
+**Explicitly undecided:** whether, where, and how forcefully to disclose the null
+pre-registered result publicly (see Evidence on Hand). This is deliberately open, not
+forgotten — it should be revisited, not silently dropped.
+
+**Terminology:** an *arc* is a second-by-second lane; a *weak spot* is a flagged
+attention dip pinned to clip time; a *read-out* is a lane derived from the arc.
+
+## Brand Commitments
+
+- **Name:** Soma. The wordmark is lowercase `soma`.
 - **Three words:** clinical, honest, alive.
-- **Voice:** a scientific instrument that talks straight. Confident about what's
-  proven, plainly labeled about what isn't. No hype adjectives, no fake urgency,
-  no fabricated numbers.
-- **Emotional goal:** the calm authority of a well-made measuring device. The
-  visitor should feel they're looking at a real lab tool, not a pitch skin.
+- **Voice:** a scientific instrument that talks straight. Confident about what's proven,
+  plainly labeled about what isn't. No hype adjectives, no fake urgency, no fabricated
+  numbers.
+- **Emotional goal:** the calm authority of a well-made measuring device. The visitor
+  should feel they are looking at a real lab tool, not a pitch skin.
+- **Anti-references:**
+  - *Generic AI-SaaS* — neon-blue gradient hero, gradient-clipped headline text, glass
+    cards, the big-number hero-metric template, a tiny tracked uppercase eyebrow above
+    every section. Soma must not read as another AI wrapper landing page.
+  - *Overclaiming neuro-marketing incumbents* (Realeyes / System1 "trust our black box").
+    The edge is doing the validation honestly, so the design must reflect that discipline
+    rather than an opaque score.
+  - *A fractured multi-template feel.* One system, everywhere.
 
-## Anti-references
+## Evidence on Hand
 
-- **Generic AI-SaaS:** neon-blue gradient hero, gradient-clipped headline text,
-  glass cards, big-number hero-metric template, tiny tracked uppercase eyebrow над
-  every section. Soma must not read as "another AI wrapper landing page."
-- **Overclaiming neuro-marketing incumbents** (Realeyes/System1 style "trust our
-  black box"): our edge is doing the validation honestly — running the held-out test
-  and reporting it, never dressing a hypothesis up as a result — so the design must
-  reflect that discipline, not an opaque score.
-- **Fractured multi-template feel:** the former three-pages-three-fonts state.
-  One system, everywhere.
+- **Ad corpus — 733 ads paired with real performance metrics.**
+  `data/ads/ad_manifest.csv` (733 rows) and `data/ads/ad_performance.csv` (733 rows,
+  all non-empty), carrying `ctr_percentile`, `ctr_index`, `engagement_total`,
+  `cost_index`, `days_running`, `industry_key`, `objective`, `country`.
+  `data/ads/advertiser_summary.csv` holds 917 advertiser rows.
+  **Publishable.** Note: the figure quoted in conversation was ~800; the traceable count
+  is **733 ads**. Use 733. (917 is advertisers, not ads — a likely source of the drift.)
+  Note also that CTR is stored as percentile and index, not absolute rate.
+- **The primary pre-registered test came back NULL** — raw TRIBE arc vs. human attention
+  on TVSum (n=15). Locked in `docs/science/PREREGISTRATION.md` and its addendum.
+  Under the current positioning this result *supports* the thesis: raw cortical signal
+  does not predict outcome, which is why the translation layer exists.
+- **The trained read-out head is not a validated win.**
+  `validation/head_incremental.csv`: `median_raw=0.1719 median_partial=0.1784 adds=2/15
+  stouffer_p=0.0005` — a combined Stouffer p of 0.0005, but only 2 of 15 clips
+  individually beat a plain ffmpeg baseline. A head arc on a new video is
+  out-of-distribution from the training proxy: a hypothesis, not a result.
+- **Subcortical claim — sourced, with a framing correction.** Verified against the
+  journals themselves:
+  - *Venkatraman et al. (2015), "Predicting Advertising Success Beyond Traditional
+    Measures", Journal of Marketing Research, 52(4), 436–452* (DOI 10.1509/jmr.13.0593).
+    Across six methods (self-report, implicit, eye-tracking, biometrics, EEG, fMRI), fMRI
+    explained the most variance in ad elasticity, and — exact abstract wording —
+    "activity in the ventral striatum is the strongest predictor of real-world,
+    market-level response to advertising." The ventral striatum is subcortical. This is
+    the load-bearing citation.
+  - *Genevsky, Yoon & Knutson (2017), "When Brain Beats Behavior: Neuroforecasting
+    Crowdfunding Outcomes", Journal of Neuroscience, 37(36), 8625–8634.* Only nucleus
+    accumbens (subcortical) activity generalized to forecast aggregate market outcomes;
+    the sample's own behavioural measures did not.
+  - **Counter-evidence, must not be ignored:** *Falk et al. (2015), "Functional brain
+    imaging predicts public health campaign success", SCAN, 11(2), 204–214.* MPFC — a
+    **cortical** region, within TRIBE's reach — predicts population-level campaign success
+    beyond self-report. So the honest claim is narrow: the *strongest single* outcome
+    predictor is subcortical and out of TRIBE's reach; cortical signal is NOT useless.
+  - **Linch­pin, grounded in this repo:** TRIBE-as-used runs on the fsaverage5
+    cortical surface (README, `build_roi_mask.py`), which is cortical-only by construction.
+  - Any public copy must use the narrow framing above. The overstated version
+    ("subcortical is the direct signal, cortical is far behind") is not supported.
+- **Demo arcs:** 13 in `public/arcs/`. 10 of 13 carry no `weak_spots`. Footage is gated
+  per card by `hasFootage()`; the flagship `real2` deliberately has none.
+- **Absences future work must not fabricate:** no validated performance prediction, no
+  customer testimonials, no named customers, no pricing, no deployment scale claims.
 
-## Design Principles
+## Product Principles
 
 1. **Honesty is the interface.** Show plainly what the model shows; never dress a
-   hypothesis up as a result. Colour never encodes an evidence tier — the old
-   green/amber/red tier UI is gone, and the one muted slate/teal is reserved
-   strictly for data-viz lanes (see `docs/DESIGN-SYSTEM.md`).
-2. **The instrument, not the skin.** Chrome, telemetry labels, and the read-out
-   console should feel like a real scientific tool. Restraint reads as rigor.
-3. **One coherent system.** A single type scale, palette, spacing rhythm, and
-   motion language across demo / science / compare / faq / pitch. No page looks like
-   a different product.
-4. **Decoration is fenced from data.** The beautiful cortex visuals are explicitly
-   labeled decoration; the only pixels bound to model output live in the console
-   and are captioned as such. This separation is a feature, not a disclaimer.
-5. **Calm motion.** Ease-out, short, purposeful. Motion clarifies state (playhead,
-   reveal, selection); it never performs. Every animation has a reduced-motion path.
+   hypothesis as a result. This is the positioning, not a disclaimer on it.
+2. **The corpus compounds.** Every trial is an ingestion event. Flows that bring ads in
+   are product surface, not just funnel.
+3. **Name the boundary.** What the model measures — cortical — and what it does not —
+   subcortical — is the argument for the translation layer. State it; don't bury it.
+4. **The instrument, not the skin.** Chrome, labels, and the read-out console should feel
+   like a real scientific tool. Restraint reads as rigor.
+5. **Decoration is fenced from data.** The cortex visuals are labeled decoration; only
+   the console is bound to model output. The separation is a feature.
 
 ## Accessibility & Inclusion
 
-- Target WCAG 2.1 AA: body text ≥4.5:1, large/label text ≥3:1, including muted
-  greys on the white surfaces (verify, don't assume).
-- Full `prefers-reduced-motion` support: the 3D flythrough, scroll flashes, and
-  section reveals all degrade to static, legible states.
-- Keyboard-operable transport, picker, and forms; visible focus rings;
-  `aria-live` on status/callout regions.
+- **Target WCAG 2.1 AA.** Body text ≥4.5:1, large/label text ≥3:1 — verified, not assumed.
+  `--color-ink-3` is `#727272` (4.81:1 on paper, 4.61:1 on fill), corrected from `#8a8a8a`
+  which failed. **Known open failure:** `--color-accent-2` `#5f8b99` is 3.72:1 and is used
+  as small text in roughly 16 places; it is legal as chart geometry, not as text.
+- **Full `prefers-reduced-motion` support.** Implemented in `BrainField.tsx`, all three
+  `brainlab/` treatments, and `public/story.html`. **Gap:** `DemoConsole.tsx` has none —
+  though its playback is user-initiated and pausable, so it does not violate WCAG 2.2.2.
+- **Keyboard operability** for transport, picker, and forms, with visible focus rings.
+  **Known gap:** three inputs use `outline-none` with no replacement indicator
+  (`Landing.tsx:84`, `UploadDialog.tsx:281`, `:290`).
+- **`aria-live` on status and callout regions.** The weak-spot callout carries
+  `role="status"`; the scrubber announces elapsed time via `aria-valuetext`.
