@@ -153,18 +153,32 @@ const FAQS: Faq[] = [
     group: "Versus the alternatives",
     q: "The model is public. So what's the moat?",
     a: (
-      <p>
-        Correct &mdash; and the encoder was never the moat. The moat is three
-        things the model can&rsquo;t give you. First, the rigorous validation
-        almost no one bothers to do. Second, the product and the daily workflow.
-        Third, a data flywheel of real ads paired with real reactions and
-        retention from our partners, which a public-model competitor can never
-        scrape. Whoever builds the real product and gathers real outcome data
-        first wins this race.
-      </p>
+      <>
+        <p>
+          Correct &mdash; and the encoder was never the moat. Anyone can download
+          TRIBE v2 tomorrow and produce a score. A score is not defensible.
+        </p>
+        <p>
+          The moat is the corpus: real ads paired with the performance they
+          actually got. 733 so far, each carrying CTR percentile, engagement and
+          spend index alongside its brain response. Every ad a customer sends adds
+          one more pairing, and that pairing is what a public-model competitor
+          cannot scrape.
+        </p>
+        <p>
+          The corpus is also what makes the real product trainable: a layer that
+          translates cortical response into advertising outcome. That layer is in
+          training, not finished, and we will keep saying so until it is.
+        </p>
+        <p>
+          Behind those two: the product and the daily workflow, and the validation
+          discipline that keeps both honest. Whoever gathers real outcome data
+          first wins this race.
+        </p>
+      </>
     ),
     plain:
-      "The encoder was never the moat. The moat is the rigorous validation almost no one bothers to do, the product and workflow, and a data flywheel of real ads paired with real reactions and retention from partners, which a public-model competitor cannot scrape. Whoever builds the real product and gathers real outcome data first wins this race.",
+      "The encoder was never the moat — anyone can download TRIBE v2 and produce a score. The moat is the corpus: 733 real ads so far, each paired with the performance it actually got. Every ad a customer sends adds another pairing, and that is what a public-model competitor cannot scrape. The corpus is what makes the real product trainable — a layer that translates cortical response into advertising outcome, which is in training and labelled that way until it is finished.",
   },
   {
     group: "Versus the alternatives",
@@ -212,7 +226,7 @@ function Chevron() {
       stroke="currentColor"
       strokeWidth="1.7"
       aria-hidden="true"
-      className="ml-auto shrink-0 text-ink-3 transition-transform duration-200 group-open:rotate-180 group-open:text-accent-2"
+      className="ml-auto shrink-0 text-ink-3 transition-transform duration-200 group-open:rotate-180 group-open:text-ink"
     >
       <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
@@ -231,7 +245,7 @@ export default function FaqPage() {
 
       {/* header */}
       <header className="mx-auto max-w-[800px] px-[clamp(16px,4vw,24px)] pb-6 pt-[clamp(26px,5vw,44px)]">
-        <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-accent-2">
+        <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-ink-3">
           <span className="h-[6px] w-[6px] rounded-full bg-accent-2" />
           Questions, answered straight
         </div>

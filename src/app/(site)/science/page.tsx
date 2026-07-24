@@ -120,7 +120,7 @@ export default function SciencePage() {
     <article>
       {/* header */}
       <header className="mx-auto max-w-[920px] px-[clamp(16px,4vw,24px)] pb-8 pt-[clamp(26px,5vw,44px)]">
-        <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-accent-2">
+        <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-ink-3">
           <span className="h-[6px] w-[6px] rounded-full bg-accent-2" />
           The science
         </div>
@@ -238,9 +238,49 @@ export default function SciencePage() {
         </p>
       </section>
 
-      {/* 04 — the chain */}
+      {/* 04 — what cortical leaves out */}
       <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
-        <Eyebrow>04 · the chain</Eyebrow>
+        <Eyebrow>04 · what cortical leaves out</Eyebrow>
+        <h2 className="max-w-[22ch] text-balance text-section text-ink">
+          The strongest signal sits below the surface.
+        </h2>
+        <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
+          TRIBE reads the cortical surface &mdash; the outer sheet of the brain,
+          where attention and language load show up, and most of what a video
+          does to you. But the strongest single neural predictor of whether an ad
+          moves the market &mdash; the{" "}
+          <strong className="font-semibold text-ink">ventral striatum</strong>,
+          the brain&rsquo;s reward center &mdash; sits below that surface, where a
+          cortical model cannot reach it.
+        </p>
+        <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
+          In a head-to-head test of six methods against real ad sales, fMRI
+          activity in the ventral striatum was the strongest predictor of
+          market-level response &mdash; ahead of surveys, eye tracking,
+          biometrics, and EEG. A raw cortical read is blind to it.
+        </p>
+        <p className="mt-3 max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
+          That does not make the cortical read empty; cortical value signals
+          predict campaign response too. It means the surface alone is not enough.
+          So Soma is building a layer that maps the cortical signal it{" "}
+          <strong className="font-semibold text-ink">can</strong>{" "}
+          read onto the outcomes advertisers actually get &mdash; learned from a growing library
+          of real ads paired with their real performance. It is in training, not
+          finished, and we will say so until it is. That mapping is what a raw
+          model &mdash; or a competitor running TRIBE straight &mdash; does not
+          have.
+        </p>
+        <p className="mt-5 max-w-[66ch] text-[11.5px] leading-[1.5] text-ink-3">
+          Venkatraman et al. (2015), <span className="italic">Journal of Marketing
+          Research</span> 52(4). Falk et al. (2015),{" "}
+          <span className="italic">Social Cognitive &amp; Affective Neuroscience</span>{" "}
+          11(2).
+        </p>
+      </section>
+
+      {/* 05 — the chain */}
+      <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
+        <Eyebrow>05 · the chain</Eyebrow>
         <h2 className="max-w-[20ch] text-balance text-section text-ink">
           Three steps, from video to feeling.
         </h2>
@@ -288,9 +328,9 @@ export default function SciencePage() {
         </p>
       </section>
 
-      {/* 05 — how to read the arc */}
+      {/* 06 — how to read the arc */}
       <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
-        <Eyebrow>05 · how to read the arc</Eyebrow>
+        <Eyebrow>06 · how to read the arc</Eyebrow>
         <h2 className="max-w-[22ch] text-balance text-section text-ink">
           A few shapes come up again and again.
         </h2>
@@ -329,9 +369,9 @@ export default function SciencePage() {
         </div>
       </section>
 
-      {/* 06 — the roadmap */}
+      {/* 07 — the roadmap */}
       <section className="mx-auto max-w-[920px] border-t border-line px-[clamp(16px,4vw,24px)] py-[clamp(30px,5vw,52px)]">
-        <Eyebrow>06 · the roadmap</Eyebrow>
+        <Eyebrow>07 · the roadmap</Eyebrow>
         <h2 className="max-w-[22ch] text-balance text-section text-ink">
           Where Soma goes next.
         </h2>
@@ -345,7 +385,7 @@ export default function SciencePage() {
               key={r.k}
               className="flex items-start gap-4 border border-line bg-fill p-[15px_18px] first:rounded-t-2xl last:rounded-b-2xl"
             >
-              <span className="w-[34px] shrink-0 pt-[1px] text-[12px] font-semibold text-accent-2">
+              <span className="w-[34px] shrink-0 pt-[1px] text-[12px] font-semibold text-ink">
                 {r.k}
               </span>
               <span
@@ -357,7 +397,7 @@ export default function SciencePage() {
                 <h3 className="mb-[3px] text-ui font-medium">
                   {r.h}
                   {r.now ? (
-                    <span className="ml-2 text-[9.5px] uppercase tracking-[0.1em] text-accent-2">
+                    <span className="ml-2 text-[9.5px] uppercase tracking-[0.1em] text-ink-3">
                       you are here
                     </span>
                   ) : null}
