@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
-import DemoConsole from "@/components/demo/DemoConsole";
+import fs from "node:fs";
+import path from "node:path";
+import DemoScrollPage from "@/components/demo2/DemoScrollPage";
+import type { Report } from "@/components/demo2/types";
 
-// The arc player is its own fixed-viewport console (it manages its own layout like the
-// landing hero), so it is NOT wrapped in the scrolling (site) group — it renders full
-// screen and scrolls internally. DemoConsole is a client component; this segment stays
-// a Server Component so it can export metadata.
+// /demo is the scroll-through product narrative (the YC product link). It reads the
+// pre-computed report public/demo/report.json — every number in it comes from
+// tools/demo/build_report.py over real frozen-TRIBE output — and renders it server-side,
+// so a reader with JS disabled still gets the full page. The old interactive console
+// moved to /console. Server Component so it can read the file + export metadata.
 export const metadata: Metadata = {
-  title: "soma — live neural read-out",
+  title: "soma — find the ad that wins",
   description:
-    "Watch a video ad's attention arc, comprehension, and whole-cortex activation play back on one shared timeline — read straight from the file, no panel.",
+    "Anyone can make a hundred ads; nobody knows which one wins. Soma reads how a brain watches each cut — hook, attention, comprehension — and finds the winner.",
 };
 
+function loadReport(): Report {
+  const p = path.join(process.cwd(), "public", "demo", "report.json");
+  return JSON.parse(fs.readFileSync(p, "utf8")) as Report;
+}
+
 export default function DemoPage() {
-  return <DemoConsole />;
+  return <DemoScrollPage report={loadReport()} />;
 }
