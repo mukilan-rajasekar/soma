@@ -414,17 +414,24 @@ BRAND_TERMS = {
     "tt_33": ["packout", "tool", "clearance", "milwaukee"],
 }
 
+# Reframed as ONE brand's ad account: ten creatives for a single product (Kova Whey
+# Isolate), some near-identical, some very different. The scores/arcs are the real
+# per-video model output — only the labels present them as one campaign. tt_307 keeps the
+# "ingredient" angle because its real on-screen/spoken detections ("whey", "Whey") already
+# match the product, so the bottom-ranked "names the product 5×, still loses attention"
+# story stays literally true.
+_BRAND = "Kova · Whey Isolate"
 TITLES = {
-    "tt_307": ("Whey protein", "growth.supplements"),
-    "tt_449": ("3-step skincare", "CASPARA"),
-    "tt_401": ("Fashion drop", "marllin"),
-    "tt_313": ("Streetwear cap", "independent seller"),
-    "tt_471": ("Lip tint", "independent seller"),
-    "tt_264": ("Sofa showroom", "independent seller"),
-    "tt_128": ("Evening-wear", "independent seller"),
-    "tt_607": ("Ice-cream shop", "independent seller"),
-    "tt_131": ("Charm bracelet", "independent seller"),
-    "tt_33": ("Tool clearance", "packout"),
+    "tt_307": ("Ingredient breakdown", _BRAND),
+    "tt_449": ("Before & after", _BRAND),
+    "tt_401": ("Transformation story", _BRAND),
+    "tt_313": ("Creator review", _BRAND),
+    "tt_471": ("15-second hook cut", _BRAND),
+    "tt_264": ("Routine demo", _BRAND),
+    "tt_128": ("Problem / solution", _BRAND),
+    "tt_607": ("Founder story", _BRAND),
+    "tt_131": ("Gym-bag unboxing", _BRAND),
+    "tt_33": ("How-to: the scoop", _BRAND),
 }
 
 VARIANTS = [

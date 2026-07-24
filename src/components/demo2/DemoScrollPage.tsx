@@ -193,17 +193,22 @@ export default function DemoScrollPage({ report }: { report: Report }) {
       <Section
         n="04"
         eyebrow="Input → output"
-        heading={<>Ten ads in. One <span className="font-serif font-normal italic">ranking</span> out.</>}
-        lede="Drop a batch of ads in; Soma scores each and ranks them against each other. Every row breaks into its hook, hold, and comprehension drivers — so you see not just which ad wins, but why, and what to fix on the ones that don't."
+        heading={<>Ten ads for one product. One <span className="font-serif font-normal italic">ranking</span> out.</>}
+        lede="This is a single brand's ad account — ten creatives for the same product, some near-identical, some completely different. Soma scores each and ranks them against each other. Every row breaks into its hook, hold, and comprehension drivers, so you see not just which creative wins, but why — and what to fix on the ones that don't."
       >
         {(revealed) => (
           <div>
+            <div className="mb-3 flex items-center gap-2 text-[11px] text-ink-3">
+              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true" />
+              <span className="text-ink">Kova · Whey Isolate</span>
+              <span>· 10 creatives, one product</span>
+            </div>
             <RankBoard ads={batch} active={revealed} />
             <p className="mt-4 max-w-[68ch] text-[12.5px] leading-[1.6] text-ink-3">
-              Note the whey-protein ad at the bottom: it names its brand five times and lights up
-              language cortex — top comprehension in the batch — yet ranks last, because almost
-              nobody&rsquo;s attention survives past the open. A single grade would hide that. The
-              breakdown makes it a fixable diagnosis.
+              Note the ingredient-breakdown cut at the bottom: it names the product five times and
+              lights up language cortex — top comprehension of the ten — yet ranks last, because
+              almost nobody&rsquo;s attention survives past the open. Same product, same brand; a
+              single grade would hide that. The breakdown makes it a fixable diagnosis.
             </p>
           </div>
         )}
