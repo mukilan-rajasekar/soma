@@ -351,7 +351,12 @@ function Stat({
         <span className="text-[15px] text-ink-3">{suffix}</span>
       </div>
       <div className={`mt-2 h-1 w-full overflow-hidden rounded-full bg-line ${big && tone ? "" : "hidden"}`}>
-        <div className={tone === "accent" ? "h-full rounded-full bg-accent-2" : "h-full rounded-full bg-ink"} style={{ width: active ? `${Math.min(100, value)}%` : "0%", transition: "width .9s" }} />
+        {/* grow via transform: scaleX (compositor-only) rather than animating width, which
+            would trigger layout on every frame. transform-origin left so it fills L→R. */}
+        <div
+          className={tone === "accent" ? "h-full w-full rounded-full bg-accent-2" : "h-full w-full rounded-full bg-ink"}
+          style={{ transform: active ? `scaleX(${Math.min(100, value) / 100})` : "scaleX(0)", transformOrigin: "left", transition: "transform .9s" }}
+        />
       </div>
       <div className="mt-1.5 text-[11px] text-ink-3">{sub}</div>
     </div>
