@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 // Comparison matrix cell mark.
 function Mark({ kind }: { kind: "y" | "n" | "p" }) {
   const map = {
-    y: { ch: "✓", cls: "border-accent-2 text-accent-2" },
+    y: { ch: "✓", cls: "border-ink text-ink" },
     n: { ch: "–", cls: "border-line text-ink-3" },
     p: { ch: "~", cls: "border-line-2 text-ink-2" },
   } as const;
@@ -212,7 +212,7 @@ export default function ComparePage() {
     <article>
       {/* header */}
       <header className="mx-auto max-w-[960px] px-[clamp(16px,4vw,24px)] pb-6 pt-[clamp(26px,5vw,44px)]">
-        <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-accent-2">
+        <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-ink-3">
           <span className="h-[6px] w-[6px] rounded-full bg-accent-2" />
           How Soma compares
         </div>
@@ -258,7 +258,7 @@ export default function ComparePage() {
             >
               <div
                 className={`text-[10px] uppercase tracking-[0.1em] ${
-                  c.us ? "text-accent-2" : "text-ink-3"
+                  c.us ? "text-ink" : "text-ink-3"
                 }`}
               >
                 {c.src}
@@ -294,7 +294,7 @@ export default function ComparePage() {
                   <th
                     key={c}
                     className={`border-b border-line px-3 py-[15px] text-center align-bottom text-[13.5px] font-semibold tracking-[-0.01em] ${
-                      i === 3 ? "bg-fill text-accent-2" : "text-ink-2"
+                      i === 3 ? "bg-fill text-ink" : "text-ink-2"
                     }`}
                   >
                     {c}
@@ -327,7 +327,7 @@ export default function ComparePage() {
                       {cell.sub ? (
                         <span
                           className={`mt-1 block text-[10px] ${
-                            i === 3 ? "text-accent-2" : "text-ink-3"
+                            i === 3 ? "text-ink" : "text-ink-3"
                           }`}
                         >
                           {cell.sub}
@@ -366,7 +366,7 @@ export default function ComparePage() {
                 <h3 className="text-[20px] font-semibold tracking-[-0.02em]">
                   {v.name}
                 </h3>
-                <span className="text-[10.5px] uppercase tracking-[0.06em] text-accent-2">
+                <span className="text-[10.5px] uppercase tracking-[0.06em] text-ink-3">
                   {v.tag}
                 </span>
               </div>
@@ -447,7 +447,7 @@ export default function ComparePage() {
                 key={i}
                 className="flex items-start gap-3 text-[15px] leading-[1.5] text-ink-2"
               >
-                <span className="mt-[3px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-line-2 text-[11px] text-accent-2">
+                <span className="mt-[3px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-line-2 text-[11px] text-ink">
                   ✓
                 </span>
                 <span className="min-w-0 flex-1">{li}</span>

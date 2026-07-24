@@ -47,7 +47,7 @@ export function pal(): Palette {
   _pal = {
     ink: v("--color-ink", "#0a0a0a"),
     ink2: v("--color-ink-2", "#4a4a4a"),
-    ink3: v("--color-ink-3", "#8a8a8a"),
+    ink3: v("--color-ink-3", "#727272"),
     line: v("--color-line", "#e2e2e2"),
     line2: v("--color-line-2", "#d8d8d8"),
     fill: v("--color-fill", "#fafafa"),

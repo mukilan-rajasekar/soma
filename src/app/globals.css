@@ -34,7 +34,11 @@
   --color-paper: #ffffff; /* page background            → bg-paper   */
   --color-ink: #0a0a0a; /* primary text / black fill  → text-ink / bg-ink   */
   --color-ink-2: #4a4a4a; /* secondary / body copy      → text-ink-2 */
-  --color-ink-3: #8a8a8a; /* tertiary / meta / muted    → text-ink-3 */
+  --color-ink-3: #727272; /* tertiary / meta / muted    → text-ink-3
+                             4.81:1 on paper, 4.61:1 on fill — clears WCAG AA
+                             body text (4.5:1) at the 10–13px sizes this token
+                             is actually used at. Was #8a8a8a (3.45:1 / 3.31:1),
+                             which failed AA everywhere it carried real copy. */
 
   /* Hairlines & fills */
   --color-line: #e2e2e2; /* default 1px hairline       → border-line   */

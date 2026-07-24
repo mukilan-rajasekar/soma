@@ -20,7 +20,9 @@ const INK = "#0a0a0a";
 const ACCENT = "#3f6f7a";
 const ACCENT_RGB = "63,111,122"; // ACCENT as rgb parts, for the per-frame shell fill
 const ACCENT2 = "#5f8b99";
-const INK3 = "#8a8a8a";
+// Mirrors --color-ink-3. Inlined because this SVG is built as a string (no class
+// context), so it can't reach the token — keep it in step with globals.css.
+const INK3 = "#727272";
 const FILL = "#fafafa";
 
 export type BrainHandle = {

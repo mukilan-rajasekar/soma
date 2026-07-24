@@ -200,7 +200,7 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
             >
               <span
                 className={`mb-1 block text-[13px] font-semibold ${
-                  s.live ? "text-accent-2" : "text-ink"
+                  s.live ? "text-ink" : "text-ink-3"
                 }`}
               >
                 {s.r}
@@ -301,7 +301,7 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
                 {f.n}
               </h4>
               <p className="text-[12.5px] leading-[1.5] text-ink-2">{f.p}</p>
-              <span className="mt-[10px] block text-[11px] uppercase tracking-[0.04em] text-accent-2">
+              <span className="mt-[10px] block text-[11px] uppercase tracking-[0.04em] text-ink-3">
                 {f.t}
               </span>
             </div>
@@ -378,7 +378,7 @@ export default function PitchDeck() {
   return (
     <section className="mx-auto flex min-h-[calc(100dvh-58px)] max-w-[1100px] flex-col px-[clamp(16px,7vw,88px)] py-[6vh]">
       <div className="flex items-center justify-between text-[12px] uppercase tracking-[0.12em] text-ink-3">
-        <span className="text-accent-2">{slide.kick}</span>
+        <span className="text-ink">{slide.kick}</span>
         <span className="tracking-[0.06em]">
           {i + 1} / {len}
         </span>

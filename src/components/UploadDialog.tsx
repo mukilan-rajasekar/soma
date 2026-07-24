@@ -221,7 +221,7 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
             onClick={close}
             disabled={pending}
             aria-label="Close"
-            className="-mr-1 -mt-1 cursor-pointer rounded-md px-2 py-1 text-[18px] leading-none text-[#8a8a8a] transition-colors hover:text-[#0a0a0a] disabled:cursor-not-allowed disabled:opacity-40"
+            className="-mr-1 -mt-1 cursor-pointer rounded-md px-2 py-1 text-[18px] leading-none text-ink-3 transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
           >
             &times;
           </button>
@@ -267,7 +267,7 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
               <span className="min-w-0 truncate">
                 {file ? file.name : "Choose an MP4…"}
               </span>
-              <span className="shrink-0 text-[13px] text-[#8a8a8a]">
+              <span className="shrink-0 text-[13px] text-ink-3">
                 {file ? formatSize(file.size) : "Browse"}
               </span>
             </button>

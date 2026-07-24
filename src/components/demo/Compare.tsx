@@ -154,10 +154,10 @@ export default function Compare({ videos }: Props) {
           <div className="mb-2 text-[10.5px] uppercase tracking-[0.12em] text-ink-3">
             3 · Compare · A / B
           </div>
-          <h3 className="mb-1.5 text-[20px] font-medium tracking-[-0.02em] text-ink text-balance">
+          <h2 className="mb-1.5 text-[20px] font-medium tracking-[-0.02em] text-ink text-balance">
             Which ad holds <span className="font-serif font-normal italic">attention</span>{" "}
             better, moment to moment?
-          </h3>
+          </h2>
           <p className="max-w-[58ch] text-[13.5px] leading-[1.55] text-ink-2 text-pretty">
             Overlay two attention arcs on one timeline &mdash; the read most performance
             teams actually want. Test every cut, not just the one you can afford to panel.

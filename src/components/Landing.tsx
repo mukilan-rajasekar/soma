@@ -42,7 +42,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-paper">
+    <main className="fixed inset-0 overflow-hidden bg-paper">
       <BrainField />
 
       <div className="absolute left-11 top-[34px] z-[2] text-[23px] font-medium tracking-[-0.01em]">
@@ -109,6 +109,6 @@ export default function Landing() {
         onClose={() => setUploadOpen(false)}
         initialEmail={email}
       />
-    </div>
+    </main>
   );
 }

@@ -1,7 +1,14 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Soma — Live Result Walkthrough</title>
 <style>
   :root{
-    --paper:#ffffff; --ink:#0a0a0a; --ink2:#4a4a4a; --ink3:#8a8a8a;
+    /* Mirrors src/app/globals.css. This page is served standalone from /public and
+       embedded in /story via iframe, so it can't read the app's tokens — keep in step.
+       --ink3 is #727272 (not #8a8a8a) to clear WCAG AA at the 10–13px sizes below. */
+    --paper:#ffffff; --ink:#0a0a0a; --ink2:#4a4a4a; --ink3:#727272;
     --line:#e2e2e2; --line2:#d8d8d8; --fill:#fafafa; --error:#b42318;
     --accent:#3f6f7a; --accent2:#5f8b99;
     --sans:"GT Planar","Helvetica Neue",Helvetica,Arial,sans-serif;

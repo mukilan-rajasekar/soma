@@ -35,7 +35,7 @@ one muted slate/teal is reserved strictly for data-viz lanes.
 | Page background | `--color-paper` | `bg-paper` | `#ffffff` |
 | Primary text / black fill | `--color-ink` | `text-ink` · `bg-ink` | `#0a0a0a` |
 | Secondary / body copy | `--color-ink-2` | `text-ink-2` | `#4a4a4a` |
-| Tertiary / meta / muted | `--color-ink-3` | `text-ink-3` | `#8a8a8a` |
+| Tertiary / meta / muted | `--color-ink-3` | `text-ink-3` | `#727272` |
 | Default hairline | `--color-line` | `border-line` | `#e2e2e2` |
 | Stronger hairline (inputs) | `--color-line-2` | `border-line-2` | `#d8d8d8` |
 | Raised surface / card fill | `--color-fill` | `bg-fill` | `#fafafa` |
