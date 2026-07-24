@@ -18,6 +18,12 @@ export type VideoItem = {
   arc: string; // URL to a static arc json under /public (empty "" for live inline arcs)
   grad: string; // CSS gradient for the thumb background
   arcData?: Arc; // inline in-memory arc (live Supabase rows) — resolved instead of `arc`
+  // URL to the REAL ad footage under /public — the clip the arc was actually measured
+  // from, so the video becomes the console's clock and the read-out is literally the
+  // brain response to the frames on screen. Only set where the footage on disk matches
+  // the arc's length; absent means no footage exists for that cut and the arc plays on
+  // the timer instead (never point this at a different cut — it would desync the lanes).
+  video?: string;
 };
 
 // Only the arcs that actually exist under public/arcs are seeded — referencing a
@@ -43,6 +49,7 @@ export const VIDEOS: VideoItem[] = [
     title: "Whey protein",
     src: "trimodal",
     arc: "/arcs/arc_tt_307.json",
+    video: "/ad-videos/tt_307.mp4",
     grad: "linear-gradient(135deg,#ffffff,#f0f4f5 60%,#e8eeef)",
   },
   {
@@ -50,6 +57,7 @@ export const VIDEOS: VideoItem[] = [
     title: "3-step skincare",
     src: "trimodal",
     arc: "/arcs/arc_tt_449.json",
+    video: "/ad-videos/tt_449.mp4",
     grad: "linear-gradient(135deg,#ffffff,#eef3f2 60%,#e6ecea)",
   },
   {
@@ -57,6 +65,7 @@ export const VIDEOS: VideoItem[] = [
     title: "Fashion drop",
     src: "trimodal",
     arc: "/arcs/arc_tt_401.json",
+    video: "/ad-videos/tt_401.mp4",
     grad: "linear-gradient(140deg,#ffffff,#eff3f4 60%,#e7edee)",
   },
   {
@@ -64,6 +73,7 @@ export const VIDEOS: VideoItem[] = [
     title: "Streetwear cap",
     src: "trimodal",
     arc: "/arcs/arc_tt_313.json",
+    video: "/ad-videos/tt_313.mp4",
     grad: "linear-gradient(140deg,#ffffff,#eef2f3 60%,#e6ebec)",
   },
   {
@@ -71,6 +81,7 @@ export const VIDEOS: VideoItem[] = [
     title: "Lip tint",
     src: "trimodal",
     arc: "/arcs/arc_tt_471.json",
+    video: "/ad-videos/tt_471.mp4",
     grad: "linear-gradient(120deg,#ffffff,#f2f5f4 58%,#eaefed)",
   },
   {
@@ -78,6 +89,7 @@ export const VIDEOS: VideoItem[] = [
     title: "Sofa showroom",
     src: "trimodal",
     arc: "/arcs/arc_tt_264.json",
+    video: "/ad-videos/tt_264.mp4",
     grad: "linear-gradient(140deg,#ffffff,#f1f4f5 60%,#e9eeef)",
   },
   {
@@ -85,6 +97,7 @@ export const VIDEOS: VideoItem[] = [
     title: "Evening-wear",
     src: "trimodal",
     arc: "/arcs/arc_tt_128.json",
+    video: "/ad-videos/tt_128.mp4",
     grad: "linear-gradient(120deg,#ffffff,#f1f4f4 58%,#e9eeed)",
   },
   {
@@ -92,6 +105,7 @@ export const VIDEOS: VideoItem[] = [
     title: "Ice-cream shop",
     src: "trimodal",
     arc: "/arcs/arc_tt_607.json",
+    video: "/ad-videos/tt_607.mp4",
     grad: "linear-gradient(135deg,#ffffff,#f2f5f6 62%,#eaeeef)",
   },
   {
@@ -99,6 +113,7 @@ export const VIDEOS: VideoItem[] = [
     title: "Charm bracelet",
     src: "trimodal",
     arc: "/arcs/arc_tt_131.json",
+    video: "/ad-videos/tt_131.mp4",
     grad: "linear-gradient(120deg,#ffffff,#f0f4f5 58%,#e8eded)",
   },
   {
@@ -106,9 +121,18 @@ export const VIDEOS: VideoItem[] = [
     title: "Tool clearance",
     src: "trimodal",
     arc: "/arcs/arc_tt_33.json",
+    video: "/ad-videos/tt_33.mp4",
     grad: "linear-gradient(135deg,#ffffff,#f2f4f5 60%,#eaeeef)",
   },
 ];
+
+// Cards whose real footage is on disk. The flagship `real2` is deliberately absent: its
+// arc is a 29s cut (`meta12_deal_cut`) of a 151s Meta source and the cut itself was never
+// saved, so there is no frame-accurate footage to sync it to — it keeps playing on the
+// timer rather than showing a clip that doesn't match its own read-out.
+export function hasFootage(v: VideoItem): boolean {
+  return !!(v.video && v.video.trim());
+}
 
 // The seeded cards are all real TRIBE runs, so none are watermarked. The sample
 // mechanism is retained only as a guard: a card would be flagged if its source were

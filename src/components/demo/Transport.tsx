@@ -14,6 +14,11 @@ type Props = {
   onScrub: (pct: number) => void;
   scrubRef: RefObject<HTMLInputElement | null>;
   clockRef: RefObject<HTMLSpanElement | null>;
+  // sound: rendered only for cuts that actually have footage, since there is nothing to
+  // hear otherwise. Muted is the default everywhere — this is the opt-in.
+  showMute?: boolean;
+  muted?: boolean;
+  onToggleMute?: () => void;
 };
 
 export default function Transport({
@@ -22,6 +27,9 @@ export default function Transport({
   onScrub,
   scrubRef,
   clockRef,
+  showMute = false,
+  muted = true,
+  onToggleMute,
 }: Props) {
   return (
     <div className="mt-1 flex items-center gap-3.5 px-1 pb-0.5 pt-1">
@@ -42,6 +50,41 @@ export default function Transport({
           </svg>
         )}
       </button>
+
+      {showMute ? (
+        <button
+          type="button"
+          onClick={onToggleMute}
+          aria-label={muted ? "Turn ad sound on" : "Turn ad sound off"}
+          aria-pressed={!muted}
+          title={muted ? "Sound off" : "Sound on"}
+          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-line text-ink-2 transition-colors hover:border-line-2 hover:text-ink"
+        >
+          {muted ? (
+            <svg viewBox="0 0 16 16" aria-hidden="true" className="h-[15px] w-[15px]">
+              <path d="M3 6h2.2L8.5 3.2v9.6L5.2 10H3z" fill="currentColor" />
+              <path
+                d="M10.6 6.4l3 3.2M13.6 6.4l-3 3.2"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+              />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 16 16" aria-hidden="true" className="h-[15px] w-[15px]">
+              <path d="M3 6h2.2L8.5 3.2v9.6L5.2 10H3z" fill="currentColor" />
+              <path
+                d="M10.8 5.9a3 3 0 0 1 0 4.2M12.7 4.3a5.4 5.4 0 0 1 0 7.4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+              />
+            </svg>
+          )}
+        </button>
+      ) : null}
 
       <input
         ref={scrubRef}

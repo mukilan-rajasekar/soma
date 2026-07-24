@@ -25,7 +25,7 @@ import {
 import { drawAttention, drawMessage, pal } from "@/lib/arc-draw";
 import BrainSvg, { type BrainHandle } from "./BrainSvg";
 import Transport from "./Transport";
-import Picker, { VIDEOS, isSample, type VideoItem } from "./Picker";
+import Picker, { VIDEOS, hasFootage, isSample, type VideoItem } from "./Picker";
 import Compare from "./Compare";
 import CorticalProfile from "./CorticalProfile";
 import ReadoutPanel from "./ReadoutPanel";
@@ -114,6 +114,12 @@ export default function DemoConsole() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [failed, setFailed] = useState(false);
   const [durations, setDurations] = useState<Record<string, number>>({});
+  // real footage: whether the ACTIVE cut has a clip on disk. When it does, the clip IS
+  // the clock (see setupVideo) so the lanes and the brain are read off the very frames on
+  // screen. Muted by default — picking a card must never blare audio at a visitor — with
+  // an explicit toggle to turn sound on.
+  const [hasVideo, setHasVideo] = useState(false);
+  const [muted, setMuted] = useState(true);
 
   // ---- refs owned by the loop (mutated every frame, never trigger a render) ----
   const arcRef = useRef<Arc | null>(null);
@@ -125,6 +131,11 @@ export default function DemoConsole() {
   const timerBaseRef = useRef(0);
   const timerT0Ref = useRef(0);
   const loadTokenRef = useRef(0);
+  // mirrors `muted` so the imperative video code reads it without a stale closure.
+  const mutedRef = useRef(true);
+  // set by a card CLICK only: the arc load is async, so playback starts in applyArc once
+  // the clip + lanes are actually ready. Boot never sets it, so /demo opens paused.
+  const autoPlayRef = useRef(false);
 
   // ---- element refs ----
   const consoleRef = useRef<HTMLDivElement>(null);
@@ -158,7 +169,21 @@ export default function DemoConsole() {
       // video mode: command it; native events sync the button
       if (on) {
         const p = v.play();
-        if (p && p.catch) p.catch(() => {});
+        // A pick calls play() only after the arc fetch resolves, so the click's user
+        // activation may have lapsed and an UNMUTED clip can be refused. Muted playback is
+        // always permitted — drop to it rather than leaving the console on a dead frame.
+        if (p && p.catch)
+          p.catch(() => {
+            if (!v.muted) {
+              v.muted = true;
+              mutedRef.current = true;
+              setMuted(true);
+              const retry = v.play();
+              if (retry && retry.catch) retry.catch(() => setBtn(false));
+              return;
+            }
+            setBtn(false);
+          });
       } else {
         v.pause();
       }
@@ -184,11 +209,14 @@ export default function DemoConsole() {
   };
 
   // ---- (a) real footage sync if arc.video_src is non-empty; else timer ----
-  const setupVideo = (data: Arc) => {
+  const setupVideo = (data: Arc, item: VideoItem) => {
     const v = videoRef.current;
     hasVideoRef.current = false;
     if (!v) return;
-    const src = (data.video_src || "").trim();
+    // The card's own footage wins; `arc.video_src` stays supported so a live/published arc
+    // can carry its own clip URL. Either way it is only ever the cut the arc was measured
+    // from — the clip then BECOMES the clock, so the lanes track the frames on screen.
+    const src = (hasFootage(item) ? item.video : data.video_src || "")?.trim() || "";
     if (!src) {
       try {
         v.pause();
@@ -198,9 +226,12 @@ export default function DemoConsole() {
       v.removeAttribute("src");
       v.load?.();
       v.hidden = true;
+      setHasVideo(false);
       return;
     }
     hasVideoRef.current = true;
+    setHasVideo(true);
+    v.muted = mutedRef.current;
     if (v.getAttribute("src") !== src) {
       v.setAttribute("src", src);
       v.load?.();
@@ -219,6 +250,32 @@ export default function DemoConsole() {
     }
   };
 
+  // Start playback only once the element actually holds frames. Calling play() straight
+  // after load() makes the browser ABORT it ("interrupted by a new load request"), which
+  // left a picked ad sitting silently on frame 0 — the clip loaded, but never moved.
+  const playWhenReady = () => {
+    const v = videoRef.current;
+    // no footage for this cut: the timer drives the arc, so there is nothing to wait on
+    if (!hasVideoRef.current || !v) {
+      setPlaying(true);
+      return;
+    }
+    if (v.readyState >= 2) {
+      setPlaying(true); // already decoded (same clip re-picked) — go now
+      return;
+    }
+    // Whichever readiness event lands first wins — `preload="metadata"` decodes the first
+    // frame on Chrome but browsers differ on whether that is loadeddata or canplay, and a
+    // pick that waited on the wrong one would never start. play() twice is a no-op.
+    const token = loadTokenRef.current;
+    const go = () => {
+      if (token !== loadTokenRef.current) return; // a newer pick superseded this one
+      setPlaying(true);
+    };
+    v.addEventListener("loadeddata", go, { once: true });
+    v.addEventListener("canplay", go, { once: true });
+  };
+
   const applyArc = (data: Arc, item: VideoItem) => {
     // when head_apply.py has written a trained-head lane, the demoted arithmetic arc
     // rides along as arc.baseline — drawn faint under the headline (honest before/after).
@@ -234,7 +291,7 @@ export default function DemoConsole() {
     const span = ts.length > 1 ? ts[ts.length - 1] - ts[0] : 0;
     durationRef.current = span || data.duration_sec || ts[ts.length - 1] || 0;
     statsRef.current = computeStats(data);
-    setupVideo(data);
+    setupVideo(data, item);
     failedRef.current = false;
     setFailed(false);
     setArc(data);
@@ -242,11 +299,19 @@ export default function DemoConsole() {
     if (typeof badge === "number" && badge > 0) {
       setDurations((prev) => ({ ...prev, [item.id]: badge }));
     }
+    // A card CLICK rolls straight into playback, now that the clip and the lanes are both
+    // ready. Cuts with no footage on disk play the arc on the timer exactly as before.
+    if (autoPlayRef.current) {
+      autoPlayRef.current = false;
+      seek(0);
+      playWhenReady();
+    }
   };
 
   const bail = (label: string, e: unknown) => {
     failedRef.current = true;
     setFailed(true);
+    autoPlayRef.current = false; // don't let a dead pick auto-play a later load
     const msg = (e instanceof Error ? e.message : "") || "error";
     [cAttRef.current, cMsgRef.current].forEach((c) => {
       if (!c) return;
@@ -283,6 +348,9 @@ export default function DemoConsole() {
     setCurrentId(v.id);
     seek(0);
     setPlaying(false);
+    // Clicking a card is a request to WATCH that ad. The arc load is async, so playback
+    // actually starts in applyArc once the clip and the lanes have both landed.
+    autoPlayRef.current = true;
     load(v);
   };
 
@@ -428,6 +496,16 @@ export default function DemoConsole() {
   const showWatermark = !!activeVideo && !failed && isSample(activeVideo);
   const readout = arc && !failed ? deriveReadout(arc) : null;
 
+  // sound is opt-in: the console never starts a clip with audio on, but a visitor who
+  // wants to judge the ad as shipped can turn it on and it sticks across picks.
+  const toggleMute = () => {
+    const next = !mutedRef.current;
+    mutedRef.current = next;
+    setMuted(next);
+    const v = videoRef.current;
+    if (v) v.muted = next;
+  };
+
   const laneClick = (c: HTMLCanvasElement | null, e: React.MouseEvent) => {
     if (!c) return;
     const r = c.getBoundingClientRect();
@@ -491,14 +569,6 @@ export default function DemoConsole() {
               {/* brain */}
               <div className="flex flex-col gap-3">
                 <div className="relative overflow-hidden rounded-2xl border border-line bg-fill p-3.5">
-                  <video
-                    ref={videoRef}
-                    hidden
-                    playsInline
-                    muted
-                    preload="metadata"
-                    className="mb-2.5 block w-full rounded-xl border border-line bg-ink"
-                  />
                   <div className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-[0.13em] text-ink-3">
                     <span>Cortical activation</span>
                     <b ref={brainTRef} className="font-bold tabular-nums text-ink">
@@ -533,10 +603,15 @@ export default function DemoConsole() {
                   />
                 </div>
 
-                {/* weak-spot callout */}
+                {/* weak-spot callout — role=status so the callout is announced when the
+                    playhead enters a weak spot. The scrubber already announces elapsed
+                    time via aria-valuetext, so this stays `polite` and carries only the
+                    weak-spot text; announcing per frame would flood a screen reader. */}
                 <div
                   ref={calloutRef}
                   hidden
+                  role="status"
+                  aria-live="polite"
                   className="flex items-start gap-2 rounded-xl border border-error/30 bg-error/[0.06] px-3.5 py-2.5 text-[13px] text-error"
                 >
                   <svg viewBox="0 0 16 16" aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0">
@@ -575,7 +650,40 @@ export default function DemoConsole() {
                   onScrub={(pct) => seek((pct / 100) * durationRef.current)}
                   scrubRef={scrubRef}
                   clockRef={clockRef}
+                  showMute={hasVideo}
+                  muted={muted}
+                  onToggleMute={toggleMute}
                 />
+
+                {/* The footage sits at the foot of the lane column: under the graphs it is
+                    driving, and level with the cortical-profile / read-out panels in the
+                    left column, so the clip and the numbers it produced read side by side.
+                    w-fit keeps the card hugging a vertical 9:16 clip instead of stranding it
+                    in a wide empty panel. The element is always mounted (the transport owns
+                    it through a ref); the wrapper only hides it for cuts with no footage. */}
+                <div
+                  className={
+                    hasVideo
+                      ? "w-fit rounded-2xl border border-line bg-fill px-[15px] py-3.5"
+                      : "hidden"
+                  }
+                >
+                  <div className="mb-2 flex items-baseline justify-between gap-3">
+                    <span className="text-ui font-medium">The ad</span>
+                    <span className="shrink-0 text-meta text-ink-3">playing in sync</span>
+                  </div>
+                  <video
+                    ref={videoRef}
+                    hidden
+                    playsInline
+                    muted={muted}
+                    preload="metadata"
+                    aria-label={
+                      activeVideo ? `Ad footage — ${activeVideo.title}` : "Ad footage"
+                    }
+                    className="block h-[280px] w-auto max-w-full rounded-xl border border-line bg-ink object-contain"
+                  />
+                </div>
               </div>
             </div>
 
