@@ -103,6 +103,24 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         </div>
       </section>
 
+      {/* ── social proof · who's already running ads through the beta ─── */}
+      <section className="border-y border-line bg-fill px-[clamp(18px,5vw,40px)] py-[clamp(20px,4vh,32px)]">
+        <div className="mx-auto flex max-w-[980px] flex-col items-center gap-x-8 gap-y-3 text-center sm:flex-row sm:justify-center sm:text-left">
+          <span className="shrink-0 text-[12px] uppercase tracking-[0.12em] text-ink-3">
+            Already in the beta
+          </span>
+          <span className="hidden h-4 w-px bg-line-2 sm:block" aria-hidden="true" />
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {["TikTok", "Supercell", "MrBeast"].map((name) => (
+              <span key={name} className="text-ui font-medium tracking-[-0.01em] text-ink-2">
+                {name}
+              </span>
+            ))}
+            <span className="text-[12.5px] text-ink-3">and other big names</span>
+          </div>
+        </div>
+      </section>
+
       {/* ── 1 · the science ─────────────────────────────────────────── */}
       <div id="science" />
       <Section
