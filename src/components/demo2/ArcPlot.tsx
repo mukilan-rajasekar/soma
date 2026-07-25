@@ -48,30 +48,43 @@ const PADR = 14;
 const PADT = 16;
 const PADB = 26;
 
-function smoothPath(
-  ctx: CanvasRenderingContext2D,
-  xs: number[],
-  ys: number[],
-  upto: number,
-) {
-  if (xs.length < 2) return;
+// Uniform Catmull-Rom evaluated on `vals` at segment `i`, local param `f∈[0,1]`.
+// A Catmull-Rom spline passes THROUGH every data point, so a dot placed on it (at a
+// sample or interpolated between two) sits exactly on the drawn line — unlike the old
+// midpoint-quadratic smoothing, which floated the dot off the curve.
+function crAt(vals: number[], i: number, f: number): number {
+  const n = vals.length;
+  const p0 = vals[Math.max(0, i - 1)];
+  const p1 = vals[i];
+  const p2 = vals[Math.min(n - 1, i + 1)];
+  const p3 = vals[Math.min(n - 1, i + 2)];
+  const f2 = f * f;
+  const f3 = f2 * f;
+  return 0.5 * (2 * p1 + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f2 + (-p0 + 3 * p1 - 3 * p2 + p3) * f3);
+}
+
+// Draw a Catmull-Rom curve through (xs, ys), up to fraction `upto` of the index domain.
+function drawCurve(ctx: CanvasRenderingContext2D, xs: number[], ys: number[], upto: number) {
+  const n = xs.length;
+  if (n < 2) return;
+  const last = Math.max(0, Math.min(1, upto)) * (n - 1);
+  const full = Math.floor(last);
   ctx.beginPath();
   ctx.moveTo(xs[0], ys[0]);
-  const n = Math.max(1, Math.floor(upto * (xs.length - 1)));
-  for (let i = 1; i <= n; i++) {
-    const xc = (xs[i - 1] + xs[i]) / 2;
-    const yc = (ys[i - 1] + ys[i]) / 2;
-    ctx.quadraticCurveTo(xs[i - 1], ys[i - 1], xc, yc);
+  for (let i = 0; i < full; i++) {
+    const x1 = xs[i], y1 = ys[i];
+    const x2 = xs[i + 1], y2 = ys[i + 1];
+    const x0 = xs[Math.max(0, i - 1)], y0 = ys[Math.max(0, i - 1)];
+    const x3 = xs[Math.min(n - 1, i + 2)], y3 = ys[Math.min(n - 1, i + 2)];
+    const c1x = x1 + (x2 - x0) / 6, c1y = y1 + (y2 - y0) / 6;
+    const c2x = x2 - (x3 - x1) / 6, c2y = y2 - (y3 - y1) / 6;
+    ctx.bezierCurveTo(c1x, c1y, c2x, c2y, x2, y2);
   }
-  // partial last segment for a smooth leading edge
-  const frac = upto * (xs.length - 1) - (n - 0);
-  if (n < xs.length - 1 && frac > 0) {
-    const i = n + 1;
-    const x = xs[i - 1] + (xs[i] - xs[i - 1]) * frac;
-    const y = ys[i - 1] + (ys[i] - ys[i - 1]) * frac;
-    ctx.lineTo(x, y);
-  } else {
-    ctx.lineTo(xs[n], ys[n]);
+  // partial leading tip during the reveal animation
+  const f = last - full;
+  if (full < n - 1 && f > 0) {
+    const px = xs[full] + (xs[full + 1] - xs[full]) * f;
+    ctx.lineTo(px, crAt(ys, full, f));
   }
   ctx.stroke();
 }
@@ -183,7 +196,7 @@ export default function ArcPlot({
       ctx.lineWidth = 1.6;
       ctx.setLineDash([5, 4]);
       ctx.lineJoin = "round";
-      smoothPath(ctx, xs, yv, progress);
+      drawCurve(ctx, xs, yv, progress);
       ctx.setLineDash([]);
     }
 
@@ -192,7 +205,7 @@ export default function ArcPlot({
     ctx.strokeStyle = TOK.ink;
     ctx.lineWidth = 2;
     ctx.lineJoin = "round";
-    smoothPath(ctx, xs, yd, progress);
+    drawCurve(ctx, xs, yd, progress);
 
     // brand-mention ticks along the baseline
     ctx.textAlign = "center";
@@ -215,11 +228,15 @@ export default function ArcPlot({
       ctx.lineTo(px, y1);
       ctx.stroke();
       ctx.globalAlpha = 1;
-      // dot on the dorsal curve
-      const idx = Math.max(0, Math.min(dorsal.length - 1, Math.round((playhead / span) * (dorsal.length - 1))));
+      // dot ON the dorsal curve — evaluated with the SAME Catmull-Rom the line is drawn
+      // with, at the exact playhead time, so it tracks the line cleanly (no floating).
+      const n = yd.length;
+      const idxF = span > 0 ? Math.max(0, Math.min(n - 1, ((playhead - timestamps[0]) / span) * (n - 1))) : 0;
+      const seg = Math.max(0, Math.min(n - 2, Math.floor(idxF)));
+      const dotY = crAt(yd, seg, idxF - seg);
       ctx.fillStyle = TOK.ink;
       ctx.beginPath();
-      ctx.arc(px, yAt(dorsal[idx]), 3.5, 0, Math.PI * 2);
+      ctx.arc(px, dotY, 3.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -246,7 +263,7 @@ export default function ArcPlot({
         style={{ height }}
       />
       {(showVentral || showHook) && (
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] uppercase tracking-[0.1em] text-ink-3">
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] uppercase tracking-[0.06em] text-ink-3">
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-[2px] w-4 bg-ink" /> {labelDorsal} · dorsal
           </span>

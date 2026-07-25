@@ -47,7 +47,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         <div className="mx-auto grid max-w-[980px] grid-cols-1 items-center gap-10 md:grid-cols-[1.15fr_1fr]">
           <div>
             <div
-              className="mb-4 text-[11px] uppercase tracking-[0.16em] text-ink-3"
+              className="mb-4 text-[12px] uppercase tracking-[0.12em] text-ink-3"
               style={{ opacity: heroIn ? 1 : 0, transition: "opacity .6s" }}
             >
               Soma · a brain read-out for ads
@@ -82,7 +82,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
 
           <div style={{ opacity: heroIn ? 1 : 0, transition: "opacity 1s .2s" }}>
             <div className="rounded-2xl border border-line bg-fill p-4">
-              <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-ink-3">
+              <div className="mb-2 flex items-center justify-between text-[12px] uppercase tracking-[0.08em] text-ink-3">
                 <span>{heroAd.brand ?? report.campaign.name}</span>
                 <span className="tabular-nums text-ink">Soma {heroAd.scores.soma}</span>
               </div>
@@ -151,7 +151,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
           <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[300px_1fr]">
             <div className="rounded-2xl border border-line bg-fill p-4">
               <TwoRegionBrain t={revealed ? 1 : 0} focus="ventral" height={220} />
-              <div className="mt-1 text-center text-[11px] leading-[1.5] text-ink-3">
+              <div className="mt-2 text-center text-[12.5px] leading-[1.5] text-ink-3">
                 In the hook window, the ventral network leads.
               </div>
             </div>
@@ -198,13 +198,13 @@ export default function DemoScrollPage({ report }: { report: Report }) {
       >
         {(revealed) => (
           <div>
-            <div className="mb-3 flex items-center gap-2 text-[11px] text-ink-3">
-              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-ink" aria-hidden="true" />
+            <div className="mb-3 flex items-center gap-2 text-[13px] text-ink-3">
+              <span className="inline-flex h-2 w-2 rounded-full bg-ink" aria-hidden="true" />
               <span className="text-ink">Kova · Whey Isolate</span>
               <span>· 10 creatives, one product</span>
             </div>
             <RankBoard ads={batch} active={revealed} />
-            <p className="mt-4 max-w-[68ch] text-[12.5px] leading-[1.6] text-ink-3">
+            <p className="mt-4 max-w-[68ch] text-[13.5px] leading-[1.6] text-ink-2">
               Note the ingredient-breakdown cut at the bottom: it names the product five times and
               lights up language cortex — top comprehension of the ten — yet ranks last, because
               almost nobody&rsquo;s attention survives past the open. Same product, same brand; a
@@ -280,17 +280,13 @@ export default function DemoScrollPage({ report }: { report: Report }) {
       <Section
         n="08"
         eyebrow="The moat"
-        heading={<>Every batch makes the model <span className="font-serif font-normal italic">sharper</span>.</>}
-        lede="Soma turns brain-response into the metrics you actually buy on — attention, retention, the odds a cut performs. Every batch of customer ads ingested grows the dataset behind that translation. The read-out is the product; the growing corpus is the moat."
+        heading={<>Every ad in the database makes the model <span className="font-serif font-normal italic">sharper</span>.</>}
+        lede="Soma turns brain-response into the metrics you actually buy on — attention, retention, the odds a cut performs. Every ad that comes through grows the dataset behind that translation. The read-out is the product; the growing database is the moat."
       >
         {(revealed) => (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Stat big value={report.corpus.ads} suffix="+" label="Ads processed" sub="and counting, every batch" active={revealed} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Stat big value={report.corpus.ads} suffix="+" label="Ads in the system database" sub="collected from our waitlist" active={revealed} />
             <Stat big value={report.corpus.advertisers} suffix="" label="Advertisers indexed" sub="the corpus behind the model" active={revealed} />
-            <div className="rounded-2xl border border-line bg-fill p-5 text-[13px] leading-[1.6] text-ink-2">
-              The neural model is public. The edge is the layer between neural signal and real
-              ad performance — and it&rsquo;s trained on data that arrives with every customer.
-            </div>
           </div>
         )}
       </Section>
@@ -327,8 +323,8 @@ function RegionCard({ title, tag, body, tone }: { title: string; tag: string; bo
         <span className={`inline-block h-2.5 w-2.5 rounded-full ${tone === "accent" ? "bg-accent-2" : "bg-ink"}`} />
         <span className="text-ui font-medium text-ink">{title}</span>
       </div>
-      <div className="mt-1 text-[9.5px] uppercase tracking-[0.08em] text-ink-3">{tag}</div>
-      <p className="mt-2 text-[12.5px] leading-[1.55] text-ink-2">{body}</p>
+      <div className="mt-1 text-[11px] uppercase tracking-[0.06em] text-ink-3">{tag}</div>
+      <p className="mt-2 text-[13.5px] leading-[1.55] text-ink-2">{body}</p>
     </div>
   );
 }
@@ -340,17 +336,17 @@ function Stat({
 }) {
   return (
     <div className="rounded-2xl border border-line bg-fill p-5">
-      <div className="text-[10px] uppercase tracking-[0.12em] text-ink-3">{label}</div>
+      <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
       <div className="mt-2 flex items-baseline gap-1">
         <span
-          className={`font-medium tabular-nums leading-none text-ink ${big ? "text-[40px]" : "text-[28px]"}`}
+          className={`font-medium tabular-nums leading-none text-ink ${big ? "text-[44px]" : "text-[28px]"}`}
           style={{ opacity: active ? 1 : 0.15, transition: "opacity .6s" }}
         >
           {value.toLocaleString()}
         </span>
-        <span className="text-[15px] text-ink-3">{suffix}</span>
+        <span className="text-[16px] text-ink-3">{suffix}</span>
       </div>
-      <div className={`mt-2 h-1 w-full overflow-hidden rounded-full bg-line ${big && tone ? "" : "hidden"}`}>
+      <div className={`mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-line ${big && tone ? "" : "hidden"}`}>
         {/* grow via transform: scaleX (compositor-only) rather than animating width, which
             would trigger layout on every frame. transform-origin left so it fills L→R. */}
         <div
@@ -358,7 +354,7 @@ function Stat({
           style={{ transform: active ? `scaleX(${Math.min(100, value) / 100})` : "scaleX(0)", transformOrigin: "left", transition: "transform .9s" }}
         />
       </div>
-      <div className="mt-1.5 text-[11px] text-ink-3">{sub}</div>
+      <div className="mt-2 text-[12.5px] text-ink-3">{sub}</div>
     </div>
   );
 }

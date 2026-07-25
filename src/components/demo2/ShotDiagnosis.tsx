@@ -13,7 +13,7 @@ export default function ShotDiagnosis({ diag, active }: { diag: Diag; active: bo
   const thumbs: (string | null)[] = (diag as unknown as { thumbs?: (string | null)[] }).thumbs ?? [];
   return (
     <div>
-      <div className="mb-3 flex items-center gap-3 text-[11px] text-ink-3">
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-ink-3">
         <span>
           <span className="text-ink">{diag.title}</span> · base score{" "}
           <span className="tabular-nums text-ink">{diag.base}</span>
@@ -50,8 +50,8 @@ export default function ShotDiagnosis({ diag, active }: { diag: Diag; active: bo
                   style={{ background: drag ? `rgba(180,35,24,${0.25 + mag * 0.6})` : `rgba(10,10,10,${0.2 + mag * 0.6})` }}
                 />
               </div>
-              <div className="mt-1 text-center text-[9px] tabular-nums text-ink-3">{fmtT(s.start)}</div>
-              <div className={`text-center text-[11px] font-medium tabular-nums ${drag ? "text-error" : "text-ink"}`}>
+              <div className="mt-1.5 text-center text-[11px] tabular-nums text-ink-3">{fmtT(s.start)}</div>
+              <div className={`text-center text-[13px] font-medium tabular-nums ${drag ? "text-error" : "text-ink"}`}>
                 {s.delta > 0 ? `+${s.delta}` : s.delta}
               </div>
             </div>

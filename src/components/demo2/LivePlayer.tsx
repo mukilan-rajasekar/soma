@@ -81,11 +81,11 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
             </button>
           )}
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-ink-3">
-          <button onClick={toggle} className="rounded-lg border border-line-2 px-2.5 py-1 text-ink-2 transition-colors hover:border-ink hover:text-ink">
+        <div className="flex items-center gap-3 text-[12.5px] text-ink-3">
+          <button onClick={toggle} className="rounded-lg border border-line-2 px-3 py-1.5 text-ink-2 transition-colors hover:border-ink hover:text-ink">
             {playing ? "Pause" : "Play"}
           </button>
-          <button onClick={() => { setMuted((m) => { const n = !m; if (videoRef.current) videoRef.current.muted = n; return n; }); }} className="rounded-lg border border-line-2 px-2.5 py-1 text-ink-2 transition-colors hover:border-ink hover:text-ink">
+          <button onClick={() => { setMuted((m) => { const n = !m; if (videoRef.current) videoRef.current.muted = n; return n; }); }} className="rounded-lg border border-line-2 px-3 py-1.5 text-ink-2 transition-colors hover:border-ink hover:text-ink">
             {muted ? "Unmute" : "Mute"}
           </button>
           <span className="ml-auto tabular-nums">{fmtT(t)} / {fmtT(dur)}</span>
@@ -98,12 +98,12 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
           <LiveStat label="Attention" sub="dorsal" value={att} tone="ink" flash={false} />
           <LiveStat label="Surprise" sub="ventral" value={sur} tone="accent" flash={inHook} />
           <div className="rounded-2xl border border-line bg-fill p-3">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-ink-3">Soma score</div>
+            <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">Soma score</div>
             <div className="mt-1.5 flex items-baseline gap-1">
               <span className="text-[28px] font-medium tabular-nums leading-none text-ink">{ad.scores.soma}</span>
               <span className="text-[12px] text-ink-3">/100</span>
             </div>
-            <div className="mt-2 text-[10px] leading-[1.4] text-ink-3">
+            <div className="mt-2 text-[12px] leading-[1.4] text-ink-3">
               {inHook ? "reading the hook…" : "full-ad composite"}
             </div>
           </div>
@@ -124,7 +124,7 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
           labelVentral="Surprise"
         />
 
-        <p className="text-[12.5px] leading-[1.55] text-ink-2">{ad.reads.soma} {ad.reads.hook}</p>
+        <p className="text-[13.5px] leading-[1.55] text-ink-2">{ad.reads.soma} {ad.reads.hook}</p>
       </div>
     </div>
   );
@@ -135,12 +135,12 @@ function LiveStat({ label, sub, value, tone, flash }: { label: string; sub: stri
   return (
     <div className={`rounded-2xl border bg-fill p-3 transition-colors ${flash ? "border-accent-2/60" : "border-line"}`}>
       <div className="flex items-baseline justify-between">
-        <div className="text-[10px] uppercase tracking-[0.12em] text-ink-3">{label}</div>
-        <div className="text-[9px] uppercase tracking-[0.08em] text-ink-3">{sub}</div>
+        <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
+        <div className="text-[11px] uppercase tracking-[0.06em] text-ink-3">{sub}</div>
       </div>
       <div className="mt-1.5 text-[22px] font-medium tabular-nums leading-none text-ink">{pct}</div>
-      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-line">
-        <div className={tone === "accent" ? "h-full rounded-full bg-accent-2" : "h-full rounded-full bg-ink"} style={{ width: `${pct}%` }} />
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
+        <div className={tone === "accent" ? "h-full w-full rounded-full bg-accent-2" : "h-full w-full rounded-full bg-ink"} style={{ transform: `scaleX(${pct / 100})`, transformOrigin: "left" }} />
       </div>
     </div>
   );

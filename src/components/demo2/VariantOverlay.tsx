@@ -96,7 +96,7 @@ export default function VariantOverlay({ variants, active }: { variants: Ad[]; a
     <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_240px]">
       <div>
         <canvas ref={ref} className="block w-full rounded-xl border border-line bg-paper" style={{ height: 240 }} role="img" aria-label="Attention arcs of five cuts of the same campaign, overlaid" />
-        <div className="mt-2 text-[10px] uppercase tracking-[0.1em] text-ink-3">Attention · normalized 0–1 · same campaign, five cuts</div>
+        <div className="mt-2.5 text-[11.5px] uppercase tracking-[0.06em] text-ink-3">Attention · normalized 0–1 · same campaign, five cuts</div>
       </div>
       <div className="flex flex-col gap-1.5">
         {variants.map((v) => {
@@ -115,7 +115,7 @@ export default function VariantOverlay({ variants, active }: { variants: Ad[]; a
             </button>
           );
         })}
-        <div className="mt-1 px-1 text-[11px] leading-[1.5] text-ink-3">
+        <div className="mt-1 px-1 text-[12.5px] leading-[1.5] text-ink-3">
           Same footage, recut. Attention diverges in the first seconds — the opener decides the arc.
         </div>
       </div>

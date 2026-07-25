@@ -26,7 +26,7 @@ export default function Section({ n, eyebrow, heading, lede, children, tint }: P
     >
       <div className="mx-auto max-w-[980px]">
         <div
-          className="mb-3 flex items-center gap-2.5 text-[10.5px] uppercase tracking-[0.14em] text-ink-3"
+          className="mb-3 flex items-center gap-2.5 text-[12px] uppercase tracking-[0.1em] text-ink-3"
           style={{ opacity: revealed ? 1 : 0, transition: "opacity .5s" }}
         >
           <span className="tabular-nums">{n}</span>
