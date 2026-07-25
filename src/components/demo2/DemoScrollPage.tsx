@@ -103,23 +103,8 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         </div>
       </section>
 
-      {/* ── social proof · who's already running ads through the beta ─── */}
-      <section className="border-y border-line bg-fill px-[clamp(18px,5vw,40px)] py-[clamp(20px,4vh,32px)]">
-        <div className="mx-auto flex max-w-[980px] flex-col items-center gap-x-8 gap-y-3 text-center sm:flex-row sm:justify-center sm:text-left">
-          <span className="shrink-0 text-[12px] uppercase tracking-[0.12em] text-ink-3">
-            Already in the beta
-          </span>
-          <span className="hidden h-4 w-px bg-line-2 sm:block" aria-hidden="true" />
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            {["TikTok", "Supercell", "MrBeast"].map((name) => (
-              <span key={name} className="text-ui font-medium tracking-[-0.01em] text-ink-2">
-                {name}
-              </span>
-            ))}
-            <span className="text-[12.5px] text-ink-3">and other big names</span>
-          </div>
-        </div>
-      </section>
+      {/* ── social proof · beta cohort marquee ──────────────────────── */}
+      <BetaMarquee />
 
       {/* ── 1 · the science ─────────────────────────────────────────── */}
       <div id="science" />
@@ -329,6 +314,89 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         </div>
       </section>
     </main>
+  );
+}
+
+// ── social proof · beta cohort ──────────────────────────────────────
+
+// The brands already running ads through the beta. Each renders as an ink badge
+// with its real mark in white. `logo` points to an SVG under public/logos; when
+// absent, `mark` (a monogram letter) is shown instead. The badge forces the mark
+// to white via filter, so a plain dark logo file drops straight in — EXCEPT when
+// `rawLogo` is set, meaning the SVG already carries its own on-badge colours
+// (e.g. a two-tone knock-out) and must be rendered as-is.
+//   → To add NextXI later: drop public/logos/nextxi.svg and set logo below.
+type Brand = { name: string; mark: string; logo?: string; rawLogo?: boolean };
+const BETA_BRANDS: Brand[] = [
+  { name: "TikTok", mark: "T", logo: "/logos/tiktok.svg" },
+  { name: "Supercell", mark: "S" }, // only a 3-line pixel wordmark exists — illegible at badge size
+  { name: "MrBeast", mark: "M" }, // no standalone symbol logo — monogram for now
+  { name: "NextXI", mark: "N" }, // logo dropping in later
+  { name: "Browserbase", mark: "B", logo: "/logos/browserbase.svg", rawLogo: true },
+];
+
+// Per-instance marquee tuning. --marquee-gap is the space between logos (and,
+// because BrandMark carries it as margin-right, the seam gap between the two
+// copies too); --marquee-duration is one full loop. Both cascade to the track.
+// The edge masks fade logos in/out at the rails so nothing pops at the boundary.
+const EDGE_FADE =
+  "linear-gradient(to right, transparent, #000 7%, #000 93%, transparent)";
+const marqueeStyle = {
+  "--marquee-gap": "clamp(32px, 6vw, 72px)",
+  "--marquee-duration": "36s",
+  WebkitMaskImage: EDGE_FADE,
+  maskImage: EDGE_FADE,
+} as React.CSSProperties;
+
+function BrandMark({ brand }: { brand: Brand }) {
+  return (
+    <div className="mr-[var(--marquee-gap)] flex shrink-0 items-center gap-2.5">
+      <span
+        aria-hidden="true"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-ink"
+      >
+        {brand.logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={brand.logo}
+            alt=""
+            className="h-[19px] w-[19px] object-contain"
+            // rawLogo SVGs are already coloured for the ink badge; everything else
+            // is forced to a clean white silhouette so any dark logo file works.
+            style={brand.rawLogo ? undefined : { filter: "brightness(0) invert(1)" }}
+          />
+        ) : (
+          <span className="text-[15px] font-semibold leading-none text-white">{brand.mark}</span>
+        )}
+      </span>
+      <span className="text-wordmark text-ink">{brand.name}</span>
+    </div>
+  );
+}
+
+function BetaMarquee() {
+  return (
+    <section className="border-y border-line bg-fill py-[clamp(24px,5vh,44px)]">
+      <div className="mx-auto mb-[clamp(14px,2.6vh,22px)] max-w-[980px] px-[clamp(18px,5vw,40px)]">
+        <span className="text-[12px] uppercase tracking-[0.12em] text-ink-3">
+          Already running ads through the beta
+        </span>
+      </div>
+      <div className="marquee relative overflow-hidden" style={marqueeStyle}>
+        <div className="marquee-track flex w-max items-center">
+          {[0, 1].map((copy) => (
+            <div key={copy} aria-hidden={copy === 1} className="flex shrink-0 items-center">
+              {BETA_BRANDS.map((brand) => (
+                <BrandMark key={brand.name} brand={brand} />
+              ))}
+              <span className="mr-[var(--marquee-gap)] shrink-0 font-serif text-[19px] italic text-ink-3">
+                and more
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
