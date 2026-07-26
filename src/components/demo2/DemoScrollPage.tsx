@@ -7,7 +7,15 @@
 // tools/demo/build_report.py computes from real frozen-TRIBE output on real ads.
 //
 // Flow: problem → the science (dorsal/ventral) → hook → comprehension → ranked batch →
-// same-campaign variants → dip + shot diagnosis → watch it live → the flywheel → CTA.
+// same-campaign variants → dip + shot diagnosis → GENERATE → EDIT → watch it live →
+// the flywheel → CTA.
+//
+// The page tells one three-act story — measure, generate, edit — and the acts are in that
+// order on purpose. Generation only means anything after a reader believes the
+// measurement, and the editor's numbers (+4 for cutting a shot) are the same
+// leave-one-shot-out deltas §06 has just explained. The three-act strip under the hero
+// exists so a reader who lands cold can still jump straight to acts two and three, which
+// otherwise sit 5,000px down the page.
 
 import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
@@ -21,8 +29,11 @@ import VariantOverlay from "./VariantOverlay";
 import ShotDiagnosis from "./ShotDiagnosis";
 import ComprehensionPanel from "./ComprehensionPanel";
 import LivePlayer from "./LivePlayer";
+import GenerateStudio from "./GenerateStudio";
+import EditStudio from "./EditStudio";
 import ServiceTiers from "./ServiceTiers";
 import VendorChecklist from "./VendorChecklist";
+import { BRAND } from "./studio";
 import type { Ad, Report } from "./types";
 
 export default function DemoScrollPage({ report }: { report: Report }) {
@@ -61,13 +72,19 @@ export default function DemoScrollPage({ report }: { report: Report }) {
               Anyone can make a hundred ads. Nobody knows which one{" "}
               <span className="font-serif font-normal italic">wins</span>.
             </h1>
+            {/* The hero used to end at "finds the winner", which read as a measurement-only
+                product and quietly contradicted §07: if generating creative is solved, why
+                would we generate? The answer is the whole thesis — our generation is worth
+                something BECAUSE it is filtered by the read. Say that here or the page
+                argues with itself. */}
             <p
               className="mt-5 max-w-[48ch] text-body text-pretty text-ink-2"
               style={{ opacity: heroIn ? 1 : 0, transition: "opacity .7s .2s" }}
             >
-              Generating creative is solved — hundreds of variants in minutes. The bottleneck
-              is knowing which will perform <em>before</em> you spend on it. Soma reads how a
-              brain actually watches each cut, and finds the winner.
+              Generating creative is solved — hundreds of variants in minutes. Knowing which
+              one performs is not. Soma reads how a brain actually watches each cut, then uses
+              that read to build and edit the ads that win — scored before you spend a dollar
+              on them.
             </p>
             <div
               className="mt-7 flex flex-wrap items-center gap-3"
@@ -85,7 +102,10 @@ export default function DemoScrollPage({ report }: { report: Report }) {
           <div style={{ opacity: heroIn ? 1 : 0, transition: "opacity 1s .2s" }}>
             <div className="rounded-2xl border border-line bg-fill p-4">
               <div className="mb-2 flex items-center justify-between text-[12px] uppercase tracking-[0.08em] text-ink-3">
-                <span>{heroAd.brand ?? report.campaign.name}</span>
+                {/* The account name, not the internal campaign slug. §07 introduces this
+                    footage as Halden Supply's; the hero must not call the same five cuts
+                    something else two screens earlier. */}
+                <span>{heroAd.brand ?? BRAND.account}</span>
                 <span className="tabular-nums text-ink">Soma {heroAd.scores.soma}</span>
               </div>
               <ArcPlot
@@ -104,6 +124,9 @@ export default function DemoScrollPage({ report }: { report: Report }) {
           </div>
         </div>
       </section>
+
+      {/* ── the three acts ──────────────────────────────────────────── */}
+      <ActStrip />
 
       {/* ── social proof · beta cohort marquee ──────────────────────── */}
       <BetaMarquee />
@@ -260,9 +283,39 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         )}
       </Section>
 
-      {/* ── 7 · watch it live ───────────────────────────────────────── */}
+      {/* ── 7 · generate from scratch ───────────────────────────────────
+          Act two. Everything above proves the model can tell a winning cut from a losing
+          one; this is what that measurement is FOR. The five candidates on the board are
+          the same five cuts §05 just compared, so the section costs the reader no new
+          material — it reframes footage they have already been shown as generator output,
+          which is exactly what it will be. */}
+      <div id="generate" />
       <Section
         n="07"
+        eyebrow="Generation"
+        heading={<>Write a brief. Get back the cut that <span className="font-serif font-normal italic">wins</span>.</>}
+        lede="Describe the ad in plain language. Soma generates it against your brand and design system, with generators conditioned on neural context — what makes a hook land, what holds attention, what makes a product register — then tests every candidate against predicted attention and comprehension before you see any of them."
+        tint
+      >
+        {(revealed) => <GenerateStudio report={report} active={revealed} />}
+      </Section>
+
+      {/* ── 8 · natural-language editing ────────────────────────────────
+          Act three, and the payoff of §06: the leave-one-shot-out deltas the reader has
+          already seen become the thing that ranks candidate edits. */}
+      <div id="edit" />
+      <Section
+        n="08"
+        eyebrow="AI ad editing"
+        heading={<>Change it in a sentence. It re-scores <span className="font-serif font-normal italic">itself</span>.</>}
+        lede="Video or static, edited in-platform in plain language. Splice a beat out, reorder shots, drop in text, or ask for options — every candidate edit goes through the model, and the best-performing cut comes back. No pixel-level regeneration: the frames you shot stay the frames you shot."
+      >
+        {(revealed) => <EditStudio report={report} active={revealed} />}
+      </Section>
+
+      {/* ── 9 · watch it live ───────────────────────────────────────── */}
+      <Section
+        n="09"
         eyebrow="Watch it live"
         heading={<>The ad and its score, <span className="font-serif font-normal italic">side by side</span>.</>}
         lede="Press play. The clip is the clock — attention, surprise, and the score track the very frames on screen, so you can watch exactly where the brain leans in and where it drops."
@@ -281,9 +334,9 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         {(revealed) => <MetricRow scores={heroAd.scores} reads={heroAd.reads} active={revealed} hookTone />}
       </Section>
 
-      {/* ── 8 · the flywheel / moat ─────────────────────────────────── */}
+      {/* ── 10 · the flywheel / moat ────────────────────────────────── */}
       <Section
-        n="08"
+        n="10"
         eyebrow="The moat"
         heading={<>Every ad in the database makes the model <span className="font-serif font-normal italic">sharper</span>.</>}
         lede="Soma turns brain-response into the metrics you actually buy on — attention, retention, the odds a cut performs. Every ad that comes through grows the dataset behind that translation. The read-out is the product; the growing database is the moat."
@@ -303,9 +356,9 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         )}
       </Section>
 
-      {/* ── 8b · the service ladder ──────────────────────────────────── */}
+      {/* ── 11 · the service ladder ──────────────────────────────────── */}
       <Section
-        n="09"
+        n="11"
         eyebrow="Working with us"
         tint
         heading={<>Read it yourself, or hand us the <span className="font-serif font-normal italic">whole account</span>.</>}
@@ -314,11 +367,11 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         {(revealed) => <ServiceTiers revealed={revealed} />}
       </Section>
 
-      {/* ── 8c · the buyer's checklist ───────────────────────────────────
+      {/* ── 12 · the buyer's checklist ───────────────────────────────────
           The competitive section. It names nobody — see VendorChecklist for why
           that is the point, and why adding a competitor name would weaken it. */}
       <Section
-        n="10"
+        n="12"
         eyebrow="Before you buy anything"
         heading={<>Five questions worth asking <span className="font-serif font-normal italic">anyone</span> in this category.</>}
         lede="Including us. Every answer below traces to code or data in our repository, and each one links to the artifact behind it."
@@ -346,6 +399,54 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         </div>
       </section>
     </main>
+  );
+}
+
+// ── the three acts ──────────────────────────────────────────────────
+//
+// Measure, generate, edit — the spine of the page, stated in the first screen. It earns
+// its space twice over: it tells a reader who never scrolls what the product actually
+// does, and it anchors acts two and three, which live 5,000px down and would otherwise be
+// reachable only by scrolling past ten sections of measurement.
+
+const ACTS: { n: string; title: string; body: string; href: string }[] = [
+  {
+    n: "01",
+    title: "Measure",
+    body: "Read how a brain watches the cut — hook, attention, comprehension — and rank a batch on it.",
+    href: "#science",
+  },
+  {
+    n: "02",
+    title: "Generate",
+    body: "Write a brief. Get ads built against your brand kit and filtered by the read before you see them.",
+    href: "#generate",
+  },
+  {
+    n: "03",
+    title: "Edit",
+    body: "Change the cut in a sentence. Every candidate edit is scored, and the winner is applied.",
+    href: "#edit",
+  },
+];
+
+function ActStrip() {
+  return (
+    <section className="border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(20px,4vh,34px)]">
+      <div className="mx-auto grid max-w-[980px] grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-3">
+        {ACTS.map((a) => (
+          <a key={a.n} href={a.href} className="group flex gap-3">
+            <span className="mt-[3px] text-[12px] tabular-nums tracking-[0.1em] text-ink-3">{a.n}</span>
+            <span className="min-w-0">
+              <span className="block text-ui font-medium text-ink transition-colors group-hover:text-ink-2">
+                {a.title}
+              </span>
+              <span className="mt-1 block text-[12.5px] leading-[1.5] text-ink-3">{a.body}</span>
+            </span>
+          </a>
+        ))}
+      </div>
+    </section>
   );
 }
 

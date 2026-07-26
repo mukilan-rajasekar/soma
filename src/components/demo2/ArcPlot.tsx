@@ -29,6 +29,14 @@ type Props = {
   showHook?: boolean;
   labelDorsal?: string;
   labelVentral?: string;
+  // A second, faint dorsal curve drawn behind the main one on the SAME time axis — the
+  // "before" of an edit. §08 passes the unspliced arc here and the spliced arc as `dorsal`,
+  // so the change is a single picture rather than two charts side by side.
+  ghost?: { dorsal: number[]; timestamps: number[] } | null;
+  // A hairline + label at a time inside the span. §08 marks where the shortened cut now
+  // ends, which is what makes the curve stopping short of the right edge read as "the ad
+  // got shorter" rather than as a chart that failed to finish drawing.
+  endMarker?: number | null;
 };
 
 const TOK = {
@@ -104,6 +112,8 @@ export default function ArcPlot({
   showHook = true,
   labelDorsal = "Attention",
   labelVentral = "Surprise",
+  ghost = null,
+  endMarker = null,
 }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
 
@@ -189,6 +199,19 @@ export default function ArcPlot({
 
     const xs = timestamps.map((t) => xAt(t));
 
+    // the "before" curve, if one was handed in — hairline, faint, behind everything, so
+    // the live curve reads as the subject and this reads as where it used to be.
+    if (ghost && ghost.dorsal.length > 1) {
+      ctx.strokeStyle = TOK.ink3;
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.lineJoin = "round";
+      drawCurve(ctx, ghost.timestamps.map((t) => xAt(t)), ghost.dorsal.map((v) => yAt(v)), 1);
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+
     // ventral (surprise) — dashed slate, drawn first so dorsal sits on top
     if (showVentral && ventral && ventral.length) {
       const yv = ventral.map((v) => yAt(v));
@@ -248,9 +271,26 @@ export default function ArcPlot({
     ctx.fillText("0:00", x0, y1 + 6);
     ctx.textAlign = "right";
     ctx.fillText(fmtT(span), x1, y1 + 6);
+
+    // the new end of a shortened cut. Drawn last so it sits over the curves, and labelled,
+    // because an unlabelled rule short of the right edge reads as a rendering bug.
+    if (endMarker != null && endMarker > 0 && endMarker < span && progress >= 1) {
+      const ex = xAt(endMarker);
+      ctx.strokeStyle = TOK.ink;
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ex, y0);
+      ctx.lineTo(ex, y1);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = TOK.ink;
+      ctx.textAlign = "right";
+      ctx.fillText(fmtT(endMarker), ex - 4, y1 + 6);
+    }
   }, [
     dorsal, ventral, timestamps, duration, hookSeconds, weakSpots, brandMentions,
-    progress, playhead, height, showVentral, showHook,
+    progress, playhead, height, showVentral, showHook, ghost, endMarker,
   ]);
 
   return (

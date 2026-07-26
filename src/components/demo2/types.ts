@@ -45,6 +45,10 @@ export type ShotDiagnosis = {
   adId: string;
   title: string;
   shots: Shot[];
+  // One frame per shot, written by build_report.py alongside the deltas. Optional because
+  // a report built before the thumbnails existed is still valid — consumers fall back to
+  // an empty tile.
+  thumbs?: (string | null)[];
 };
 
 export type Report = {

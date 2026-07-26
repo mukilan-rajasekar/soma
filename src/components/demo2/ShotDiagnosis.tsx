@@ -59,12 +59,14 @@ export default function ShotDiagnosis({ diag, active }: { diag: Diag; active: bo
         })}
       </div>
 
+      {/* Deliberately stops short of narrating the outcome. §08 applies this exact cut and
+          counts the score up in front of the reader; saying "climbs to 66" here spends that
+          beat two sections early. The per-shot deltas above still carry the diagnosis. */}
       <p className="mt-3 max-w-[60ch] text-[13px] leading-[1.55] text-ink-2">
-        Cut the opening{" "}
-        <span className="text-ink">{fmtT(worst.start)}–{fmtT(worst.end)}</span> shot and the score climbs to{" "}
-        <span className="font-medium text-ink tabular-nums">{worst.without}</span> — that shot is
-        dragging the whole ad down. The shots in the middle carry it: remove them and the score falls.
-        This is diagnosis at the shot, not a single grade.
+        The opening{" "}
+        <span className="text-ink">{fmtT(worst.start)}–{fmtT(worst.end)}</span> shot is the one dragging
+        the ad down — cut it and the score goes up. The shots in the middle carry it: remove them and
+        the score falls. This is diagnosis at the shot, not a single grade.
       </p>
     </div>
   );
