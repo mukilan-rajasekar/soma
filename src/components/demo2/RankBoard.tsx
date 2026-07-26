@@ -42,7 +42,16 @@ export default function RankBoard({ ads, active }: { ads: Ad[]; active: boolean 
             <span className={`tabular-nums text-[14px] ${winner ? "font-semibold text-ink" : "text-ink-3"}`}>{a.rank}</span>
             <div className="min-w-0">
               <div className="truncate text-[14px] font-medium tracking-[-0.01em] text-ink">{a.title}</div>
-              <div className="truncate text-[12px] text-ink-3">{a.brand}</div>
+              {/* Was `{a.brand}`, which printed the same account name on all ten rows of a
+                  board whose own premise made it redundant. Below the `sm` breakpoint the
+                  bar column is hidden, so the section's lede ("every row breaks into its
+                  hook, hold and comprehension drivers") was a promise the mobile layout
+                  silently broke. This line is the mobile-only fallback for that promise;
+                  the bars take over at `sm`. */}
+              <div className="truncate text-[12px] tabular-nums text-ink-3 sm:hidden">
+                {a.scores.hook} · {a.scores.hold} · {a.scores.comprehension}
+                <span className="ml-1 tracking-[0.04em]">hook·hold·comp</span>
+              </div>
             </div>
             <div className="hidden grid-cols-3 gap-2.5 sm:grid">
               <div>

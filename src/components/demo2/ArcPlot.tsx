@@ -11,7 +11,7 @@
 // 0→1 on reveal so the arc draws itself; the live player pins it to 1 and passes a
 // `playhead` time instead. Nothing here computes numbers; it only plots what it's given.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fmtT, type BrandMention, type WeakSpot } from "./types";
 
 type Props = {
@@ -116,6 +116,23 @@ export default function ArcPlot({
   endMarker = null,
 }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
+  // Canvas width is read imperatively below, so nothing in the draw effect's dependency
+  // list changes when the element resizes — the chart kept whatever width it had at mount
+  // forever. On a page that exists to be screen-recorded that is a real failure: framing
+  // the shot by resizing the window, or recording after a device-pixel-ratio change when a
+  // window moves between displays, left every arc drawn at the old width and either
+  // stretched or clipped. This observer makes width a reactive input like any other prop.
+  const [canvasW, setCanvasW] = useState(0);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = Math.round(entry.contentRect.width);
+      setCanvasW((prev) => (prev === w ? prev : w));
+    });
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const c = ref.current;
@@ -143,7 +160,7 @@ export default function ArcPlot({
     // grid — 4 horizontal hairlines
     ctx.strokeStyle = TOK.line;
     ctx.lineWidth = 1;
-    ctx.font = "9px system-ui, sans-serif";
+    ctx.font = "10.5px system-ui, sans-serif";
     ctx.fillStyle = TOK.ink3;
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
@@ -174,9 +191,12 @@ export default function ArcPlot({
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
       ctx.fillStyle = TOK.accent;
-      ctx.font = "8px system-ui, sans-serif";
+      // 8px was illegible at recording scale, and the label was the string "HOOK · 0–3s"
+      // while the band it labels is drawn from the `hookSeconds` prop — change the prop (or
+      // report.hookSeconds) and the picture moved while the caption kept saying 3s.
+      ctx.font = "10px system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText("HOOK · 0–3s", x0 + 5, y0 + 8);
+      ctx.fillText(`HOOK · 0–${hookSeconds % 1 === 0 ? hookSeconds : hookSeconds.toFixed(1)}s`, x0 + 5, y0 + 9);
     }
 
     // weak-spot bands — light error tint behind the curve
@@ -254,7 +274,26 @@ export default function ArcPlot({
       // dot ON the dorsal curve — evaluated with the SAME Catmull-Rom the line is drawn
       // with, at the exact playhead time, so it tracks the line cleanly (no floating).
       const n = yd.length;
-      const idxF = span > 0 ? Math.max(0, Math.min(n - 1, ((playhead - timestamps[0]) / span) * (n - 1))) : 0;
+      // Map playhead time → fractional sample index by walking the ACTUAL timestamps,
+      // rather than `((playhead - timestamps[0]) / span) * (n - 1)`. That old form divides
+      // by `span` (the video duration) and so assumes the samples are spread uniformly
+      // across the whole clip starting at t=0. The curve's own x positions come from
+      // xAt(timestamps[i]), so whenever the trace starts late or ends before the video does
+      // — which is the normal case, the sampler stops at the last whole second — the two
+      // disagreed and the dot rode above or below the line it is supposed to sit on.
+      const tp = Math.max(0, Math.min(span, playhead));
+      let idxF = 0;
+      if (n > 1) {
+        let hi = 1;
+        while (hi < n && timestamps[hi] < tp) hi++;
+        if (hi >= n) {
+          idxF = n - 1;
+        } else {
+          const lo = hi - 1;
+          const dt = timestamps[hi] - timestamps[lo];
+          idxF = lo + (dt > 0 ? (tp - timestamps[lo]) / dt : 0);
+        }
+      }
       const seg = Math.max(0, Math.min(n - 2, Math.floor(idxF)));
       const dotY = crAt(yd, seg, idxF - seg);
       ctx.fillStyle = TOK.ink;
@@ -265,7 +304,7 @@ export default function ArcPlot({
 
     // x-axis end labels
     ctx.fillStyle = TOK.ink3;
-    ctx.font = "9px system-ui, sans-serif";
+    ctx.font = "10.5px system-ui, sans-serif";
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     ctx.fillText("0:00", x0, y1 + 6);
@@ -291,6 +330,9 @@ export default function ArcPlot({
   }, [
     dorsal, ventral, timestamps, duration, hookSeconds, weakSpots, brandMentions,
     progress, playhead, height, showVentral, showHook, ghost, endMarker,
+    // canvasW is not read in the body — clientWidth is. It is here so a resize re-runs
+    // the draw; removing it silently reintroduces the stale-width bug.
+    canvasW,
   ]);
 
   return (

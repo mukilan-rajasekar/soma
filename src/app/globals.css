@@ -191,3 +191,23 @@ body {
   outline: 2px solid var(--color-ink);
   outline-offset: 4px;
 }
+
+/* The scrubber above was the only control on the site with a designed focus ring —
+   everything else fell back to the browser's default blue, which is both off-palette and,
+   on the ink-coloured buttons, nearly invisible. One ink ring, matching the scrubber, for
+   every interactive element. `:focus-visible` (not `:focus`) so a mouse click never paints
+   a ring; keyboard and programmatic focus still do.
+
+   The /demo scroll container carries `outline-none` deliberately: it takes focus on mount
+   so PageDown works without a click, and a full-viewport ring on load would be noise. */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:not([tabindex="-1"]):not(.outline-none):focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+  border-radius: 4px;
+}

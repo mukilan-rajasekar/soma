@@ -20,14 +20,38 @@ function sampleAt(series: number[], t: number, dur: number): number {
   return series[a] + (series[b] - series[a]) * (i - a);
 }
 
-export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: number }) {
+export default function LivePlayer({
+  ad,
+  hookSeconds,
+  active = false,
+}: {
+  ad: Ad;
+  hookSeconds: number;
+  active?: boolean;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const rafRef = useRef(0);
 
+  // Start the clip when the section reveals. This section is the only frames of real ad
+  // footage in the 60-second take, and it used to require a human click: a scroll-recorded
+  // pass captured a frozen first frame under the caption "reading the hook…", i.e. the one
+  // beat that proves the measurement runs against video showed no video. The element is
+  // muted + playsInline, which is exactly the condition browsers allow autoplay under, and
+  // the play button below stays as the fallback for the case where a policy still blocks it.
   useEffect(() => {
+    if (!active) return;
+    const v = videoRef.current;
+    if (!v || !v.paused) return;
+    v.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+  }, [active]);
+
+  // The read-out only has to track while frames are actually advancing. Previously this ran
+  // a setState every frame for the life of the page, paused or not.
+  useEffect(() => {
+    if (!playing) return;
     const loop = () => {
       const v = videoRef.current;
       if (v) setT(v.currentTime);
@@ -35,7 +59,7 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, []);
+  }, [playing]);
 
   const toggle = () => {
     const v = videoRef.current;
@@ -66,6 +90,11 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
             preload="metadata"
             onClick={toggle}
             onEnded={() => setPlaying(false)}
+            onPause={() => setPlaying(false)}
+            onPlay={() => setPlaying(true)}
+            // Safety net: the rAF loop only runs while `playing`, so without this the
+            // read-out would hold a stale time after a pause or a seek.
+            onTimeUpdate={(e) => setT(e.currentTarget.currentTime)}
             aria-label={`${ad.title} — ad footage`}
             className="block h-[340px] w-full cursor-pointer object-contain"
           />

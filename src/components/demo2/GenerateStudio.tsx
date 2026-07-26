@@ -170,18 +170,20 @@ export default function GenerateStudio({ report, active }: { report: Report; act
               onPick={() => setSel(i)}
             />
           ))}
-          {/* The closing line and the provenance note, deliberately one paragraph. The five
-              candidates are the same five cuts §05 put on one timeline, which a careful
-              reader will notice — so say it first. Stating where the numbers come from is
-              what makes the board checkable rather than a mock-up, and it is the one
-              sentence in this section that has to stay true. */}
+          {/* The closing line and the provenance note, deliberately one paragraph. Stating
+              where the numbers come from is what makes the board checkable rather than a
+              mock-up, and it is the one sentence in this section that has to stay true.
+              This used to end "these are the five cuts §05 compared" — a cross-reference to
+              the compare-the-cuts section, which the 60-second cut removed. The provenance
+              claim is now made on its own terms instead of pointing at a section that is no
+              longer on the page. */}
           <p className="mt-2 px-0.5 text-[12.5px] leading-[1.55] text-ink-3">
             Same brief, five directions. The spread from{" "}
             <span className="tabular-nums text-ink">{ranked[ranked.length - 1]?.ad.scores.soma}</span> to{" "}
             <span className="tabular-nums text-ink">{ranked[0]?.ad.scores.soma}</span> is the difference
             between an ad that works and one that burns the budget — decided before a dollar is spent.
-            Every score here is measured output over real footage: these are the five cuts §05 compared,
-            scored the same way.
+            Every score here is measured output over real footage: five real cuts of one campaign,
+            scored by the same pipeline that ranked the batch above.
           </p>
         </div>
       </div>

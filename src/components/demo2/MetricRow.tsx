@@ -65,14 +65,19 @@ function Metric({
   label: string; suffix: string; value: number; read: string; active: boolean;
   tone?: "ink" | "accent"; altValue?: number;
 }) {
+  const shown = altValue ?? value;
   return (
     <div className="rounded-2xl border border-line bg-fill p-4">
       <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
       <div className="mt-2 flex items-baseline gap-1">
-        <CountUp value={altValue ?? value} active={active} />
+        <CountUp value={shown} active={active} />
         <span className="text-[13px] text-ink-3">{suffix}</span>
       </div>
-      <Bar value={value} active={active} tone={tone} />
+      {/* The bar has to plot the number printed above it. It used to plot `value` while the
+          CountUp printed `altValue ?? value`, and those are different quantities: the Hold
+          card passes value={scores.hold} (82) with altValue={scores.holdPct} (59), so the
+          card read "59% of ad" over a bar filled to 82%. Geometry and number now agree. */}
+      <Bar value={shown} active={active} tone={tone} />
       <p className="mt-3 text-[13.5px] leading-[1.5] text-ink-2">{read}</p>
     </div>
   );

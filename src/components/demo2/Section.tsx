@@ -18,7 +18,14 @@ type Props = {
 };
 
 export default function Section({ n, eyebrow, heading, lede, children, tint }: Props) {
-  const [ref, revealed] = useReveal<HTMLElement>({ threshold: 0.25 });
+  // Triggered on the section's top edge crossing 75% of the viewport, NOT on a visible-area
+  // ratio. `threshold: 0.25` made the trigger point depend on section height: 25% of a
+  // 1,187px section is ~300px of scroll, 25% of a 514px section is ~128px, so sections
+  // revealed at different distances and the page animated at an uneven cadence — the one
+  // thing a fixed-rate scroll recording cannot compensate for. A zero threshold plus a
+  // negative bottom rootMargin fires every section at the same screen position whatever
+  // its height, so each beat gets the same lead-in.
+  const [ref, revealed] = useReveal<HTMLElement>({ threshold: 0, rootMargin: "0px 0px -25% 0px" });
   return (
     <section
       ref={ref}
