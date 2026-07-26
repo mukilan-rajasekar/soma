@@ -14,19 +14,15 @@
 // not add a competitor name to it, or it stops being a buyer's guide and starts being an
 // attack, which is both weaker and easier to dismiss.
 //
-// SOURCES: every `answer` traces to a committed artifact named in `source`. Per the
-// disclosure rule in docs/strategy/PRODUCT.md, these should be emitted by
+// SOURCES: every `answer` traces to a committed artifact named in `source`, rendered
+// under the answer as the trace line. These should eventually be emitted by
 // tools/demo/build_report.py into report.json rather than living here — see the `facts`
-// prop. Until build_report.py emits them, the defaults below carry the artifact path so
-// the claim stays checkable.
-
-import Provenance, { type State } from "./Provenance";
+// prop. Until then the defaults below carry the artifact path so the claim stays
+// checkable.
 
 export type ChecklistFact = {
   q: string;
   answer: React.ReactNode;
-  state: State;
-  note?: string;
   /** Repo path or URL backing the answer. Rendered as the trace line. */
   source: string;
   href?: string;
@@ -41,7 +37,6 @@ export const DEFAULT_FACTS: ChecklistFact[] = [
         The first step reproduces on anyone&rsquo;s machine.
       </>
     ),
-    state: "measured",
     source: "README · build_roi_mask.py",
     href: "/science",
   },
@@ -53,8 +48,6 @@ export const DEFAULT_FACTS: ChecklistFact[] = [
         name the confound inside it, which is our scrape window, not skill.
       </>
     ),
-    state: "measured",
-    note: "n=529",
     source: "data/ads/ad_performance.csv",
   },
   {
@@ -65,7 +58,6 @@ export const DEFAULT_FACTS: ChecklistFact[] = [
         sample is far smaller than the sample count suggests.
       </>
     ),
-    state: "measured",
     source: "honest_corr_timeseries.py",
   },
   {
@@ -73,11 +65,10 @@ export const DEFAULT_FACTS: ChecklistFact[] = [
     answer: (
       <>
         The cortical surface only. Purchase intent and recall depend on subcortical
-        structures the encoder cannot see, so both ship labeled{" "}
-        <span className="whitespace-nowrap">proxy</span> &mdash; never as measurements.
+        structures the encoder cannot see, so both are inferred &mdash; we say so rather
+        than presenting them as measurements.
       </>
     ),
-    state: "measured",
     source: "readout_extract.py · build_roi_mask.py",
     href: "/science",
   },
@@ -89,8 +80,6 @@ export const DEFAULT_FACTS: ChecklistFact[] = [
         next to everything that did work.
       </>
     ),
-    state: "measured",
-    note: "n=38",
     source: "validation/…/retention_head_roi.json",
     href: "/science",
   },
@@ -117,10 +106,7 @@ export default function VendorChecklist({
         >
           <p className="text-body text-ink">{f.q}</p>
           <div>
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <p className="max-w-[52ch] text-body text-pretty text-ink-2">{f.answer}</p>
-              <Provenance state={f.state} note={f.note} />
-            </div>
+            <p className="max-w-[52ch] text-body text-pretty text-ink-2">{f.answer}</p>
             <p className="mt-1.5 font-mono text-[11px] leading-[1.6] text-ink-3">
               {f.href ? (
                 <a className="underline decoration-line-2 underline-offset-2 hover:text-ink-2" href={f.href}>

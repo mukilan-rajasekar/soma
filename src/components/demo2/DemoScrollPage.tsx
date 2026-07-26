@@ -289,14 +289,16 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         lede="Soma turns brain-response into the metrics you actually buy on — attention, retention, the odds a cut performs. Every ad that comes through grows the dataset behind that translation. The read-out is the product; the growing database is the moat."
       >
         {(revealed) => (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* Sourced from report.corpus, which build_report.py computes from
-                data/ads/ad_manifest.csv. The old "collected from our waitlist" sub-label
-                was wrong — this corpus came from ad_fetch_bb.py scraping TikTok Creative
-                Center, and the waitlist claim is exactly the kind of provenance a buyer
-                can check. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {/* Corpus figures come from report.corpus, which build_report.py computes
+                from data/ads/ad_manifest.csv. The old "collected from our waitlist"
+                sub-label was wrong — this corpus came from ad_fetch_bb.py scraping
+                TikTok Creative Center. */}
             <Stat big value={report.corpus.ads} suffix="+" label="Ads in the corpus" sub="scraped from TikTok Creative Center top ads" active={revealed} />
             <Stat big value={report.corpus.advertisers} suffix="" label="Advertisers indexed" sub="the corpus behind the model" active={revealed} />
+            {/* Signup count. Typed for now — wire this to the Supabase waitlist table
+                so it counts itself and cannot go stale. */}
+            <Stat big value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
           </div>
         )}
       </Section>
