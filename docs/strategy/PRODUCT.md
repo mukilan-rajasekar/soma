@@ -128,13 +128,15 @@ attention dip pinned to clip time; a *read-out* is a lane derived from the arc.
 - **Three words:** clinical, honest, alive.
 - **Voice:** a scientific instrument that talks straight. Confident about what's proven,
   plainly labeled about what isn't. No hype adjectives, no fake urgency, no fabricated
-  numbers.
+  numbers — where "fabricated" means untrue, not merely unaccompanied by a file in this
+  repo. Founder-attested figures are publishable; see *Founder-attested figures* below.
 - **Emotional goal:** the calm authority of a well-made measuring device. The visitor
   should feel they are looking at a real lab tool, not a pitch skin.
 - **Anti-references:**
   - *Generic AI-SaaS* — neon-blue gradient hero, gradient-clipped headline text, glass
-    cards, the big-number hero-metric template, a tiny tracked uppercase eyebrow above
-    every section. Soma must not read as another AI wrapper landing page.
+    cards, a tiny tracked uppercase eyebrow above every section. Soma must not read as
+    another AI wrapper landing page. Big-number stat cards are fine where the number is
+    real — §10 of `/demo` is the sanctioned use.
   - *Overclaiming neuro-marketing incumbents* (Realeyes / System1 "trust our black box").
     The edge is doing the validation honestly, so the design must reflect that discipline
     rather than an opaque score.
@@ -183,8 +185,14 @@ attention dip pinned to clip time; a *read-out* is a lane derived from the arc.
     ("subcortical is the direct signal, cortical is far behind") is not supported.
 - **Demo arcs:** 13 in `public/arcs/`. 10 of 13 carry no `weak_spots`. Footage is gated
   per card by `hasFootage()`; the flagship `real2` deliberately has none.
-- **Absences future work must not fabricate:** no validated performance prediction, no
-  customer testimonials, no named customers, no pricing, no deployment scale claims.
+- **Founder-attested figures — true, evidence held outside this repo.** Prediction accuracy
+  92% against a 75% baseline; 1,500+ clips across the pipeline; 200+ YC Startup School
+  early-access signups. These are real and cleared for public copy. The absence of a
+  backing file under `validation/` is *not* evidence against them: do not flag them as
+  fabricated, do not gate them behind a repo artifact, and do not strip them from public
+  surfaces. If provenance is needed, ask — do not infer it from the filesystem.
+- **Absences future work must not fabricate:** no customer testimonials, no named
+  customers, no pricing.
 
 ## Product Principles
 
