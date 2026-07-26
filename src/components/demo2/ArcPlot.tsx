@@ -36,6 +36,10 @@ type Props = {
   // default) leaves `progress` in charge, which is what the live player needs.
   animate?: boolean | null;
   drawMs?: number;
+  // A labelled dot on one lane at a given time, faded in only once the curve has finished
+  // drawing. §02 uses it to put the ventral peak the read-out names ("spikes at 0:02") on
+  // the picture, so the sentence and the chart point at the same instant.
+  peakMark?: { t: number; lane?: "dorsal" | "ventral"; label?: string } | null;
   playhead?: number | null; // seconds; a vertical rule + dot on the dorsal curve
   height?: number;
   showVentral?: boolean;
@@ -136,6 +140,7 @@ export default function ArcPlot({
   progress = 1,
   animate = null,
   drawMs = 1500,
+  peakMark = null,
   playhead = null,
   height = 190,
   showVentral = true,
@@ -149,6 +154,12 @@ export default function ArcPlot({
   // Constant rate, not eased: see the note on useAnimeClock's `ease` argument. The hook is
   // called unconditionally and simply ignored when the caller owns `progress`.
   const clock = useAnimeClock(animate === true, drawMs, "linear");
+  // Pulled out of the object because callers build it inline (`peakMark={{ t, lane }}`), a
+  // fresh identity every render. Depending on the fields keeps the draw effect from re-running
+  // on every parent render, and lets exhaustive-deps verify the list rather than be silenced.
+  const markT = peakMark?.t;
+  const markLane = peakMark?.lane;
+  const markLabel = peakMark?.label;
   const p = animate == null ? progress : clock;
   // Canvas width is read imperatively below, so nothing in the draw effect's dependency
   // list changes when the element resizes — the chart kept whatever width it had at mount
@@ -211,20 +222,33 @@ export default function ArcPlot({
       if (g % 2 === 0) ctx.fillText(v.toFixed(1), x0 - 6, y);
     }
 
+    const xs = timestamps.map((t) => xAt(t));
+    const yd = dorsal.map((v) => yAt(v));
+    // Where the pen is right now. Needed before the hook band so the band can fill in behind
+    // the trace instead of being there waiting for it.
+    const tip = tipAt(xs, yd, p);
+
     // hook zone — the first `hookSeconds`, a light fill + a boundary rule
     if (hookOn) {
       const hx = xAt(hookSeconds);
+      // The band fills to the pen, then stops at the hook boundary: the reader watches the
+      // window being measured rather than finding it already marked. The boundary rule only
+      // appears once the trace reaches it, because a rule sitting ahead of the curve reads as
+      // a target the chart is aiming for rather than a measurement it just took.
+      const bandTo = animate == null ? hx : Math.min(hx, Math.max(x0, tip.x));
       ctx.fillStyle = "rgba(63,111,122,0.05)";
-      ctx.fillRect(x0, y0, hx - x0, y1 - y0);
-      ctx.strokeStyle = TOK.accent;
-      ctx.globalAlpha = 0.35;
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath();
-      ctx.moveTo(hx, y0);
-      ctx.lineTo(hx, y1);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
+      ctx.fillRect(x0, y0, bandTo - x0, y1 - y0);
+      if (bandTo >= hx - 0.5) {
+        ctx.strokeStyle = TOK.accent;
+        ctx.globalAlpha = 0.35;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(hx, y0);
+        ctx.lineTo(hx, y1);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
       ctx.fillStyle = TOK.accent;
       // 8px was illegible at recording scale, and the label was the string "HOOK · 0–3s"
       // while the band it labels is drawn from the `hookSeconds` prop — change the prop (or
@@ -261,8 +285,6 @@ export default function ArcPlot({
       ctx.setLineDash([]);
     }
 
-    const xs = timestamps.map((t) => xAt(t));
-
     // the "before" curve, if one was handed in — hairline, faint, behind everything, so
     // the live curve reads as the subject and this reads as where it used to be.
     if (ghost && ghost.dorsal.length > 1) {
@@ -288,7 +310,6 @@ export default function ArcPlot({
     }
 
     // dorsal (attention) — solid ink
-    const yd = dorsal.map((v) => yAt(v));
     ctx.strokeStyle = TOK.ink;
     ctx.lineWidth = 2;
     ctx.lineJoin = "round";
@@ -299,7 +320,6 @@ export default function ArcPlot({
     // instrument plotting a signal as the clip plays. Both disappear at p >= 1 so the
     // finished frame — the one a still screenshot catches — is the clean chart.
     if (p > 0.002 && p < 1) {
-      const tip = tipAt(xs, yd, p);
       ctx.strokeStyle = TOK.ink;
       ctx.globalAlpha = 0.16;
       ctx.lineWidth = 1;
@@ -318,6 +338,59 @@ export default function ArcPlot({
         ctx.beginPath();
         ctx.arc(vtip.x, vtip.y, 2.4, 0, Math.PI * 2);
         ctx.fill();
+      }
+    }
+
+    // The named instant. Fades in over the last 15% of the draw, so it arrives as the pen
+    // leaves the frame rather than sitting on the chart while the curve is still catching up
+    // to it. The lane it marks decides its colour, which is what lets the reader tie the
+    // callout to the right curve without a legend entry.
+    if (markT != null && markT >= 0 && markT <= span) {
+      const a = Math.max(0, Math.min(1, (p - 0.85) / 0.15));
+      if (a > 0.01) {
+        const lane = markLane === "dorsal" ? dorsal : (ventral ?? dorsal);
+        const ys = lane.map((v) => yAt(v));
+        // Nearest sample to the marked time; the reads are computed on whole samples, so an
+        // interpolated y here would place the dot slightly off the value being cited.
+        let idx = 0;
+        for (let i = 1; i < timestamps.length; i++) {
+          if (Math.abs(timestamps[i] - markT) < Math.abs(timestamps[idx] - markT)) idx = i;
+        }
+        const mx = xs[idx];
+        const my = ys[idx];
+        const col = markLane === "dorsal" ? TOK.ink : TOK.accent2;
+        ctx.globalAlpha = a;
+        // A hollow ring, not a filled dot: the pen dots are filled, and this has to read as
+        // an annotation on the finished chart rather than a leftover from the draw.
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
+        ctx.stroke();
+        if (markLabel) {
+          ctx.font = "10px system-ui, sans-serif";
+          ctx.textBaseline = "middle";
+          // Trailing side by default. A marked peak is a peak, so the curve climbs INTO the
+          // ring from the left and falls away to the right — putting the label ahead of the
+          // ring lays it straight along the line it is annotating, which is what the first
+          // version did and what the hook caption used to do inside the plot rect. Behind the
+          // ring the curve has already left that height, so the space is clear. Flips forward
+          // only when there is not room to the left.
+          const w = ctx.measureText(markLabel).width;
+          const back = mx - 9 - w >= x0 + 2;
+          ctx.textAlign = back ? "right" : "left";
+          const lx = mx + (back ? -9 : 9);
+          // Paper halo under the type. The band, the grid and two curves all pass through this
+          // area on some ad; a 3px stroke in the surface colour keeps the label readable over
+          // any of them without moving it somewhere it no longer points at anything.
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "#ffffff";
+          ctx.strokeText(markLabel, lx, my);
+          ctx.fillStyle = col;
+          ctx.fillText(markLabel, lx, my);
+          ctx.textAlign = "left";
+        }
+        ctx.globalAlpha = 1;
       }
     }
 
@@ -400,7 +473,8 @@ export default function ArcPlot({
     }
   }, [
     dorsal, ventral, timestamps, duration, hookSeconds, weakSpots, brandMentions,
-    p, playhead, height, showVentral, showHook, ghost, endMarker,
+    p, animate, playhead, height, showVentral, showHook, ghost, endMarker,
+    markT, markLane, markLabel,
     // canvasW is not read in the body — clientWidth is. It is here so a resize re-runs
     // the draw; removing it silently reintroduces the stale-width bug.
     canvasW,

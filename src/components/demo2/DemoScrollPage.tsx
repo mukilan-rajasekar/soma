@@ -64,7 +64,7 @@ import VendorChecklist from "./VendorChecklist";
 import GenerateStudio from "./GenerateStudio";
 import EditStudio from "./EditStudio";
 import { BRAND } from "./studio";
-import type { Ad, Report } from "./types";
+import { fmtT, type Ad, type Report } from "./types";
 
 // "full" is /demo — the long-form page a cold reader lands on. "short" is /demo-short, the
 // six-beat cut built to be screen-recorded in 60 seconds.
@@ -101,6 +101,17 @@ export default function DemoScrollPage({
   // hardcoded, so a rebuild that changes which clip is silent still lands on a real one.
   const silentAd = batch.find((a) => (a.transcript ?? []).length === 0) ?? compAd;
 
+  // The instant the ventral lane peaks inside the hook window, computed the way
+  // build_report.py computes its own `vpeak`: argmax over the first `hookSeconds` of samples.
+  // §02 rings it on the chart and quotes it in prose, and both read this.
+  const hookPeakT = (() => {
+    const v = hookAd.lanes.ventral ?? [];
+    const n = hookAd.timestamps.filter((t) => t < report.hookSeconds).length || 1;
+    let best = 0;
+    for (let i = 1; i < Math.min(n, v.length); i++) if (v[i] > v[best]) best = i;
+    return hookAd.timestamps[best] ?? 0;
+  })();
+
   const [heroRef, heroIn] = useReveal<HTMLDivElement>({ threshold: 0.2 });
 
   // globals.css puts `overflow: hidden` on html/body for the fixed hero, so the page
@@ -127,6 +138,12 @@ export default function DemoScrollPage({
       eyebrow: "The science",
       heading: <>Attention isn&rsquo;t one thing. Different regions do <span className="font-serif font-normal italic">different</span> jobs.</>,
       lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself, and two networks matter, each measured separately. This is the distinction the rest of the read-out is built on.",
+      // The two cards are timed against the figure beside them, not against each other: the
+      // dorsal card arrives as the dorsal region lights (TwoRegionBrain's STAGE.dorsal opens
+      // at 0.42 of a 2100ms build ≈ 880ms) and the ventral card as the ventral one does
+      // (0.60 ≈ 1260ms). Reading the name while the region appears is the whole point of
+      // having both; two cards sliding in on a generic 80ms stagger would have been motion
+      // for its own sake.
       body: (revealed) => (
         <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-[1fr_360px]">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -135,21 +152,27 @@ export default function DemoScrollPage({
               tag="IPS · FEF · superior parietal"
               body="Where focus is steered. The top-down system that decides what the viewer looks at and holds on."
               tone="ink"
+              revealed={revealed}
+              delay={880}
             />
             <RegionCard
               title="Ventral · surprise"
               tag="anterior insula · ACC"
               body="The salience network. It fires on the unexpected, which is what registers a hook: not attention in general, but the jolt of something the brain didn't see coming."
               tone="accent"
+              revealed={revealed}
+              delay={1260}
             />
-            <p className="text-[12.5px] leading-[1.6] text-ink-2 sm:col-span-2">
-              Because the two are read from different cortex, Soma can tell a steady, focused ad
-              from a startling one, and score them on the axes that actually drive a hook. A
-              gaze heat-map can&rsquo;t make that call.
-            </p>
+            <Rise on={revealed} delay={1800} className="sm:col-span-2">
+              <p className="text-[12.5px] leading-[1.6] text-ink-2">
+                Because the two are read from different cortex, Soma can tell a steady, focused ad
+                from a startling one, and score them on the axes that actually drive a hook. A
+                gaze heat-map can&rsquo;t make that call.
+              </p>
+            </Rise>
           </div>
           <div className="rounded-2xl border border-line bg-paper p-4">
-            <TwoRegionBrain t={revealed ? 1 : 0} focus="both" />
+            <TwoRegionBrain animate={revealed} focus="both" />
           </div>
         </div>
       ),
@@ -172,15 +195,24 @@ export default function DemoScrollPage({
             duration={hookAd.duration}
             hookSeconds={report.hookSeconds}
             animate={revealed}
+            // Rings the surprise peak the read-out card below names in words. Derived from
+            // the same lane and the same window build_report.py's `vpeak` uses (argmax over
+            // the hook samples), so the ring, the sentence and the score cannot disagree —
+            // a hardcoded 2s would have gone stale the first time the report was rebuilt.
+            peakMark={{ t: hookPeakT, lane: "ventral", label: fmtT(hookPeakT) }}
             height={188}
             labelDorsal="Attention"
             labelVentral="Surprise"
           />
           <div className="mt-4 grid grid-cols-2 gap-3">
             <Stat big value={hookAd.scores.hook} suffix="/100" label="Hook score" sub="~45% of the total" tone="accent" active={revealed} />
-            <div className="rounded-2xl border border-line bg-paper p-4 text-[12.5px] leading-[1.55] text-ink-2">
-              {hookAd.reads.hook}
-            </div>
+            {/* Lands after the arc has drawn and the ring has appeared: the sentence explains
+                a picture the reader has already watched being made. */}
+            <Rise on={revealed} delay={1500} className="h-full">
+              <div className="h-full rounded-2xl border border-line bg-paper p-4 text-[12.5px] leading-[1.55] text-ink-2">
+                {hookAd.reads.hook}
+              </div>
+            </Rise>
           </div>
         </div>
       ),
@@ -227,22 +259,31 @@ export default function DemoScrollPage({
               the board discloses, and it is why the header says "ten creatives" rather than
               naming footage the repo can't stand behind. Do not delete that line without
               replacing this footage with a real single-advertiser batch. */}
-          <div className="mb-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-ink-3">
-            <span className="inline-flex h-2 w-2 rounded-full bg-ink" aria-hidden="true" />
-            <span className="text-[14px] font-medium text-ink">{batch[0]?.brand ?? BRAND.account}</span>
-            <span>one product · {batch.length} creatives · one spend decision</span>
-          </div>
+          <Rise on={revealed} delay={60}>
+            <div className="mb-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-ink-3">
+              <span className="inline-flex h-2 w-2 rounded-full bg-ink" aria-hidden="true" />
+              <span className="text-[14px] font-medium text-ink">{batch[0]?.brand ?? BRAND.account}</span>
+              <span>one product · {batch.length} creatives · one spend decision</span>
+            </div>
+          </Rise>
           <RankBoard ads={batch} active={revealed} />
-          <p className="mt-4 max-w-[68ch] text-[13.5px] leading-[1.6] text-ink-2">
-            Note the bottom row: it names its product five times and lights up language
-            cortex (top comprehension of the ten) yet ranks last, because almost nobody&rsquo;s
-            attention survives the open. A single grade would hide that. The breakdown makes
-            it a fixable diagnosis.
-          </p>
-          <p className="mt-3 max-w-[68ch] text-[12px] leading-[1.55] text-ink-3">
-            Product and creative names on this board are illustrative. Every score, arc and
-            driver is real model output over real footage.
-          </p>
+          {/* The board takes ~1.24s to finish counting (RankBoard: 700ms + 9 × 60ms), so the
+              observation about the bottom row waits for the bottom row to exist. Reading
+              "note the bottom row" while row ten is still at zero is worse than no motion. */}
+          <Rise on={revealed} delay={1350}>
+            <p className="mt-4 max-w-[68ch] text-[13.5px] leading-[1.6] text-ink-2">
+              Note the bottom row: it names its product five times and lights up language
+              cortex (top comprehension of the ten) yet ranks last, because almost nobody&rsquo;s
+              attention survives the open. A single grade would hide that. The breakdown makes
+              it a fixable diagnosis.
+            </p>
+          </Rise>
+          <Rise on={revealed} delay={1650}>
+            <p className="mt-3 max-w-[68ch] text-[12px] leading-[1.55] text-ink-3">
+              Product and creative names on this board are illustrative. Every score, arc and
+              driver is real model output over real footage.
+            </p>
+          </Rise>
         </div>
       ),
     },
@@ -654,16 +695,60 @@ function BetaMarquee() {
 
 // ── small shared pieces ─────────────────────────────────────────────
 
-function RegionCard({ title, tag, body, tone }: { title: string; tag: string; body: string; tone: "ink" | "accent" }) {
+// Fade-and-rise on reveal, with a delay in ms. The one motion primitive for prose and cards,
+// so a beat's supporting copy arrives after the thing it supports instead of with it. CSS
+// transitions rather than a rAF clock: no per-element animation frame, and the compositor
+// handles both properties.
+function Rise({
+  on, delay = 0, className = "", children,
+}: {
+  on: boolean; delay?: number; className?: string; children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-2xl border border-line bg-paper p-4">
-      <div className="flex items-center gap-2">
-        <span className={`inline-block h-2.5 w-2.5 rounded-full ${tone === "accent" ? "bg-accent-2" : "bg-ink"}`} />
-        <span className="text-ui font-medium text-ink">{title}</span>
-      </div>
-      <div className="mt-1 text-[11px] uppercase tracking-[0.06em] text-ink-3">{tag}</div>
-      <p className="mt-2 text-[13.5px] leading-[1.55] text-ink-2">{body}</p>
+    <div
+      className={className}
+      style={{
+        opacity: on ? 1 : 0,
+        transform: on ? "none" : "translateY(9px)",
+        transition: `opacity .55s ${delay}ms, transform .55s ${delay}ms`,
+      }}
+    >
+      {children}
     </div>
+  );
+}
+
+function RegionCard({
+  title, tag, body, tone, revealed = true, delay = 0,
+}: {
+  title: string; tag: string; body: string; tone: "ink" | "accent";
+  revealed?: boolean; delay?: number;
+}) {
+  return (
+    <Rise on={revealed} delay={delay} className="h-full">
+      <div className="h-full rounded-2xl border border-line bg-paper p-4">
+        <div className="flex items-center gap-2">
+          {/* The dot rings out once as the card lands, the same way the region it names
+              scales up in the figure beside it. Both are the same gesture at two scales,
+              which is what ties the card to the ellipse. */}
+          <span className="relative inline-flex h-2.5 w-2.5 shrink-0">
+            <span
+              className={`absolute inset-0 rounded-full ${tone === "accent" ? "bg-accent-2" : "bg-ink"}`}
+              // Base opacity 0 with no fill-mode, so the ring is invisible through the delay
+              // and invisible again after the single pass; the keyframes own the visible part.
+              style={{
+                opacity: 0,
+                animation: revealed ? `somaPing 1.1s ${delay + 120}ms ease-out 1` : "none",
+              }}
+            />
+            <span className={`relative inline-block h-2.5 w-2.5 rounded-full ${tone === "accent" ? "bg-accent-2" : "bg-ink"}`} />
+          </span>
+          <span className="text-ui font-medium text-ink">{title}</span>
+        </div>
+        <div className="mt-1 text-[11px] uppercase tracking-[0.06em] text-ink-3">{tag}</div>
+        <p className="mt-2 text-[13.5px] leading-[1.55] text-ink-2">{body}</p>
+      </div>
+    </Rise>
   );
 }
 

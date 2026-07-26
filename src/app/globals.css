@@ -122,6 +122,32 @@ body {
   }
 }
 
+/* /demo region-card indicator. One expanding ring as a card lands, echoing the
+   ellipse in TwoRegionBrain scaling up at the same moment — the card and the
+   region it names are the same gesture at two sizes. Runs ONCE (animation
+   iteration 1, set inline with the per-card delay), never a loop: a pulsing dot
+   on a page being screen-recorded reads as a status light, which is not what
+   this is. Compositor-only, so it costs nothing on a page already drawing arcs. */
+@keyframes somaPing {
+  from {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  to {
+    transform: scale(3.4);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes somaPing {
+    from,
+    to {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+}
+
 /* /demo social-proof marquee. An infinite, seamless sideways scroll of the beta
    cohort's brand marks. The track holds TWO identical copies of the row; the
    animation translates it exactly one copy width (-50%), so the second copy sits
