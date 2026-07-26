@@ -1,0 +1,29 @@
+{
+  "batch_name": "Kova Q3 hook test",
+
+  "brand_name": "Kova",
+  "product_name": "Whey Isolate",
+  "primary_problem": "protein powder that leaves you bloated",
+  "primary_benefit": "clean protein without the bloat",
+  "offer": "20% off your first order",
+  "desired_cta": "tap the link in bio",
+
+  "brand_aliases": ["kova", "kovafit", "kova nutrition"],
+  "product_aliases": ["whey", "isolate", "whey isolate"],
+
+  "batch": {
+    "platform": "meta",
+    "placement": "reels",
+    "objective": "conversions",
+    "product": "Whey Isolate",
+    "audience": "cold_us_25_44"
+  },
+
+  "ads": [
+    { "filename": "ad_01.mp4", "id": "ad_01", "title": "Story open" },
+    { "filename": "ad_02.mp4", "id": "ad_02", "title": "Deal first" },
+    { "filename": "ad_03.mp4", "id": "ad_03", "title": "Product first" },
+    { "filename": "ad_04.mp4", "id": "ad_04", "title": "Urgency first" },
+    { "filename": "ad_05.mp4", "id": "ad_05", "title": "Slow open" }
+  ]
+}

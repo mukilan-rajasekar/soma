@@ -53,6 +53,21 @@
   --color-accent: #3f6f7a; /* lane A / primary curve     → text-accent / stroke */
   --color-accent-2: #5f8b99; /* lane B / secondary curve   → text-accent-2       */
 
+  /* Data-viz POLARITY — signed data only (today: /preflight). That page's arc is a
+     baseline-subtracted delta, so unlike every other curve on the site it has a SIGN:
+     above zero the model predicts more response than a black screen, below zero less.
+     `pos` is a muted green deliberately tuned to sit beside --color-accent (#3f6f7a) —
+     same value, same low chroma — so best/worst read as one instrument, not a traffic
+     light. `neg` is the same hex as --color-error on purpose: this site has exactly one
+     red. Declared literally rather than as var(--color-error) so canvas code can read it
+     with a single getPropertyValue and no var() substitution.
+     Contrast on paper: pos 5.07:1, accent 5.58:1, neg 6.57:1 — all clear WCAG AA and
+     within half a point of each other, which is what makes them read as a family.
+     Data only, same rule as accent: never a button, link, or heading. Use ONLY where
+     zero is a real reference point. */
+  --color-pos: #3f7a5a; /* best-ranked / above-baseline  → text-pos / stroke */
+  --color-neg: #b42318; /* worst-ranked / below-baseline → text-neg (== error) */
+
   /* Shape — matches Tailwind's defaults; pinned here so they're canonical. */
   --radius-xl: 0.75rem; /* 12px — controls, inputs, buttons → rounded-xl  */
   --radius-2xl: 1rem; /* 16px — cards, modals, canvases   → rounded-2xl */

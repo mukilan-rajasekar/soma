@@ -21,6 +21,8 @@ import VariantOverlay from "./VariantOverlay";
 import ShotDiagnosis from "./ShotDiagnosis";
 import ComprehensionPanel from "./ComprehensionPanel";
 import LivePlayer from "./LivePlayer";
+import RegionCard from "./RegionCard";
+import Stat from "./Stat";
 import type { Ad, Report } from "./types";
 
 export default function DemoScrollPage({ report }: { report: Report }) {
@@ -315,50 +317,5 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         </div>
       </section>
     </main>
-  );
-}
-
-// ── small shared pieces ─────────────────────────────────────────────
-
-function RegionCard({ title, tag, body, tone }: { title: string; tag: string; body: string; tone: "ink" | "accent" }) {
-  return (
-    <div className="rounded-2xl border border-line bg-paper p-4">
-      <div className="flex items-center gap-2">
-        <span className={`inline-block h-2.5 w-2.5 rounded-full ${tone === "accent" ? "bg-accent-2" : "bg-ink"}`} />
-        <span className="text-ui font-medium text-ink">{title}</span>
-      </div>
-      <div className="mt-1 text-[9.5px] uppercase tracking-[0.08em] text-ink-3">{tag}</div>
-      <p className="mt-2 text-[12.5px] leading-[1.55] text-ink-2">{body}</p>
-    </div>
-  );
-}
-
-function Stat({
-  value, suffix, label, sub, tone, active, big,
-}: {
-  value: number; suffix: string; label: string; sub: string; tone?: "ink" | "accent"; active: boolean; big?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-line bg-fill p-5">
-      <div className="text-[10px] uppercase tracking-[0.12em] text-ink-3">{label}</div>
-      <div className="mt-2 flex items-baseline gap-1">
-        <span
-          className={`font-medium tabular-nums leading-none text-ink ${big ? "text-[40px]" : "text-[28px]"}`}
-          style={{ opacity: active ? 1 : 0.15, transition: "opacity .6s" }}
-        >
-          {value.toLocaleString()}
-        </span>
-        <span className="text-[15px] text-ink-3">{suffix}</span>
-      </div>
-      <div className={`mt-2 h-1 w-full overflow-hidden rounded-full bg-line ${big && tone ? "" : "hidden"}`}>
-        {/* grow via transform: scaleX (compositor-only) rather than animating width, which
-            would trigger layout on every frame. transform-origin left so it fills L→R. */}
-        <div
-          className={tone === "accent" ? "h-full w-full rounded-full bg-accent-2" : "h-full w-full rounded-full bg-ink"}
-          style={{ transform: active ? `scaleX(${Math.min(100, value) / 100})` : "scaleX(0)", transformOrigin: "left", transition: "transform .9s" }}
-        />
-      </div>
-      <div className="mt-1.5 text-[11px] text-ink-3">{sub}</div>
-    </div>
   );
 }

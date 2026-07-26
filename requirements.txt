@@ -50,6 +50,19 @@ nilearn                 # Destrieux fsaverage5 atlas -> ROI masks (build_roi_mas
 opencv-python-headless  # per-second luminance/cuts/motion in baseline_extract.py
 imageio-ffmpeg          # audio loudness + synthetic mp4 muxing (baseline/tests)
 h5py>=3.0  # read the real TVSum v7.3 (HDF5) .mat; scipy only handles v7
+nibabel                 # Schaefer-400 .annot -> Yeo-7 network masks (demo/process_batch.py).
+                        # nilearn above pulls it in transitively, but process_batch.py imports
+                        # it directly, so it is declared. NOT interchangeable with the nilearn
+                        # path: Destrieux is anatomical and cannot express DorsAttn /
+                        # SalVentAttn / Cont_* , which the preflight score is defined on.
+faster-whisper          # ASR for the Communication Clarity component (demo/process_batch.py).
+                        # Falls back to openai-whisper, then degrades to OCR-only and says so.
+# ALSO REQUIRED for demo/process_batch.py (not pip deps): the `ffmpeg` and `ffprobe`
+# binaries (padded stimuli + probing), and `tesseract` for on-screen text. Without
+# tesseract the OCR half of Clarity is skipped process-wide — uniformly, so it stays a
+# fair comparison rather than a per-ad confound. macOS Vision (tools/demo/media_text.py)
+# is the better OCR but does not exist on a Linux box; run it locally and feed its JSON
+# into demo/.cache/media/ instead.
 
 # ---------------------------------------------------------------------------
 # GROUP C — AD FETCH  (ad_fetch_bb.py; optional, standalone ad-clip fetcher)

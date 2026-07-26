@@ -42,6 +42,8 @@ one muted slate/teal is reserved strictly for data-viz lanes.
 | Validation / error | `--color-error` | `text-error` | `#b42318` |
 | Data-viz lane A / primary | `--color-accent` | `text-accent` · `stroke-accent` | `#3f6f7a` |
 | Data-viz lane B / secondary | `--color-accent-2` | `text-accent-2` | `#5f8b99` |
+| Data-viz polarity / positive | `--color-pos` | `text-pos` · `stroke` | `#3f7a5a` |
+| Data-viz polarity / negative | `--color-neg` | `text-neg` | `#b42318` |
 
 Rules of thumb:
 - Text hierarchy is **ink → ink-2 → ink-3**, never a colour.
@@ -180,6 +182,25 @@ The old demo curves were neon-on-black. On the white site they must be
 - **Uncertainty:** a light-grey band, e.g. `--color-line` at low opacity
   (`rgba(226,226,226,0.6)`) — never a coloured fill.
 - **No** `shadowBlur`, glow, or neon. Clarity over drama.
+
+### Polarity (signed data only)
+
+`--color-pos` (#3f7a5a) and `--color-neg` (#b42318) exist for **one** case: a series
+whose zero is a real reference point, so that above and below the line mean opposite
+things. `/preflight`'s baseline-subtracted attention delta is the only such series today
+— zero there means "no different from a black screen".
+
+- Permitted **only** when zero is a genuine reference, never as a generic good/bad tint,
+  and never on UI (no buttons, links, headings, badges). Same rule as `accent`.
+- The green is tuned to sit beside `--color-accent`: same value, same low chroma, 5.07:1
+  vs 5.58:1 on paper. They read as one instrument, not a traffic light.
+- `--color-neg` is deliberately the same hex as `--color-error`. The site has exactly one
+  red; a chart doesn't get a second one.
+- **Colour must not be the only encoding.** Pair it with a rank label, a dash, or a
+  weight so the chart survives deuteranopia — the "colour + dash, not hue alone" rule
+  above applies here too.
+- Selection state must never *recolour* a series. If hue encodes rank, changing hue on
+  click makes the encoding a lie — vary weight, alpha, and z-order instead.
 
 Canvas 2D can't read `var()` directly — resolve tokens once:
 
