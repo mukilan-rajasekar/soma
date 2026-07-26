@@ -89,27 +89,27 @@ export const DIRECTIONS: Direction[] = [
     id: "v03_30s_product_first",
     label: "Product first",
     move: "Open on the helmet in hand, mid-shot, before a single word.",
-    neural: "Ventral surprise peaks when an unexpected object lands in frame — so the object goes first.",
+    neural: "Ventral surprise peaks when an unexpected object lands in frame, so the object goes first.",
     poster: "/demo/posters/v03_30s_product_first.jpg",
   },
   {
     id: "v01_30s_story_hook",
     label: "Story open",
     move: "Open on the welder mid-job, then reveal what he is wearing.",
-    neural: "A person in motion holds dorsal attention, but the brand lands late — comprehension carries this one.",
+    neural: "A person in motion holds dorsal attention, but the brand lands late, so comprehension carries this one.",
     poster: "/demo/posters/v01_30s_story_hook.jpg",
   },
   {
     id: "v02_30s_deal_first",
     label: "Deal first",
     move: "Lead with the offer, then justify it with the product.",
-    neural: "Price is a familiar shape — it registers, it does not startle. The hook runs on comprehension, not surprise.",
+    neural: "Price is a familiar shape. It registers, it does not startle. The hook runs on comprehension, not surprise.",
     poster: "/demo/posters/v02_30s_deal_first.jpg",
   },
   {
     id: "v05_30s_weak_open",
     label: "Slow open",
-    move: "Set the scene first — the shop, the sparks — then the product.",
+    move: "Set the scene first (the shop, the sparks), then the product.",
     neural: "Attention has to be earned back after an establishing shot; the arc dips through the first seven seconds.",
     poster: "/demo/posters/v05_30s_weak_open.jpg",
   },
@@ -117,7 +117,7 @@ export const DIRECTIONS: Direction[] = [
     id: "v04_30s_urgency_first",
     label: "Urgency first",
     move: "Open on the countdown and the deadline.",
-    neural: "Almost no surprise response in the first three seconds — the brain has seen this opening a thousand times.",
+    neural: "Almost no surprise response in the first three seconds. The brain has seen this opening a thousand times.",
     poster: "/demo/posters/v04_30s_urgency_first.jpg",
   },
 ];
@@ -160,7 +160,7 @@ export function rankedDirections(report: Report): { dir: Direction; ad: Ad }[] {
 // hand-written. `predicted: true` marks the two options that change the footage rather
 // than remove from it, which leave-one-shot-out cannot measure.
 
-export const EDIT_COMMAND = "Cut the slow open — get to the product inside the first second.";
+export const EDIT_COMMAND = "Cut the slow open, get to the product inside the first second.";
 
 export type EditOption = {
   kind: "splice" | "reorder" | "overlay";
@@ -220,7 +220,7 @@ export type Command = { text: string; result: string; predicted?: boolean };
 export const MORE_COMMANDS: Command[] = [
   {
     text: "Add the offer as text at 0:04.",
-    result: "Placed under the safe area, held 2.1s — comprehension +6, attention unchanged.",
+    result: "Placed under the safe area, held 2.1s · comprehension +6, attention unchanged.",
     predicted: true,
   },
   {

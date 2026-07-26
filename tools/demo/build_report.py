@@ -425,7 +425,9 @@ def shot_contributions(lanes, levels, brand, duration, boundaries, fps=1.0):
 
 
 # ======================================================================================
-# Plain-English reads — the line that sits under every number
+# Plain-English reads — the line that sits under every number.
+# NO em dashes in any string that reaches the page: /demo-short bans them and these reads
+# are rendered there. Keep the commas/colons below when editing.
 # ======================================================================================
 
 def fmt_t(t):
@@ -444,10 +446,10 @@ def reads(scores, lanes, weak, brand, duration, fps=1.0):
 
     hook = scores["hook"]
     if hook >= 65:
-        hook_read = (f"The surprise response spikes at {fmt_t(vpeak)} — inside the first "
+        hook_read = (f"The surprise response spikes at {fmt_t(vpeak)}, inside the first "
                      f"three seconds. The opening lands.")
     elif hook >= 40:
-        hook_read = ("The opening registers, but the surprise response is middling — the "
+        hook_read = ("The opening registers, but the surprise response is middling: the "
                      "first three seconds work without startling anyone.")
     else:
         hook_read = ("Almost no surprise response in the first three seconds. The ad opens "
@@ -464,7 +466,7 @@ def reads(scores, lanes, weak, brand, duration, fps=1.0):
         chans = {m["source"] for m in brand}
         how = " and ".join(sorted({"speech": "said out loud", "screen": "on screen"}[c]
                                   for c in chans))
-        comp_read = (f"The product is named at {fmt_t(first)} — {how}. Language cortex "
+        comp_read = (f"The product is named at {fmt_t(first)}, {how}. Language cortex "
                      f"confirms the words register.")
     else:
         comp_read = ("The product is never named on screen or out loud. Language cortex "
@@ -473,7 +475,7 @@ def reads(scores, lanes, weak, brand, duration, fps=1.0):
     soma = scores["soma"]
     verdict = ("a strong cut" if soma >= 65 else
                "a workable cut" if soma >= 45 else "a weak cut")
-    soma_read = (f"{verdict.capitalize()} — carried by "
+    soma_read = (f"{verdict.capitalize()}, carried by "
                  f"{'the hook' if scores['hook'] >= scores['hold'] else 'sustained attention'}.")
     return {"hook": hook_read, "hold": hold_read, "comprehension": comp_read, "soma": soma_read}
 

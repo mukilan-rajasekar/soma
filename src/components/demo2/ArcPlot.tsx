@@ -7,11 +7,19 @@
 //   ventral = --color-accent-2 dashed (A/B differ by colour + dash, not hue alone),
 //   NO glow / neon / shadow.
 //
-// `progress` (0..1) is the fraction of the curve drawn — the scroll sections animate it
-// 0→1 on reveal so the arc draws itself; the live player pins it to 1 and passes a
-// `playhead` time instead. Nothing here computes numbers; it only plots what it's given.
+// `progress` (0..1) is the fraction of the curve drawn. Two ways to drive it:
+//   `animate={revealed}` — ArcPlot runs its own constant-rate 0→1 clock and the curve
+//                          draws itself left to right behind a sweep line, which is how
+//                          every scroll section uses it.
+//   `progress={n}`       — caller owns the fraction; the live player pins 1 and passes a
+//                          `playhead` time instead.
+// This header claimed the self-drawing behaviour long before it existed: every caller
+// passed `progress={revealed ? 1 : 0}`, a binary, so the arcs snapped from empty to
+// complete in one frame and the partial-tip branch in drawCurve below was dead code.
+// Nothing here computes numbers; it only plots what it's given.
 
 import { useEffect, useRef, useState } from "react";
+import { useAnimeClock } from "./useReveal";
 import { fmtT, type BrandMention, type WeakSpot } from "./types";
 
 type Props = {
@@ -23,6 +31,11 @@ type Props = {
   weakSpots?: WeakSpot[];
   brandMentions?: BrandMention[];
   progress?: number; // fraction of the curve to draw (0..1)
+  // Hand this a reveal flag instead of a `progress` number and the plot runs its own
+  // clock: false holds an empty frame, true draws the curve at a constant rate. Null (the
+  // default) leaves `progress` in charge, which is what the live player needs.
+  animate?: boolean | null;
+  drawMs?: number;
   playhead?: number | null; // seconds; a vertical rule + dot on the dorsal curve
   height?: number;
   showVentral?: boolean;
@@ -55,6 +68,9 @@ const PADL = 34;
 const PADR = 14;
 const PADT = 16;
 const PADB = 26;
+// Extra top padding reserved when the hook band is drawn, so its caption can sit ABOVE the
+// plot frame instead of inside it. See the label block for why that matters.
+const PADT_HOOK = 28;
 
 // Uniform Catmull-Rom evaluated on `vals` at segment `i`, local param `f∈[0,1]`.
 // A Catmull-Rom spline passes THROUGH every data point, so a dot placed on it (at a
@@ -97,6 +113,18 @@ function drawCurve(ctx: CanvasRenderingContext2D, xs: number[], ys: number[], up
   ctx.stroke();
 }
 
+// Where the pen is at fraction `upto` — the same interpolation drawCurve stops at, so the
+// sweep line and the leading dot land exactly on the end of the drawn stroke rather than
+// near it.
+function tipAt(xs: number[], ys: number[], upto: number): { x: number; y: number } {
+  const n = xs.length;
+  const last = Math.max(0, Math.min(1, upto)) * (n - 1);
+  const full = Math.floor(last);
+  if (full >= n - 1) return { x: xs[n - 1], y: ys[n - 1] };
+  const f = last - full;
+  return { x: xs[full] + (xs[full + 1] - xs[full]) * f, y: crAt(ys, full, f) };
+}
+
 export default function ArcPlot({
   dorsal,
   ventral,
@@ -106,6 +134,8 @@ export default function ArcPlot({
   weakSpots = [],
   brandMentions = [],
   progress = 1,
+  animate = null,
+  drawMs = 1500,
   playhead = null,
   height = 190,
   showVentral = true,
@@ -116,6 +146,10 @@ export default function ArcPlot({
   endMarker = null,
 }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
+  // Constant rate, not eased: see the note on useAnimeClock's `ease` argument. The hook is
+  // called unconditionally and simply ignored when the caller owns `progress`.
+  const clock = useAnimeClock(animate === true, drawMs, "linear");
+  const p = animate == null ? progress : clock;
   // Canvas width is read imperatively below, so nothing in the draw effect's dependency
   // list changes when the element resizes — the chart kept whatever width it had at mount
   // forever. On a page that exists to be screen-recorded that is a real failure: framing
@@ -149,11 +183,12 @@ export default function ArcPlot({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
+    const span = duration > 0 ? duration : Math.max(1, timestamps[timestamps.length - 1] || 1);
+    const hookOn = showHook && hookSeconds > 0 && hookSeconds < span;
     const x0 = PADL;
     const x1 = W - PADR;
-    const y0 = PADT;
+    const y0 = hookOn ? PADT_HOOK : PADT;
     const y1 = H - PADB;
-    const span = duration > 0 ? duration : Math.max(1, timestamps[timestamps.length - 1] || 1);
     const xAt = (t: number) => x0 + (t / span) * (x1 - x0);
     const yAt = (v: number) => y1 - v * (y1 - y0);
 
@@ -177,7 +212,7 @@ export default function ArcPlot({
     }
 
     // hook zone — the first `hookSeconds`, a light fill + a boundary rule
-    if (showHook && hookSeconds > 0 && hookSeconds < span) {
+    if (hookOn) {
       const hx = xAt(hookSeconds);
       ctx.fillStyle = "rgba(63,111,122,0.05)";
       ctx.fillRect(x0, y0, hx - x0, y1 - y0);
@@ -194,9 +229,18 @@ export default function ArcPlot({
       // 8px was illegible at recording scale, and the label was the string "HOOK · 0–3s"
       // while the band it labels is drawn from the `hookSeconds` prop — change the prop (or
       // report.hookSeconds) and the picture moved while the caption kept saying 3s.
+      //
+      // Drawn in the top padding gutter, OUTSIDE the plot rect, not at (x0+5, y0+9) inside
+      // it. Inside the rect it sat in the busiest corner of the chart: the hook band is by
+      // definition where both curves open, and on the hero ad the ventral curve peaks near
+      // 0.9 within the first three seconds, so the dashed line ran straight through the
+      // caption. Nudging the offset only moved which ad collided. Above y0 there is no data
+      // by construction, which is why PADT grows to PADT_HOOK to make room for it.
       ctx.font = "10px system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText(`HOOK · 0–${hookSeconds % 1 === 0 ? hookSeconds : hookSeconds.toFixed(1)}s`, x0 + 5, y0 + 9);
+      ctx.textBaseline = "bottom";
+      ctx.fillText(`HOOK · 0–${hookSeconds % 1 === 0 ? hookSeconds : hookSeconds.toFixed(1)}s`, x0, y0 - 6);
+      ctx.textBaseline = "middle";
     }
 
     // weak-spot bands — light error tint behind the curve
@@ -239,7 +283,7 @@ export default function ArcPlot({
       ctx.lineWidth = 1.6;
       ctx.setLineDash([5, 4]);
       ctx.lineJoin = "round";
-      drawCurve(ctx, xs, yv, progress);
+      drawCurve(ctx, xs, yv, p);
       ctx.setLineDash([]);
     }
 
@@ -248,7 +292,34 @@ export default function ArcPlot({
     ctx.strokeStyle = TOK.ink;
     ctx.lineWidth = 2;
     ctx.lineJoin = "round";
-    drawCurve(ctx, xs, yd, progress);
+    drawCurve(ctx, xs, yd, p);
+
+    // the pen. While the curve is still drawing, a hairline sweep at the leading edge plus
+    // a dot riding the dorsal tip: the difference between a chart that fades in and an
+    // instrument plotting a signal as the clip plays. Both disappear at p >= 1 so the
+    // finished frame — the one a still screenshot catches — is the clean chart.
+    if (p > 0.002 && p < 1) {
+      const tip = tipAt(xs, yd, p);
+      ctx.strokeStyle = TOK.ink;
+      ctx.globalAlpha = 0.16;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(tip.x, y0);
+      ctx.lineTo(tip.x, y1);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = TOK.ink;
+      ctx.beginPath();
+      ctx.arc(tip.x, tip.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      if (showVentral && ventral && ventral.length) {
+        const vtip = tipAt(xs, ventral.map((v) => yAt(v)), p);
+        ctx.fillStyle = TOK.accent2;
+        ctx.beginPath();
+        ctx.arc(vtip.x, vtip.y, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
 
     // brand-mention ticks along the baseline
     ctx.textAlign = "center";
@@ -261,7 +332,7 @@ export default function ArcPlot({
     }
 
     // playhead (live player only)
-    if (playhead != null && progress >= 1) {
+    if (playhead != null && p >= 1) {
       const px = xAt(Math.max(0, Math.min(span, playhead)));
       ctx.strokeStyle = TOK.ink;
       ctx.globalAlpha = 0.5;
@@ -313,7 +384,7 @@ export default function ArcPlot({
 
     // the new end of a shortened cut. Drawn last so it sits over the curves, and labelled,
     // because an unlabelled rule short of the right edge reads as a rendering bug.
-    if (endMarker != null && endMarker > 0 && endMarker < span && progress >= 1) {
+    if (endMarker != null && endMarker > 0 && endMarker < span && p >= 1) {
       const ex = xAt(endMarker);
       ctx.strokeStyle = TOK.ink;
       ctx.globalAlpha = 0.45;
@@ -329,7 +400,7 @@ export default function ArcPlot({
     }
   }, [
     dorsal, ventral, timestamps, duration, hookSeconds, weakSpots, brandMentions,
-    progress, playhead, height, showVentral, showHook, ghost, endMarker,
+    p, playhead, height, showVentral, showHook, ghost, endMarker,
     // canvasW is not read in the body — clientWidth is. It is here so a resize re-runs
     // the draw; removing it silently reintroduces the stale-width bug.
     canvasW,

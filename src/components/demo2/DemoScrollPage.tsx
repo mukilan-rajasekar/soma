@@ -31,16 +31,24 @@
 // or two early with no result attached, so neither route restores them.
 //
 // Short-only omissions: comprehension, the silent-ad message track, the read-out recap,
-// "watch it live", the service ladder and the buyer's checklist. The brand marquee is on
-// NEITHER route — it was removed as a false claim, not for time; see the note where it
-// stood. Every number comes from public/demo/report.json, which tools/demo/build_report.py
-// computes from real frozen-TRIBE output, except the three founder-attested stats in the
-// database beat (flagged inline there).
+// "watch it live", the service ladder and the buyer's checklist. Two pieces of chrome go the
+// other way and appear only on the SHORT route: the beta marquee (asked for there, and the
+// long page has diligence material instead of social proof) and, inversely, the act strip,
+// which the short route drops because its numbering reads 01 · 04 · 05 there. Both are
+// flagged where they are rendered.
+//
+// Every number comes from public/demo/report.json, which tools/demo/build_report.py computes
+// from real frozen-TRIBE output, except the three founder-attested stats in the database
+// beat (flagged inline there).
+//
+// Copy rule for this file and everything it renders: NO em dashes. Commas, colons, full
+// stops and parentheses instead. If you are adding a sentence here, it has to hold together
+// without one.
 
 import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import { Fragment, useEffect, useRef } from "react";
-import { useReveal } from "./useReveal";
+import { useAnimeClock, useReveal } from "./useReveal";
 import Section from "./Section";
 import TwoRegionBrain from "./TwoRegionBrain";
 import ArcPlot from "./ArcPlot";
@@ -118,25 +126,25 @@ export default function DemoScrollPage({
       anchor: "science",
       eyebrow: "The science",
       heading: <>Attention isn&rsquo;t one thing. Different regions do <span className="font-serif font-normal italic">different</span> jobs.</>,
-      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself — and two networks matter, each measured separately. This is the distinction the rest of the read-out is built on.",
+      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself, and two networks matter, each measured separately. This is the distinction the rest of the read-out is built on.",
       body: (revealed) => (
         <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-[1fr_360px]">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <RegionCard
               title="Dorsal attention"
               tag="IPS · FEF · superior parietal"
-              body="Where focus is steered — the top-down system that decides what the viewer looks at and holds on."
+              body="Where focus is steered. The top-down system that decides what the viewer looks at and holds on."
               tone="ink"
             />
             <RegionCard
               title="Ventral · surprise"
               tag="anterior insula · ACC"
-              body="The salience network — it fires on the unexpected. This is what registers a hook: not attention in general, but the jolt of something the brain didn't see coming."
+              body="The salience network. It fires on the unexpected, which is what registers a hook: not attention in general, but the jolt of something the brain didn't see coming."
               tone="accent"
             />
             <p className="text-[12.5px] leading-[1.6] text-ink-2 sm:col-span-2">
               Because the two are read from different cortex, Soma can tell a steady, focused ad
-              from a startling one — and score them on the axes that actually drive a hook. A
+              from a startling one, and score them on the axes that actually drive a hook. A
               gaze heat-map can&rsquo;t make that call.
             </p>
           </div>
@@ -150,7 +158,7 @@ export default function DemoScrollPage({
       key: "hook",
       eyebrow: "Hook scoring",
       heading: <>The first three seconds are <span className="font-serif font-normal italic">everything</span>.</>,
-      lede: "Every ad's first 3 seconds are scored as its hook — separately from the full video, and worth ~45% of the total. The ventral surprise signal is what measures it: a hook works by being unexpected, and the salience network is what registers the unexpected.",
+      lede: "Every ad's first 3 seconds are scored as its hook, separately from the full video, and worth ~45% of the total. The ventral surprise signal is what measures it: a hook works by being unexpected, and the salience network is what registers the unexpected.",
       // The science section already renders TwoRegionBrain (focus="both"). A second brain
       // stood here — focus="ventral" plus an "in the hook window, the ventral network leads"
       // caption — repeating the same visual and the same sentence the science body copy had
@@ -163,7 +171,7 @@ export default function DemoScrollPage({
             timestamps={hookAd.timestamps}
             duration={hookAd.duration}
             hookSeconds={report.hookSeconds}
-            progress={revealed ? 1 : 0}
+            animate={revealed}
             height={188}
             labelDorsal="Attention"
             labelVentral="Surprise"
@@ -182,7 +190,7 @@ export default function DemoScrollPage({
       fullOnly: true,
       eyebrow: "Comprehension",
       heading: <>Did the brand actually <span className="font-serif font-normal italic">land</span>?</>,
-      lede: "A held gaze is worthless if the product never registers. Soma reads the ad's own words — on screen via text recognition, out loud via speech recognition — and when the campaign is named and the language cortex confirms it registers, the score rises.",
+      lede: "A held gaze is worthless if the product never registers. Soma reads the ad's own words: on screen via text recognition, out loud via speech recognition. When the campaign is named and the language cortex confirms it registers, the score rises.",
       body: (revealed) => (
         <div className="space-y-8">
           <ComprehensionPanel ad={compAd} active={revealed} />
@@ -197,39 +205,43 @@ export default function DemoScrollPage({
       fullOnly: true,
       eyebrow: "No voiceover",
       heading: <>An ad that says nothing <span className="font-serif font-normal italic">out loud</span>.</>,
-      lede: "Speech recognition finds nothing in this cut, because there is nothing to find — the whole message is on screen. The language lane still reads, which is what separates measuring the cortex from transcribing the audio.",
+      lede: "Speech recognition finds nothing in this cut, because there is nothing to find: the whole message is on screen. The language lane still reads, which is what separates measuring the cortex from transcribing the audio.",
       body: (revealed) => <MessageTrack ad={silentAd} active={revealed} />,
     },
     {
       key: "batch",
       eyebrow: "Input → output",
-      heading: <>Ten ads in. One <span className="font-serif font-normal italic">ranking</span> out.</>,
-      lede: "Send a batch. Soma scores every clip and ranks them against each other, and every row breaks into its hook, hold and comprehension drivers — so you see not just which creative wins, but why, and what to fix on the ones that don't.",
+      heading: <>Ten ads for one product. One <span className="font-serif font-normal italic">ranking</span> out.</>,
+      lede: "This is one advertiser's creative for one SKU: ten cuts of the same product, competing for the same spend. Soma scores every clip and ranks them against each other, and every row breaks into its hook, hold and comprehension drivers, so you see not just which creative wins, but why, and what to fix on the ones that don't.",
       body: (revealed) => (
         <div>
-          {/* This block used to open "This is a single brand's ad account — ten creatives
-              for the same product". It isn't, and build_report.py:501-506 says so in its
-              own comment: the ten clips are unrelated TikTok Creative Center scrapes
-              (ice cream, jewellery, Milwaukee tools, whey) and only the TITLES map
-              presents them as one campaign. The scores, arcs and drivers ARE real
-              per-video model output. So the copy now claims exactly that and no more —
-              "ten ads in, one ranking out" is both true and the actual product. The
-              caveat line below is the disclosure PRODUCT.md's honesty doctrine requires. */}
-          <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-3">
+          {/* The one-product framing is what the section is FOR — a ranking only means
+              something if the ten things ranked are alternatives to each other — so it is
+              stated once here, in the board's own header, rather than by repeating the
+              account name down all ten rows (which is what RankBoard used to do, and what
+              got cut for redundancy).
+              The scores, arcs and drivers on this board are real per-video model output.
+              The grouping is not: build_report.py:501-506 documents in its own comment that
+              the underlying clips are unrelated Creative Center scrapes and that the TITLES
+              map is what presents them as one campaign. That is what the caveat line under
+              the board discloses, and it is why the header says "ten creatives" rather than
+              naming footage the repo can't stand behind. Do not delete that line without
+              replacing this footage with a real single-advertiser batch. */}
+          <div className="mb-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-ink-3">
             <span className="inline-flex h-2 w-2 rounded-full bg-ink" aria-hidden="true" />
-            <span className="text-ink">Ten real ads, scored end to end</span>
-            <span>· ranked against each other</span>
+            <span className="text-[14px] font-medium text-ink">{batch[0]?.brand ?? BRAND.account}</span>
+            <span>one product · {batch.length} creatives · one spend decision</span>
           </div>
           <RankBoard ads={batch} active={revealed} />
           <p className="mt-4 max-w-[68ch] text-[13.5px] leading-[1.6] text-ink-2">
             Note the bottom row: it names its product five times and lights up language
-            cortex — top comprehension of the ten — yet ranks last, because almost nobody&rsquo;s
+            cortex (top comprehension of the ten) yet ranks last, because almost nobody&rsquo;s
             attention survives the open. A single grade would hide that. The breakdown makes
             it a fixable diagnosis.
           </p>
           <p className="mt-3 max-w-[68ch] text-[12px] leading-[1.55] text-ink-3">
-            Creative titles are illustrative. Every score, arc and driver on this board is
-            real model output over real footage.
+            Product and creative names on this board are illustrative. Every score, arc and
+            driver is real model output over real footage.
           </p>
         </div>
       ),
@@ -250,7 +262,7 @@ export default function DemoScrollPage({
               evidence for the board's ranking — the board says 73 beat 51, this shows where. */}
           <div>
             <div className="mb-3 max-w-[68ch] text-[13.5px] leading-[1.6] text-ink-2">
-              The five that cleared the bar, on one timeline. Same footage, recut — and the
+              The five that cleared the bar, on one timeline. Same footage, recut, and the
               spread opens in the first seconds, which is where the opener decides the arc.
             </div>
             <VariantOverlay variants={variants} active={revealed} />
@@ -280,7 +292,7 @@ export default function DemoScrollPage({
               duration={dipAd.duration}
               hookSeconds={report.hookSeconds}
               weakSpots={dipAd.weakSpots}
-              progress={revealed ? 1 : 0}
+              animate={revealed}
               height={170}
               showVentral={false}
               showHook={false}
@@ -300,7 +312,7 @@ export default function DemoScrollPage({
       fullOnly: true,
       eyebrow: "Watch it live",
       heading: <>The ad and its score, <span className="font-serif font-normal italic">side by side</span>.</>,
-      lede: "The clip is the clock — attention, surprise and the score track the frames on screen.",
+      lede: "The clip is the clock. Attention, surprise and the score track the frames on screen.",
       body: (revealed) => <LivePlayer ad={heroAd} hookSeconds={report.hookSeconds} active={revealed} />,
     },
     {
@@ -309,7 +321,7 @@ export default function DemoScrollPage({
       unnumbered: true,
       eyebrow: "The read-out",
       heading: <>The numbers that actually <span className="font-serif font-normal italic">mean</span> something.</>,
-      lede: "One composite, three drivers. Every metric is an attention measurement with a statistical read on top and a plain-English line underneath — because a raw number on its own tells you nothing.",
+      lede: "One composite, three drivers. Every metric is an attention measurement with a statistical read on top and a plain-English line underneath, because a raw number on its own tells you nothing.",
       body: (revealed) => <MetricRow scores={heroAd.scores} reads={heroAd.reads} active={revealed} hookTone />,
     },
     {
@@ -329,7 +341,7 @@ export default function DemoScrollPage({
       // it. Both are here because they were asked for directly.
       body: (revealed) => (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Stat big value={1500} suffix="+" label="Clips in the database" sub="from people — the biggest database in the category" active={revealed} />
+          <Stat big value={1500} suffix="+" label="Ads in the database" sub="from people · the biggest database in the category" active={revealed} />
           <Stat big value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
           <Stat big value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
         </div>
@@ -340,7 +352,7 @@ export default function DemoScrollPage({
       fullOnly: true,
       eyebrow: "Working with us",
       heading: <>Read it yourself, or hand us the <span className="font-serif font-normal italic">whole account</span>.</>,
-      lede: "Four ways in, ordered by how much of the work we take on. Every rung produces more of the one thing a public model cannot buy — creative paired with what it actually did.",
+      lede: "Four ways in, ordered by how much of the work we take on. Every rung produces more of the one thing a public model cannot buy: creative paired with what it actually did.",
       body: (revealed) => <ServiceTiers revealed={revealed} />,
     },
     {
@@ -356,7 +368,7 @@ export default function DemoScrollPage({
   let counter = 0;
   const sections = defs
     .filter((d) => variant === "full" || !d.fullOnly)
-    .map((d) => ({ ...d, n: d.unnumbered ? "—" : String(++counter).padStart(2, "0") }));
+    .map((d) => ({ ...d, n: d.unnumbered ? "–" : String(++counter).padStart(2, "0") }));
   const numberOf = (key: string) => sections.find((s) => s.key === key)?.n ?? "";
 
   const acts = [
@@ -369,7 +381,7 @@ export default function DemoScrollPage({
     <main
       ref={scrollRef}
       tabIndex={0}
-      aria-label="Soma demo — scroll to move through the read-out"
+      aria-label="Soma demo: scroll to move through the read-out"
       className="fixed inset-0 overflow-y-auto bg-paper text-ink outline-none"
     >
       <SiteHeader />
@@ -406,7 +418,7 @@ export default function DemoScrollPage({
               style={{ opacity: heroIn ? 1 : 0, transition: "opacity .7s .2s" }}
             >
               Generating creative is solved. Knowing which one performs is not. Soma reads how
-              a brain watches each cut, then builds and edits against that read — scored
+              a brain watches each cut, then builds and edits against that read, scored
               before you spend a dollar.
             </p>
             <div
@@ -438,7 +450,7 @@ export default function DemoScrollPage({
                 duration={heroAd.duration}
                 hookSeconds={report.hookSeconds}
                 weakSpots={heroAd.weakSpots}
-                progress={heroIn ? 1 : 0}
+                animate={heroIn}
                 height={172}
                 labelDorsal="Attention"
                 labelVentral="Surprise"
@@ -448,20 +460,26 @@ export default function DemoScrollPage({
         </div>
       </section>
 
-      {/* ── the three acts ──────────────────────────────────────────── */}
-      <ActStrip acts={acts} />
+      {/* ── the three acts ──────────────────────────────────────────────
+          /demo only. On /demo-short it was three section numbers reading 01 · 04 · 05 (the
+          two beats between them are full-only), so the strip advertised a table of contents
+          with holes in it, and it summarised in one line each what the next 40 seconds show
+          anyway. On the long page it earns its space: a cold reader who never scrolls still
+          learns what the product does. */}
+      {variant === "full" ? <ActStrip acts={acts} /> : null}
 
-      {/* The beta logo marquee stood here. Removed, not trimmed for time: the caption
-          "Ads from these brands are in the corpus" is false for four of the five logos.
-          Checked against data/ads/advertiser_summary.csv (917 attributions): Supercell,
-          MrBeast, NextXI and Browserbase return ZERO rows — no ads attributed, none in
-          corpus. TikTok returns 8 ads with n_in_corpus = 1. So the claim held for one
-          logo and one ad out of 733, over a logo wall that a viewer reads as a customer
-          list. The block's own comment called it "the single most checkable claim on the
-          site", which was right — it just checked the wrong fact.
-          To bring it back: list advertisers that actually return n_in_corpus > 0 (38 of
-          the 917 have footage at all), or wait for signed partners and name those, per
-          the third-party rule in PRODUCT.md. */}
+      {/* Social proof, /demo-short only, sitting where the act strip does on the long page.
+          One flag for whoever edits this next, and then it is the founder's call, not this
+          file's: the repo cannot corroborate the customer relationship behind four of these
+          five marks. data/ads/advertiser_summary.csv (917 attributions) returns ZERO rows
+          for Supercell, MrBeast, NextXI and Browserbase, and TikTok returns 8 ads with
+          n_in_corpus = 1 — which is why the earlier "ads from these brands are in the
+          corpus" caption was removed as false. The caption now claims a beta relationship
+          instead, which is a fact about the business rather than about this repository, and
+          PRODUCT.md records those as founder-attested. It is still the most checkable claim
+          on the page: any of these five disproves it in one email. Replace with signed
+          partners as soon as there are any. */}
+      {variant === "short" ? <BetaMarquee /> : null}
 
       {/* Sections are declared as an ordered list below and rendered here, so the numbers
           come from position and the tint alternates on its own. Two things this buys: the
@@ -525,7 +543,7 @@ export default function DemoScrollPage({
 // rendered order, which is the only version that cannot go stale.
 
 const ACT_COPY = {
-  measure: "Read how a brain watches the cut — hook, attention, comprehension — and rank a batch on it.",
+  measure: "Read how a brain watches the cut (hook, attention, comprehension) and rank a batch on it.",
   generate: "Write a brief. Get ads built against your brand kit and filtered by the read before you see them.",
   edit: "Change the cut in a sentence. Every candidate edit is scored, and the winner is applied.",
 };
@@ -549,6 +567,91 @@ function ActStrip({ acts }: { acts: { n: string; title: string; body: string; hr
     </section>
   );
 }
+// ── the beta cohort marquee ─────────────────────────────────────────
+//
+// An infinite sideways scroll of the beta cohort's marks. `logo` points to an SVG under
+// public/logos; when absent, `mark` (a monogram letter) is shown instead. The badge forces
+// the mark to white via filter, so a plain dark logo file drops straight in — EXCEPT when
+// `rawLogo` is set, meaning the SVG already carries its own on-badge colours and must be
+// rendered as-is.
+//   → To add a logo later: drop public/logos/<name>.svg and set `logo` below.
+type Brand = { name: string; mark: string; logo?: string; rawLogo?: boolean };
+const BETA_BRANDS: Brand[] = [
+  { name: "TikTok", mark: "T", logo: "/logos/tiktok.svg" },
+  { name: "Supercell", mark: "S" }, // only a 3-line pixel wordmark exists — illegible at badge size
+  { name: "MrBeast", mark: "M" }, // no standalone symbol logo — monogram for now
+  { name: "NextXI", mark: "N" }, // logo dropping in later
+  { name: "Browserbase", mark: "B", logo: "/logos/browserbase.svg", rawLogo: true },
+];
+
+// Per-instance marquee tuning. --marquee-gap is the space between logos (and, because
+// BrandMark carries it as margin-right, the seam gap between the two copies too);
+// --marquee-duration is one full loop. Both cascade to the track, whose keyframes and
+// reduced-motion fallback live in globals.css. The edge masks fade marks in and out at the
+// rails so nothing pops at the boundary.
+const EDGE_FADE = "linear-gradient(to right, transparent, #000 7%, #000 93%, transparent)";
+const marqueeStyle = {
+  "--marquee-gap": "clamp(32px, 6vw, 72px)",
+  "--marquee-duration": "36s",
+  WebkitMaskImage: EDGE_FADE,
+  maskImage: EDGE_FADE,
+} as React.CSSProperties;
+
+function BrandMark({ brand }: { brand: Brand }) {
+  return (
+    <div className="mr-[var(--marquee-gap)] flex shrink-0 items-center gap-2.5">
+      <span
+        aria-hidden="true"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-ink"
+      >
+        {brand.logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={brand.logo}
+            alt=""
+            className="h-[19px] w-[19px] object-contain"
+            // rawLogo SVGs are already coloured for the ink badge; everything else is forced
+            // to a clean white silhouette so any dark logo file works.
+            style={brand.rawLogo ? undefined : { filter: "brightness(0) invert(1)" }}
+          />
+        ) : (
+          <span className="text-[15px] font-semibold leading-none text-white">{brand.mark}</span>
+        )}
+      </span>
+      <span className="text-wordmark text-ink">{brand.name}</span>
+    </div>
+  );
+}
+
+function BetaMarquee() {
+  return (
+    <section className="border-y border-line bg-fill py-[clamp(24px,5vh,44px)]">
+      <div className="mx-auto mb-[clamp(14px,2.6vh,22px)] max-w-[980px] px-[clamp(18px,5vw,40px)]">
+        <span className="text-[12px] uppercase tracking-[0.12em] text-ink-3">
+          Already running ads through the beta
+        </span>
+      </div>
+      <div className="marquee relative overflow-hidden" style={marqueeStyle}>
+        {/* Two identical copies: the track translates exactly one copy width, so the second
+            lands flush where the first began and the loop has no seam. The duplicate is
+            aria-hidden so a screen reader hears the roster once. */}
+        <div className="marquee-track flex w-max items-center">
+          {[0, 1].map((copy) => (
+            <div key={copy} aria-hidden={copy === 1} className="flex shrink-0 items-center">
+              {BETA_BRANDS.map((brand) => (
+                <BrandMark key={brand.name} brand={brand} />
+              ))}
+              <span className="mr-[var(--marquee-gap)] shrink-0 font-serif text-[19px] italic text-ink-3">
+                and more
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── small shared pieces ─────────────────────────────────────────────
 
 function RegionCard({ title, tag, body, tone }: { title: string; tag: string; body: string; tone: "ink" | "accent" }) {
@@ -569,15 +672,19 @@ function Stat({
 }: {
   value: number; suffix: string; label: string; sub: string; tone?: "ink" | "accent"; active: boolean; big?: boolean;
 }) {
+  // Counts up rather than fading in at full value, which is what every other number on the
+  // page does (MetricRow, RankBoard, the studios) — these three were the only headline
+  // figures that just appeared, and next to a self-drawing arc that read as a static image
+  // dropped into a moving page. Rounded off the eased clock, so the last digit settles.
+  const p = useAnimeClock(active, big ? 1200 : 900);
   return (
     <div className="rounded-2xl border border-line bg-fill p-5">
       <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
       <div className="mt-2 flex items-baseline gap-1">
         <span
           className={`font-medium tabular-nums leading-none text-ink ${big ? "text-[44px]" : "text-[28px]"}`}
-          style={{ opacity: active ? 1 : 0.15, transition: "opacity .6s" }}
         >
-          {value.toLocaleString()}
+          {Math.round(value * p).toLocaleString()}
         </span>
         <span className="text-[16px] text-ink-3">{suffix}</span>
       </div>

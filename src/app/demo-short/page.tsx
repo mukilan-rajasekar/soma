@@ -20,22 +20,22 @@ import { loadDemoReport } from "@/lib/demo-report";
 // Without this the two would compete in search and split their own ranking.
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.usesoma.work"),
-  title: "soma — the 60-second read-out",
+  title: "soma · the 60-second read-out",
   description:
-    "The short cut: how a brain watches an ad — hook, attention, comprehension — then generation and editing scored against that read.",
+    "The short cut: how a brain watches an ad (hook, attention, comprehension), then generation and editing scored against that read.",
   alternates: { canonical: "/demo" },
   robots: { index: false, follow: true },
   openGraph: {
     type: "website",
     url: "/demo-short",
     siteName: "soma",
-    title: "soma — the 60-second read-out",
+    title: "soma · the 60-second read-out",
     description:
       "Six beats: measure the cut, rank the batch, generate against the read, edit in a sentence.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "soma — the 60-second read-out",
+    title: "soma · the 60-second read-out",
     description:
       "Six beats: measure the cut, rank the batch, generate against the read, edit in a sentence.",
   },

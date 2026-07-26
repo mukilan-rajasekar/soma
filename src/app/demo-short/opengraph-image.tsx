@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
-// The social card for /demo — the YC product link. Generated rather than committed as a
-// binary so it stays in the design system's palette and can never drift from the page's
+// The social card for /demo-short, the recording surface. Generated rather than committed
+// as a binary so it stays in the design system's palette and can never drift from the page's
 // own headline. Palette values are literal here on purpose: ImageResponse renders through
 // satori in an isolated context with no access to globals.css custom properties.
 //
@@ -48,7 +48,7 @@ export default function Image() {
             Anyone can make a hundred ads. Nobody knows which one wins.
           </div>
           <div style={{ fontSize: 26, lineHeight: 1.4, color: INK2, maxWidth: 820, display: "flex" }}>
-            Soma reads how a brain watches each cut — hook, attention, comprehension — then
+            Soma reads how a brain watches each cut on hook, attention and comprehension, then
             builds and edits against that read.
           </div>
         </div>
