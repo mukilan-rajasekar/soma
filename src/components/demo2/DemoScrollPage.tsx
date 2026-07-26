@@ -28,6 +28,7 @@ import RankBoard from "./RankBoard";
 import VariantOverlay from "./VariantOverlay";
 import ShotDiagnosis from "./ShotDiagnosis";
 import ComprehensionPanel from "./ComprehensionPanel";
+import MessageTrack from "./MessageTrack";
 import LivePlayer from "./LivePlayer";
 import GenerateStudio from "./GenerateStudio";
 import EditStudio from "./EditStudio";
@@ -43,6 +44,9 @@ export default function DemoScrollPage({ report }: { report: Report }) {
 
   const hookAd = byId(variants, "v03_30s_product_first"); // clearest ventral spike + winner
   const compAd = byId(batch, "tt_307"); // whey protein — named on screen AND out loud
+  // The one ad in the batch with zero speech segments. Picked by the data rather than
+  // hardcoded, so a rebuild that changes which clip is silent still lands on a real one.
+  const silentAd = batch.find((a) => (a.transcript ?? []).length === 0) ?? compAd;
   const dipAd = byId(variants, report.campaign.dipId ?? variants[0].id);
   const heroAd = byId(variants, "v03_30s_product_first");
 
@@ -214,12 +218,31 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         lede="A held gaze is worthless if the product never registers. Soma reads the ad's own words — on screen via text recognition, out loud via speech recognition — and when the campaign is named and the language cortex confirms it registers, the score rises."
         tint
       >
-        {(revealed) => <ComprehensionPanel ad={compAd} active={revealed} />}
+        {(revealed) => (
+          <div className="space-y-8">
+            <ComprehensionPanel ad={compAd} active={revealed} />
+            {/* The words themselves, under the mention pins. The panel above shows THAT
+                the brand was named; this shows what was actually said around it. */}
+            <MessageTrack ad={compAd} active={revealed} />
+          </div>
+        )}
+      </Section>
+
+      {/* ── 3b · the silent ad ──────────────────────────────────────────
+          The strongest evidence the lane is reading the cortex and not the audio
+          track: an ad with no voiceover at all still produces a language read. */}
+      <Section
+        n="04"
+        eyebrow="No voiceover"
+        heading={<>An ad that says nothing <span className="font-serif font-normal italic">out loud</span>.</>}
+        lede="Speech recognition finds nothing in this cut, because there is nothing to find — the whole message is on screen. The language lane still reads, which is what separates measuring the cortex from transcribing the audio."
+      >
+        {(revealed) => <MessageTrack ad={silentAd} active={revealed} />}
       </Section>
 
       {/* ── 4 · videos in → ranked report out ───────────────────────── */}
       <Section
-        n="04"
+        n="05"
         eyebrow="Input → output"
         heading={<>Ten ads for one product. One <span className="font-serif font-normal italic">ranking</span> out.</>}
         lede="This is a single brand's ad account — ten creatives for the same product, some near-identical, some completely different. Soma scores each and ranks them against each other. Every row breaks into its hook, hold, and comprehension drivers, so you see not just which creative wins, but why — and what to fix on the ones that don't."
@@ -244,7 +267,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
 
       {/* ── 5 · same-campaign attention ─────────────────────────────── */}
       <Section
-        n="05"
+        n="06"
         eyebrow="Compare the cuts"
         heading={<>Same campaign, five cuts, one <span className="font-serif font-normal italic">timeline</span>.</>}
         lede="Comparing different campaigns is apples to oranges, so Soma compares cuts of the same ad. Here are five edits of one direct-response campaign, their attention arcs on a shared scale. They diverge in the opening seconds — where the edit decides everything."
@@ -255,7 +278,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
 
       {/* ── 6 · dip detection + shot diagnosis ──────────────────────── */}
       <Section
-        n="06"
+        n="07"
         eyebrow="Weak-spot detection"
         heading={<>Find the exact shot that&rsquo;s <span className="font-serif font-normal italic">costing</span> you.</>}
         lede="Soma flags where attention falls away mid-ad, then goes shot by shot: it re-scores the ad with each shot removed, so you can see which cut drags the total down — diagnosis at the shot level, not a single grade for the whole thing."
@@ -291,7 +314,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
           which is exactly what it will be. */}
       <div id="generate" />
       <Section
-        n="07"
+        n="08"
         eyebrow="Generation"
         heading={<>Write a brief. Get back the cut that <span className="font-serif font-normal italic">wins</span>.</>}
         lede="Describe the ad in plain language. Soma generates it against your brand and design system, with generators conditioned on neural context — what makes a hook land, what holds attention, what makes a product register — then tests every candidate against predicted attention and comprehension before you see any of them."
@@ -305,7 +328,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
           already seen become the thing that ranks candidate edits. */}
       <div id="edit" />
       <Section
-        n="08"
+        n="09"
         eyebrow="AI ad editing"
         heading={<>Change it in a sentence. It re-scores <span className="font-serif font-normal italic">itself</span>.</>}
         lede="Video or static, edited in-platform in plain language. Splice a beat out, reorder shots, drop in text, or ask for options — every candidate edit goes through the model, and the best-performing cut comes back. No pixel-level regeneration: the frames you shot stay the frames you shot."
@@ -315,7 +338,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
 
       {/* ── 9 · watch it live ───────────────────────────────────────── */}
       <Section
-        n="09"
+        n="10"
         eyebrow="Watch it live"
         heading={<>The ad and its score, <span className="font-serif font-normal italic">side by side</span>.</>}
         lede="Press play. The clip is the clock — attention, surprise, and the score track the very frames on screen, so you can watch exactly where the brain leans in and where it drops."
@@ -336,7 +359,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
 
       {/* ── 10 · the flywheel / moat ────────────────────────────────── */}
       <Section
-        n="10"
+        n="11"
         eyebrow="The moat"
         heading={<>Every ad in the database makes the model <span className="font-serif font-normal italic">sharper</span>.</>}
         lede="Soma turns brain-response into the metrics you actually buy on — attention, retention, the odds a cut performs. Every ad that comes through grows the dataset behind that translation. The read-out is the product; the growing database is the moat."
@@ -361,7 +384,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
 
       {/* ── 11 · the service ladder ──────────────────────────────────── */}
       <Section
-        n="11"
+        n="12"
         eyebrow="Working with us"
         tint
         heading={<>Read it yourself, or hand us the <span className="font-serif font-normal italic">whole account</span>.</>}
@@ -374,7 +397,7 @@ export default function DemoScrollPage({ report }: { report: Report }) {
           The competitive section. It names nobody — see VendorChecklist for why
           that is the point, and why adding a competitor name would weaken it. */}
       <Section
-        n="12"
+        n="13"
         eyebrow="Before you buy anything"
         heading={<>Five questions worth asking <span className="font-serif font-normal italic">anyone</span> in this category.</>}
         lede="Including us. Every answer below traces to code or data in our repository, and each one links to the artifact behind it."

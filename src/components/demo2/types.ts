@@ -37,6 +37,12 @@ export type Ad = {
   brandMentions: BrandMention[];
   reads: Reads;
   transcript: Speech[];
+  // Fraction of the clip's seconds carrying any on-screen type, from the OCR pass.
+  // Coverage rather than the strings themselves: macOS Vision mangles small, stylised
+  // social-video type often enough that the text is not publishable, while presence
+  // survives the mangling. null means no OCR pass exists for this clip — which is not
+  // the same as a measured zero.
+  screenCoverage: number | null;
 };
 
 export type Shot = { start: number; end: number; without: number; delta: number };

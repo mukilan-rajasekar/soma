@@ -278,6 +278,48 @@ def find_brand(media, terms):
     return merged
 
 
+def screen_coverage(media, duration):
+    """How much of the clip carries on-screen text, as a fraction of its seconds.
+
+    Deliberately a *coverage* measure and not the text itself. media_text.py runs macOS
+    Vision over social video where the type is small, stylised and often moving, and the
+    strings it returns are frequently mangled ("Mesh 5 Pan81", "weat,her"). Presence is
+    robust to that mangling — a garbled read still means type was on screen — so presence
+    is what we publish. Brand mentions are the one exception, and only because find_brand
+    matches against known terms, which survives the noise.
+
+    Returns None when no OCR pass exists for the clip, so the UI can distinguish
+    "measured zero" from "not measured".
+    """
+    if not media or "screen" not in media or not duration:
+        return None
+    seconds = {int(f["t"]) for f in media["screen"] if f.get("lines")}
+    return round(min(len(seconds) / float(duration), 1.0), 3)
+
+
+def speech_track(media, duration, limit=8):
+    """Spoken lines pinned to clip time, clipped to segments that start inside the clip.
+
+    faster-whisper occasionally runs a final segment past the end of short clips; those
+    would render off the end of the timeline, so they are dropped rather than clamped.
+    """
+    if not media:
+        return []
+    out = []
+    for seg in media.get("speech", []):
+        if duration and seg["t"] >= duration:
+            continue
+        text = " ".join(str(seg.get("text", "")).split())
+        if not text:
+            continue
+        out.append({
+            "t": round(float(seg["t"]), 2),
+            "end": round(min(float(seg["end"]), duration or seg["end"]), 2),
+            "text": text,
+        })
+    return out[:limit]
+
+
 # ======================================================================================
 # Shot-level diagnosis
 # ======================================================================================
@@ -475,7 +517,8 @@ def build_batch():
             "timestamps": pa["timestamps"], "lanes": lanes, "levels": levels,
             "scores": sc, "weakSpots": weak, "brandMentions": brand,
             "reads": reads(sc, lanes, weak, brand, dur),
-            "transcript": (media or {}).get("speech", [])[:6],
+            "transcript": speech_track(media, dur),
+            "screenCoverage": screen_coverage(media, dur),
         })
     ads.sort(key=lambda a: -a["scores"]["soma"])
     for i, a in enumerate(ads):
@@ -505,7 +548,8 @@ def build_campaign(masks):
             "lanes": lanes, "levels": levels, "scores": sc,
             "weakSpots": weak, "brandMentions": brand,
             "reads": reads(sc, lanes, weak, brand, dur),
-            "transcript": (media or {}).get("speech", [])[:6],
+            "transcript": speech_track(media, dur),
+            "screenCoverage": screen_coverage(media, dur),
         })
     out.sort(key=lambda a: -a["scores"]["soma"])
     for i, a in enumerate(out):
