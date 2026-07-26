@@ -190,7 +190,8 @@ export default function EditStudio({ report, active }: { report: Report; active:
                 dorsal={after.dorsal}
                 timestamps={after.timestamps}
                 duration={source.duration}
-                progress={applied ? 1 : 0}
+                animate={applied}
+                drawMs={1100}
                 showVentral={false}
                 showHook={false}
                 height={118}

@@ -90,7 +90,7 @@ export default function ShotDiagnosis({
       <p className="mt-3 max-w-[60ch] text-[13px] leading-[1.55] text-ink-2">
         {worstWhere}{" "}
         <span className="text-ink">{fmtT(worst.start)}–{fmtT(worst.end)}</span> shot is the one dragging
-        the ad down — cut it and the score goes up. The other shots carry it: remove them and
+        the ad down: cut it and the score goes up. The other shots carry it: remove them and
         the score falls.
       </p>
     </div>

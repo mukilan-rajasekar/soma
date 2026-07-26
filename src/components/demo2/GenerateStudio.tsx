@@ -75,7 +75,7 @@ export default function GenerateStudio({ report, active }: { report: Report; act
             <span className="ml-auto text-[12.5px] text-ink-3">
               <span className="tabular-nums text-ink">{counted}</span> generated
               <span className="mx-1.5 text-line-2">·</span>
-              <span className="tabular-nums text-ink">{culled ? SURVIVORS : "—"}</span> survive
+              <span className="tabular-nums text-ink">{culled ? SURVIVORS : "·"}</span> survive
             </span>
           </div>
 
@@ -138,8 +138,8 @@ export default function GenerateStudio({ report, active }: { report: Report; act
           <p className="mt-3.5 max-w-[64ch] text-[13px] leading-[1.55] text-ink-2">
             {culled ? (
               <>
-                Nineteen never reach you. Every candidate goes through the model first — hook,
-                attention, comprehension — and only the cuts that clear the bar are surfaced.
+                Nineteen never reach you. Every candidate goes through the model first on hook,
+                attention and comprehension, and only the cuts that clear the bar are surfaced.
                 <span className="text-ink"> You are shown survivors, not output.</span>
               </>
             ) : (
@@ -181,7 +181,7 @@ export default function GenerateStudio({ report, active }: { report: Report; act
             Same brief, five directions. The spread from{" "}
             <span className="tabular-nums text-ink">{ranked[ranked.length - 1]?.ad.scores.soma}</span> to{" "}
             <span className="tabular-nums text-ink">{ranked[0]?.ad.scores.soma}</span> is the difference
-            between an ad that works and one that burns the budget — decided before a dollar is spent.
+            between an ad that works and one that burns the budget, decided before a dollar is spent.
             Every score here is measured output over real footage: five real cuts of one campaign,
             scored by the same pipeline that ranked the batch above.
           </p>
@@ -355,7 +355,8 @@ function WinnerCard({
           timestamps={ad.timestamps}
           duration={ad.duration}
           hookSeconds={hookSeconds}
-          progress={active ? 1 : 0}
+          animate={active}
+          drawMs={1100}
           height={112}
           labelDorsal="Attention"
           labelVentral="Surprise"

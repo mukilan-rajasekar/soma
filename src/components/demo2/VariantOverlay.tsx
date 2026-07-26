@@ -37,7 +37,10 @@ const styleFor = (i: number) => ARC_STYLES[i % ARC_STYLES.length];
 export default function VariantOverlay({ variants, active }: { variants: Ad[]; active: boolean }) {
   const [sel, setSel] = useState(variants[0]?.id ?? "");
   const ref = useRef<HTMLCanvasElement>(null);
-  const p = useAnimeClock(active, 1400);
+  // Constant rate: five arcs racing each other across a shared time axis only reads as a
+  // race if they advance at the same, steady speed. Under the default easeOutCubic all five
+  // lunged to the right edge together and then inched, which looked like a stutter.
+  const p = useAnimeClock(active, 1600, "linear");
   // Same stale-width bug ArcPlot had: W comes from clientWidth, which no dependency tracks,
   // so the chart kept its mount width through any resize. It mattered less when this was a
   // mid-page section; it matters now that it is part of a headline beat.
@@ -112,6 +115,17 @@ export default function VariantOverlay({ variants, active }: { variants: Ad[]; a
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
+      // A dot on the pen while the arc is still drawing. The stroke above ends exactly at
+      // (xs[n], ys[n]), so no interpolation is needed to find it. Every cut gets one, in its
+      // own colour, which is what turns five lines appearing into five cuts being plotted.
+      if (upto < 1 && n < xs.length - 1) {
+        ctx.fillStyle = st.color;
+        ctx.globalAlpha = strong ? 1 : 0.5;
+        ctx.beginPath();
+        ctx.arc(xs[n], ys[n], strong ? 3 : 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     };
 
     // unselected first, selected on top so it never sits under another line
@@ -171,8 +185,13 @@ export default function VariantOverlay({ variants, active }: { variants: Ad[]; a
             </button>
           );
         })}
+        {/* Was "Same footage, recut. Attention diverges in the first seconds, the opener
+            decides the arc." — a near-verbatim repeat of the line DemoScrollPage prints
+            directly above this chart, about 200px up the page. The legend's own footer is
+            the one place that can carry what nothing else says: that these rows are
+            controls. Nothing else on the page indicated the arcs were selectable. */}
         <div className="mt-1 px-1 text-[12.5px] leading-[1.5] text-ink-3">
-          Same footage, recut. Attention diverges in the first seconds — the opener decides the arc.
+          Pick a cut to bring its arc forward.
         </div>
       </div>
     </div>

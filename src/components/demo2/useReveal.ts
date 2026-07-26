@@ -48,7 +48,13 @@ export function useReveal<T extends HTMLElement = HTMLDivElement>(
 // A monotonic 0..1 progress clock that runs for `ms` once `active` turns true. Drives
 // self-drawing arcs, count-ups, and bar races. Eased (easeOutCubic) so motion decelerates
 // into place — the "calm motion" the design system asks for. Instant under reduced-motion.
-export function useAnimeClock(active: boolean, ms: number): number {
+//
+// `ease: "linear"` exists for one case: a curve drawing itself along a time axis. Under
+// easeOutCubic the trace is 87% finished at the halfway point, so an arc lunges to the
+// right edge and then crawls — it reads as a glitch, not as a plot being drawn. A constant
+// rate is what makes the x axis look like it is being played back at real speed, which is
+// the whole point of the arc animating rather than appearing.
+export function useAnimeClock(active: boolean, ms: number, ease: "out" | "linear" = "out"): number {
   const [p, setP] = useState(0);
   useEffect(() => {
     if (!active) return;
@@ -67,11 +73,11 @@ export function useAnimeClock(active: boolean, ms: number): number {
     let raf = 0;
     const step = (ts: number) => {
       const u = Math.min(1, (ts - start) / ms);
-      setP(1 - Math.pow(1 - u, 3));
+      setP(ease === "linear" ? u : 1 - Math.pow(1 - u, 3));
       if (u < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [active, ms]);
+  }, [active, ms, ease]);
   return p;
 }
