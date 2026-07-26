@@ -47,3 +47,8 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+
+# Colab notebooks carry inline tokens — never commit
+colab_extract.ipynb
+colab_overnight.ipynb
+colab_overnight_full.ipynb

@@ -21,6 +21,8 @@ import VariantOverlay from "./VariantOverlay";
 import ShotDiagnosis from "./ShotDiagnosis";
 import ComprehensionPanel from "./ComprehensionPanel";
 import LivePlayer from "./LivePlayer";
+import ServiceTiers from "./ServiceTiers";
+import VendorChecklist from "./VendorChecklist";
 import type { Ad, Report } from "./types";
 
 export default function DemoScrollPage({ report }: { report: Report }) {
@@ -288,10 +290,38 @@ export default function DemoScrollPage({ report }: { report: Report }) {
       >
         {(revealed) => (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Stat big value={report.corpus.ads} suffix="+" label="Ads in the system database" sub="collected from our waitlist" active={revealed} />
+            {/* Sourced from report.corpus, which build_report.py computes from
+                data/ads/ad_manifest.csv. The old "collected from our waitlist" sub-label
+                was wrong — this corpus came from ad_fetch_bb.py scraping TikTok Creative
+                Center, and the waitlist claim is exactly the kind of provenance a buyer
+                can check. */}
+            <Stat big value={report.corpus.ads} suffix="+" label="Ads in the corpus" sub="scraped from TikTok Creative Center top ads" active={revealed} />
             <Stat big value={report.corpus.advertisers} suffix="" label="Advertisers indexed" sub="the corpus behind the model" active={revealed} />
           </div>
         )}
+      </Section>
+
+      {/* ── 8b · the service ladder ──────────────────────────────────── */}
+      <Section
+        n="09"
+        eyebrow="Working with us"
+        tint
+        heading={<>Read it yourself, or hand us the <span className="font-serif font-normal italic">whole account</span>.</>}
+        lede="Four ways in, ordered by how much of the work we take on. Every rung produces more of the one thing a public model cannot buy — creative paired with what it actually did."
+      >
+        {(revealed) => <ServiceTiers revealed={revealed} />}
+      </Section>
+
+      {/* ── 8c · the buyer's checklist ───────────────────────────────────
+          The competitive section. It names nobody — see VendorChecklist for why
+          that is the point, and why adding a competitor name would weaken it. */}
+      <Section
+        n="10"
+        eyebrow="Before you buy anything"
+        heading={<>Five questions worth asking <span className="font-serif font-normal italic">anyone</span> in this category.</>}
+        lede="Including us. Every answer below traces to code or data in our repository, and each one links to the artifact behind it."
+      >
+        {(revealed) => <VendorChecklist revealed={revealed} />}
       </Section>
 
       {/* ── 9 · CTA ─────────────────────────────────────────────────── */}
@@ -378,8 +408,14 @@ function BetaMarquee() {
   return (
     <section className="border-y border-line bg-fill py-[clamp(24px,5vh,44px)]">
       <div className="mx-auto mb-[clamp(14px,2.6vh,22px)] max-w-[980px] px-[clamp(18px,5vw,40px)]">
+        {/* Was "Already running ads through the beta" over these five logos. None of
+            them are customers, and it is the single most checkable claim on the site —
+            any of those brands, or a partner in diligence, disproves it in one email.
+            The corpus framing is true (ad_fetch_bb.py pulls TikTok Creative Center top
+            ads) and keeps the same visual. Swap this back only when there are signed
+            partners, and then list those, per the third-party rule in PRODUCT.md. */}
         <span className="text-[12px] uppercase tracking-[0.12em] text-ink-3">
-          Already running ads through the beta
+          Ads from these brands are in the corpus
         </span>
       </div>
       <div className="marquee relative overflow-hidden" style={marqueeStyle}>

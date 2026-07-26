@@ -72,16 +72,48 @@ the corpus.
 callouts, cortical profile, A/B compare, cross-lineup compare.
 
 **In training, not validated:** the cortical→performance translation layer. Early
-results exist; nothing is validated. **No public surface may present it as a working
-capability or quote its outputs as results.** It carries the same honesty treatment as
-the read-out head.
+results exist; nothing is validated. It **may** ship on a public surface, labeled, under
+the disclosure rule below. What it may not do is appear unlabeled, or be quoted as a
+measured result.
+
+**The disclosure rule.** Every model-derived figure on a public surface carries one of
+four provenance states, and the state is visible on the surface itself — not in a
+tooltip, not in a footnote:
+
+| State | Means | Example |
+|---|---|---|
+| `measured` | Comes from the encoder, or from committed code over real data | attention arc, comprehension lane, corpus counts |
+| `modeled` | A trained or fitted output that has not cleared validation | retention curve, any outcome prediction |
+| `proxy` | Stands in for something the encoder cannot resolve | purchase intent, recall — both subcortical |
+| `decoration` | Illustrative, not bound to model output | the cortex visuals |
+
+**Why the line sits here, and not at "validated only."** The earlier doctrine forbade
+shipping the translation layer outright while permitting the attention arc, the
+comprehension lane, and the weak-spot callouts — all equally unvalidated. That line was
+not "validated vs not"; it was arbitrary, and a competitor could say so.
+
+The real distinction is **falsifiability at the point of use.** A per-second arc makes no
+checkable claim about the future — a buyer cannot catch it being wrong. A predicted CTR
+does, and the buyer will check it. So an outcome figure may ship, but it ships labeled
+`modeled`, and never as a bare number the way a measured figure can.
+
+**Numbers must be reproducible.** Any figure quoted on a public surface has to trace to
+committed code or committed data. A number typed into a component is a bug, not a
+placeholder. This is the constraint with no exceptions: it is what makes every other
+label worth anything. It also protects the wedge — Soma's argument is that buyers should
+ask any vendor for accuracy *minus the baseline*, and that question only carries if
+Soma's own figures survive it.
 
 **Constraints:**
 
 - The TRIBE v2 encoder is frozen and Meta's. The read-out weights are Soma's.
-- Emotion lanes (valence / arousal) are a private research result and must never appear
-  on a public page — `/demo` and `/story` included.
+- The encoder is CC-BY-NC-4.0. Pipeline output cannot be sold under that licence; the
+  commercial request and its answer should be public once there is one.
+- Emotion lanes (valence / arousal) stay off public surfaces until they clear more than
+  n=4 — not because the result is bad, but because there is no power behind it either way.
 - Decoration and model output must remain visually separable, and decoration is labeled.
+- No claim about a named third party — customer, partner, or logo — without a signed
+  relationship behind it.
 
 **Explicitly undecided:** whether, where, and how forcefully to disclose the null
 pre-registered result publicly (see Evidence on Hand). This is deliberately open, not
