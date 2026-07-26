@@ -26,6 +26,7 @@ import ArcPlot from "./ArcPlot";
 import MetricRow from "./MetricRow";
 import RankBoard from "./RankBoard";
 import VariantOverlay from "./VariantOverlay";
+import RegionTable from "./RegionTable";
 import ShotDiagnosis from "./ShotDiagnosis";
 import ComprehensionPanel from "./ComprehensionPanel";
 import MessageTrack from "./MessageTrack";
@@ -273,7 +274,14 @@ export default function DemoScrollPage({ report }: { report: Report }) {
         lede="Comparing different campaigns is apples to oranges, so Soma compares cuts of the same ad. Here are five edits of one direct-response campaign, their attention arcs on a shared scale. They diverge in the opening seconds — where the edit decides everything."
         tint
       >
-        {(revealed) => <VariantOverlay variants={variants} active={revealed} />}
+        {(revealed) => (
+          <div className="space-y-8">
+            <VariantOverlay variants={variants} active={revealed} />
+            {/* The arcs above are two lanes. This is every network the mask set covers,
+                for the winning cut — the profile behind the two lines. */}
+            <RegionTable ad={hookAd} active={revealed} />
+          </div>
+        )}
       </Section>
 
       {/* ── 6 · dip detection + shot diagnosis ──────────────────────── */}

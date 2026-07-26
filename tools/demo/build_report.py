@@ -227,7 +227,49 @@ def lanes_from_preds(preds_path, masks):
         "language": round(float(p[:, masks["language"]].mean()), 4),
         "ventral": round(float(p[:, masks["arousal"]].mean()), 4),
     }
-    return out, levels, p.shape[0]
+    return out, levels, p.shape[0], region_levels(p, masks, whole)
+
+
+# Human labels for the a-priori anatomical masks build_roi_mask.py writes. These are
+# hand-picked Destrieux label sets, not validated functional localisers — "Value (vmPFC)"
+# in particular is a CORTICAL proxy: the canonical buy-signal (nucleus accumbens) is
+# subcortical and not on the fsaverage5 surface at all, which is the whole reason the
+# translation layer exists. Label accordingly and never call it a buy signal.
+REGION_LABELS = {
+    "dan": "Dorsal attention",
+    "arousal": "Salience",
+    "language": "Language",
+    "dmn": "Default mode",
+    "memory": "Memory encoding",
+    "value": "Value (vmPFC)",
+}
+
+
+def region_levels(p, masks, baseline):
+    """Per-network absolute magnitude and its lift over the whole-cortex mean.
+
+    Only the campaign path can produce this. The TikTok batch ships as arcs with no
+    preds_*.npy on disk, and their roi_profile was frozen at export time with three
+    networks in it — so batch ads stay at three until the GPU extraction is re-run.
+
+    valence is deliberately excluded. PRODUCT.md holds the emotion lanes off public
+    surfaces until they clear more than n=4, and head_valence.json is n=4.
+    """
+    rows = []
+    for net, label in REGION_LABELS.items():
+        m = masks.get(net)
+        if m is None:
+            continue
+        value = float(p[:, m].mean())
+        rows.append({
+            "net": net,
+            "label": label,
+            "value": round(value, 4),
+            "lift": round(value / baseline, 3) if baseline else None,
+            "vertices": int(m.sum()),
+        })
+    rows.sort(key=lambda r: -(r["lift"] or 0))
+    return rows
 
 
 def lanes_from_arcs(public_arc, full_arc):
@@ -534,7 +576,7 @@ def build_campaign(masks):
         preds = os.path.join(adir, f"preds_{vid}.npy")
         if not os.path.exists(preds):
             continue
-        lanes, levels, n = lanes_from_preds(preds, masks)
+        lanes, levels, n, regions = lanes_from_preds(preds, masks)
         media_p = os.path.join(ROOT, "data/demo/media_variants", f"{vid}.json")
         media = load_json(media_p) if os.path.exists(media_p) else None
         brand = find_brand(media, WELDING_TERMS)
@@ -550,6 +592,7 @@ def build_campaign(masks):
             "reads": reads(sc, lanes, weak, brand, dur),
             "transcript": speech_track(media, dur),
             "screenCoverage": screen_coverage(media, dur),
+            "regions": regions,
         })
     out.sort(key=lambda a: -a["scores"]["soma"])
     for i, a in enumerate(out):
@@ -575,7 +618,7 @@ def build_campaign(masks):
 
 def main():
     masks = {n: np.load(os.path.join(ROOT, f"data/roi_mask_{n}.npy")).astype(bool)
-             for n in ("dan", "arousal", "language")}
+             for n in REGION_LABELS}
     print("building batch…")
     batch = build_batch()
     print(f"  {len(batch)} ads scored")

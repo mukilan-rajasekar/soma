@@ -43,6 +43,19 @@ export type Ad = {
   // survives the mangling. null means no OCR pass exists for this clip — which is not
   // the same as a measured zero.
   screenCoverage: number | null;
+  // Per-network magnitude and its lift over the whole-cortex mean. Present only on the
+  // campaign variants: those have raw preds_*.npy on disk, so every mask can be applied.
+  // The TikTok batch ships as arcs whose roi_profile was frozen with three networks at
+  // export time, so batch ads carry no table until the GPU extraction is re-run.
+  regions?: Region[];
+};
+
+export type Region = {
+  net: string;
+  label: string;
+  value: number;
+  lift: number | null;
+  vertices: number;
 };
 
 export type Shot = { start: number; end: number; without: number; delta: number };
