@@ -13,7 +13,7 @@ function MiniBar({ value, active, delay, tone }: { value: number; active: boolea
   const eff = Math.max(0, (p - delay / (700 + delay)) / (1 - delay / (700 + delay)));
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-line">
-      <div className={tone === "accent" ? "h-full rounded-full bg-accent-2" : "h-full rounded-full bg-ink"} style={{ width: `${value * Math.min(1, Math.max(0, eff))}%` }} />
+      <div className={tone === "accent" ? "h-full w-full rounded-full bg-accent-2" : "h-full w-full rounded-full bg-ink"} style={{ transform: `scaleX(${Math.min(1, Math.max(0, eff)) * value / 100})`, transformOrigin: "left" }} />
     </div>
   );
 }
@@ -21,7 +21,7 @@ function MiniBar({ value, active, delay, tone }: { value: number; active: boolea
 export default function RankBoard({ ads, active }: { ads: Ad[]; active: boolean }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-paper">
-      <div className="grid grid-cols-[28px_1fr_46px] items-center gap-3 border-b border-line bg-fill px-4 py-2.5 text-[10px] uppercase tracking-[0.1em] text-ink-3 sm:grid-cols-[28px_1.4fr_2.4fr_50px]">
+      <div className="grid grid-cols-[28px_1fr_46px] items-center gap-3 border-b border-line bg-fill px-4 py-3 text-[11.5px] uppercase tracking-[0.08em] text-ink-3 sm:grid-cols-[28px_1.4fr_2.4fr_50px]">
         <span>#</span>
         <span>Ad</span>
         <span className="hidden sm:block">Hook · Hold · Comprehension</span>
@@ -39,26 +39,35 @@ export default function RankBoard({ ads, active }: { ads: Ad[]; active: boolean 
               transition: `opacity .5s ${i * 60}ms, transform .5s ${i * 60}ms`,
             }}
           >
-            <span className={`tabular-nums text-[13px] ${winner ? "font-semibold text-ink" : "text-ink-3"}`}>{a.rank}</span>
+            <span className={`tabular-nums text-[14px] ${winner ? "font-semibold text-ink" : "text-ink-3"}`}>{a.rank}</span>
             <div className="min-w-0">
-              <div className="truncate text-[13.5px] font-medium tracking-[-0.01em] text-ink">{a.title}</div>
-              <div className="truncate text-[11px] text-ink-3">{a.brand}</div>
+              <div className="truncate text-[14px] font-medium tracking-[-0.01em] text-ink">{a.title}</div>
+              {/* Was `{a.brand}`, which printed the same account name on all ten rows of a
+                  board whose own premise made it redundant. Below the `sm` breakpoint the
+                  bar column is hidden, so the section's lede ("every row breaks into its
+                  hook, hold and comprehension drivers") was a promise the mobile layout
+                  silently broke. This line is the mobile-only fallback for that promise;
+                  the bars take over at `sm`. */}
+              <div className="truncate text-[12px] tabular-nums text-ink-3 sm:hidden">
+                {a.scores.hook} · {a.scores.hold} · {a.scores.comprehension}
+                <span className="ml-1 tracking-[0.04em]">hook·hold·comp</span>
+              </div>
             </div>
             <div className="hidden grid-cols-3 gap-2.5 sm:grid">
               <div>
                 <MiniBar value={a.scores.hook} active={active} delay={i * 60} tone="accent" />
-                <div className="mt-1 text-[9px] uppercase tracking-[0.06em] text-ink-3">hook {a.scores.hook}</div>
+                <div className="mt-1.5 text-[11px] uppercase tracking-[0.05em] text-ink-3">hook {a.scores.hook}</div>
               </div>
               <div>
                 <MiniBar value={a.scores.hold} active={active} delay={i * 60} tone="ink" />
-                <div className="mt-1 text-[9px] uppercase tracking-[0.06em] text-ink-3">hold {a.scores.hold}</div>
+                <div className="mt-1.5 text-[11px] uppercase tracking-[0.05em] text-ink-3">hold {a.scores.hold}</div>
               </div>
               <div>
                 <MiniBar value={a.scores.comprehension} active={active} delay={i * 60} tone="accent" />
-                <div className="mt-1 text-[9px] uppercase tracking-[0.06em] text-ink-3">comp {a.scores.comprehension}</div>
+                <div className="mt-1.5 text-[11px] uppercase tracking-[0.05em] text-ink-3">comp {a.scores.comprehension}</div>
               </div>
             </div>
-            <span className={`text-right tabular-nums ${winner ? "text-[19px] font-semibold text-ink" : "text-[16px] text-ink-2"}`}>{a.scores.soma}</span>
+            <span className={`text-right tabular-nums ${winner ? "text-[20px] font-semibold text-ink" : "text-[16px] text-ink-2"}`}>{a.scores.soma}</span>
           </div>
         );
       })}

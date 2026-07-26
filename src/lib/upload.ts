@@ -41,6 +41,18 @@ export function buildStoragePath(name: string): string {
   return `queued/${Date.now()}-${rand}-${sanitizeName(name)}`;
 }
 
+// Exactly the shape buildStoragePath mints, and nothing else. Lives here so the minter
+// and its validator can never drift apart: change one, change both. The intake route
+// (/api/uploads/complete) is unauthenticated and inserts with the service_role key, so
+// it must not take a client-supplied path on trust — this is the cheap first gate that
+// rejects a fabricated reference before it costs a Storage round-trip.
+const STORAGE_PATH_PATTERN =
+  /^queued\/\d{13,}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-[\w.\-]{1,80}$/;
+
+export function isStoragePath(path: string): boolean {
+  return STORAGE_PATH_PATTERN.test(path);
+}
+
 // Same shape the waitlist route uses. Kept here so the client can pre-validate.
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

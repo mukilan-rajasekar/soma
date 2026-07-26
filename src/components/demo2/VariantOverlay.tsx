@@ -15,11 +15,43 @@ const INK = "#0a0a0a";
 const INK3 = "#727272";
 const LINE = "#e2e2e2";
 const ACCENT = "#3f6f7a";
+const ACCENT2 = "#5f8b99";
+
+// One identity per cut: colour AND dash, never hue alone (the data-viz rule in ArcPlot's
+// header). Previously drawArc had exactly two states — the selected cut in solid ink, and
+// EVERY other cut in identical #727272 1px at alpha .28. Five arcs were drawn, four of them
+// pixel-identical, so the legend promised five identifiable cuts and the chart delivered
+// two: "the one you picked" and "the others". That is fatal for a section whose entire
+// claim is that you can see WHY 73 beat 51. ACCENT was declared and never used, which was
+// the tell. Index-keyed so the legend swatch below can render the same colour + dash and
+// the reader can actually map a legend row to a line.
+const ARC_STYLES: { color: string; dash: number[] }[] = [
+  { color: INK, dash: [] },
+  { color: ACCENT, dash: [7, 3] },
+  { color: ACCENT2, dash: [2, 3] },
+  { color: INK3, dash: [10, 4, 2, 4] },
+  { color: ACCENT, dash: [4, 4] },
+];
+const styleFor = (i: number) => ARC_STYLES[i % ARC_STYLES.length];
 
 export default function VariantOverlay({ variants, active }: { variants: Ad[]; active: boolean }) {
   const [sel, setSel] = useState(variants[0]?.id ?? "");
   const ref = useRef<HTMLCanvasElement>(null);
   const p = useAnimeClock(active, 1400);
+  // Same stale-width bug ArcPlot had: W comes from clientWidth, which no dependency tracks,
+  // so the chart kept its mount width through any resize. It mattered less when this was a
+  // mid-page section; it matters now that it is part of a headline beat.
+  const [canvasW, setCanvasW] = useState(0);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = Math.round(entry.contentRect.width);
+      setCanvasW((prev) => (prev === w ? prev : w));
+    });
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const c = ref.current;
@@ -44,7 +76,7 @@ export default function VariantOverlay({ variants, active }: { variants: Ad[]; a
     // grid
     ctx.strokeStyle = LINE;
     ctx.lineWidth = 1;
-    ctx.font = "9px system-ui, sans-serif";
+    ctx.font = "10.5px system-ui, sans-serif";
     ctx.fillStyle = INK3;
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
@@ -56,7 +88,7 @@ export default function VariantOverlay({ variants, active }: { variants: Ad[]; a
       if (g % 2 === 0) ctx.fillText((g / 4).toFixed(1), x0 - 6, y);
     }
 
-    const drawArc = (a: Ad, upto: number, strong: boolean) => {
+    const drawArc = (a: Ad, upto: number, strong: boolean, styleIdx: number) => {
       const xs = a.timestamps.map((t) => xAt(t));
       const ys = a.lanes.dorsal.map((v) => yAt(v));
       const n = Math.max(1, Math.floor(upto * (xs.length - 1)));
@@ -67,55 +99,79 @@ export default function VariantOverlay({ variants, active }: { variants: Ad[]; a
         ctx.quadraticCurveTo(xs[i - 1], ys[i - 1], xc, yc);
       }
       ctx.lineTo(xs[n], ys[n]);
-      if (strong) {
-        ctx.strokeStyle = INK; ctx.lineWidth = 2.2; ctx.globalAlpha = 1;
-      } else {
-        ctx.strokeStyle = INK3; ctx.lineWidth = 1; ctx.globalAlpha = 0.28;
-      }
+      // Each cut keeps its own colour + dash whether or not it is selected; selection
+      // changes weight and opacity only. That way the legend row you are reading always
+      // maps to the same line, and an unselected cut stays identifiable instead of
+      // dissolving into an anonymous grey band with the other three.
+      const st = styleFor(styleIdx);
+      ctx.setLineDash(st.dash);
+      ctx.strokeStyle = st.color;
+      ctx.lineWidth = strong ? 2.4 : 1.3;
+      ctx.globalAlpha = strong ? 1 : 0.45;
       ctx.lineJoin = "round";
       ctx.stroke();
+      ctx.setLineDash([]);
       ctx.globalAlpha = 1;
     };
 
-    // faint cuts first, selected on top
-    variants.forEach((v) => { if (v.id !== sel) drawArc(v, p, false); });
-    const s = variants.find((v) => v.id === sel);
-    if (s) drawArc(s, p, true);
+    // unselected first, selected on top so it never sits under another line
+    variants.forEach((v, i) => { if (v.id !== sel) drawArc(v, p, false, i); });
+    const selIdx = variants.findIndex((v) => v.id === sel);
+    if (selIdx >= 0) drawArc(variants[selIdx], p, true, selIdx);
 
     // axis
     ctx.fillStyle = INK3;
-    ctx.font = "9px system-ui, sans-serif";
+    ctx.font = "10.5px system-ui, sans-serif";
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     ctx.fillText("0:00", x0, y1 + 6);
     ctx.textAlign = "right";
     ctx.fillText(fmtT(maxDur), x1, y1 + 6);
-  }, [variants, sel, p]);
+  }, [variants, sel, p, canvasW]);
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_240px]">
       <div>
         <canvas ref={ref} className="block w-full rounded-xl border border-line bg-paper" style={{ height: 240 }} role="img" aria-label="Attention arcs of five cuts of the same campaign, overlaid" />
-        <div className="mt-2 text-[10px] uppercase tracking-[0.1em] text-ink-3">Attention · normalized 0–1 · same campaign, five cuts</div>
+        <div className="mt-2.5 text-[11.5px] uppercase tracking-[0.06em] text-ink-3">Attention · normalized 0–1 · same campaign, five cuts</div>
       </div>
       <div className="flex flex-col gap-1.5">
-        {variants.map((v) => {
+        {variants.map((v, i) => {
           const on = v.id === sel;
+          const st = styleFor(i);
           return (
             <button
               key={v.id}
               onClick={() => setSel(v.id)}
+              aria-pressed={on}
               className={`flex items-center justify-between rounded-xl border px-3 py-2 text-left transition-colors ${on ? "border-ink bg-fill" : "border-line hover:border-line-2"}`}
             >
               <span className="flex items-center gap-2">
-                <span className={`inline-block h-[2px] w-4 ${on ? "bg-ink" : "bg-ink-3/40"}`} />
+                {/* The swatch draws the cut's ACTUAL colour and dash, so a legend row can be
+                    matched to a line on the chart. It used to be a plain 2px bar, ink when
+                    selected and grey otherwise — which told you nothing about which of the
+                    four grey lines was this row. */}
+                <svg width="18" height="8" viewBox="0 0 18 8" aria-hidden="true" className="shrink-0 overflow-visible">
+                  <line
+                    x1="0" y1="4" x2="18" y2="4"
+                    stroke={st.color}
+                    strokeWidth={on ? 2.4 : 1.6}
+                    strokeDasharray={st.dash.length ? st.dash.join(" ") : undefined}
+                    opacity={on ? 1 : 0.6}
+                  />
+                </svg>
                 <span className="text-[12.5px] font-medium text-ink">{v.title}</span>
               </span>
-              <span className={`tabular-nums text-[13px] ${on ? "font-semibold text-ink" : "text-ink-3"}`}>{v.scores.soma}</span>
+              {/* The Soma score used to sit here too. This component now mounts inside §04,
+                  directly under the generate board, which already lists these same five cuts
+                  with these same five scores against their poster frames — so printing them
+                  again ~200px later was the duplication that got the standalone
+                  compare-the-cuts section cut, recreated inside one section. The legend's job
+                  here is arc identification: swatch + name. The ranking lives above. */}
             </button>
           );
         })}
-        <div className="mt-1 px-1 text-[11px] leading-[1.5] text-ink-3">
+        <div className="mt-1 px-1 text-[12.5px] leading-[1.5] text-ink-3">
           Same footage, recut. Attention diverges in the first seconds — the opener decides the arc.
         </div>
       </div>

@@ -11,7 +11,7 @@
 // 0→1 on reveal so the arc draws itself; the live player pins it to 1 and passes a
 // `playhead` time instead. Nothing here computes numbers; it only plots what it's given.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fmtT, type BrandMention, type WeakSpot } from "./types";
 
 type Props = {
@@ -29,6 +29,14 @@ type Props = {
   showHook?: boolean;
   labelDorsal?: string;
   labelVentral?: string;
+  // A second, faint dorsal curve drawn behind the main one on the SAME time axis — the
+  // "before" of an edit. §08 passes the unspliced arc here and the spliced arc as `dorsal`,
+  // so the change is a single picture rather than two charts side by side.
+  ghost?: { dorsal: number[]; timestamps: number[] } | null;
+  // A hairline + label at a time inside the span. §08 marks where the shortened cut now
+  // ends, which is what makes the curve stopping short of the right edge read as "the ad
+  // got shorter" rather than as a chart that failed to finish drawing.
+  endMarker?: number | null;
 };
 
 const TOK = {
@@ -48,30 +56,43 @@ const PADR = 14;
 const PADT = 16;
 const PADB = 26;
 
-function smoothPath(
-  ctx: CanvasRenderingContext2D,
-  xs: number[],
-  ys: number[],
-  upto: number,
-) {
-  if (xs.length < 2) return;
+// Uniform Catmull-Rom evaluated on `vals` at segment `i`, local param `f∈[0,1]`.
+// A Catmull-Rom spline passes THROUGH every data point, so a dot placed on it (at a
+// sample or interpolated between two) sits exactly on the drawn line — unlike the old
+// midpoint-quadratic smoothing, which floated the dot off the curve.
+function crAt(vals: number[], i: number, f: number): number {
+  const n = vals.length;
+  const p0 = vals[Math.max(0, i - 1)];
+  const p1 = vals[i];
+  const p2 = vals[Math.min(n - 1, i + 1)];
+  const p3 = vals[Math.min(n - 1, i + 2)];
+  const f2 = f * f;
+  const f3 = f2 * f;
+  return 0.5 * (2 * p1 + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f2 + (-p0 + 3 * p1 - 3 * p2 + p3) * f3);
+}
+
+// Draw a Catmull-Rom curve through (xs, ys), up to fraction `upto` of the index domain.
+function drawCurve(ctx: CanvasRenderingContext2D, xs: number[], ys: number[], upto: number) {
+  const n = xs.length;
+  if (n < 2) return;
+  const last = Math.max(0, Math.min(1, upto)) * (n - 1);
+  const full = Math.floor(last);
   ctx.beginPath();
   ctx.moveTo(xs[0], ys[0]);
-  const n = Math.max(1, Math.floor(upto * (xs.length - 1)));
-  for (let i = 1; i <= n; i++) {
-    const xc = (xs[i - 1] + xs[i]) / 2;
-    const yc = (ys[i - 1] + ys[i]) / 2;
-    ctx.quadraticCurveTo(xs[i - 1], ys[i - 1], xc, yc);
+  for (let i = 0; i < full; i++) {
+    const x1 = xs[i], y1 = ys[i];
+    const x2 = xs[i + 1], y2 = ys[i + 1];
+    const x0 = xs[Math.max(0, i - 1)], y0 = ys[Math.max(0, i - 1)];
+    const x3 = xs[Math.min(n - 1, i + 2)], y3 = ys[Math.min(n - 1, i + 2)];
+    const c1x = x1 + (x2 - x0) / 6, c1y = y1 + (y2 - y0) / 6;
+    const c2x = x2 - (x3 - x1) / 6, c2y = y2 - (y3 - y1) / 6;
+    ctx.bezierCurveTo(c1x, c1y, c2x, c2y, x2, y2);
   }
-  // partial last segment for a smooth leading edge
-  const frac = upto * (xs.length - 1) - (n - 0);
-  if (n < xs.length - 1 && frac > 0) {
-    const i = n + 1;
-    const x = xs[i - 1] + (xs[i] - xs[i - 1]) * frac;
-    const y = ys[i - 1] + (ys[i] - ys[i - 1]) * frac;
-    ctx.lineTo(x, y);
-  } else {
-    ctx.lineTo(xs[n], ys[n]);
+  // partial leading tip during the reveal animation
+  const f = last - full;
+  if (full < n - 1 && f > 0) {
+    const px = xs[full] + (xs[full + 1] - xs[full]) * f;
+    ctx.lineTo(px, crAt(ys, full, f));
   }
   ctx.stroke();
 }
@@ -91,8 +112,27 @@ export default function ArcPlot({
   showHook = true,
   labelDorsal = "Attention",
   labelVentral = "Surprise",
+  ghost = null,
+  endMarker = null,
 }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
+  // Canvas width is read imperatively below, so nothing in the draw effect's dependency
+  // list changes when the element resizes — the chart kept whatever width it had at mount
+  // forever. On a page that exists to be screen-recorded that is a real failure: framing
+  // the shot by resizing the window, or recording after a device-pixel-ratio change when a
+  // window moves between displays, left every arc drawn at the old width and either
+  // stretched or clipped. This observer makes width a reactive input like any other prop.
+  const [canvasW, setCanvasW] = useState(0);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = Math.round(entry.contentRect.width);
+      setCanvasW((prev) => (prev === w ? prev : w));
+    });
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const c = ref.current;
@@ -120,7 +160,7 @@ export default function ArcPlot({
     // grid — 4 horizontal hairlines
     ctx.strokeStyle = TOK.line;
     ctx.lineWidth = 1;
-    ctx.font = "9px system-ui, sans-serif";
+    ctx.font = "10.5px system-ui, sans-serif";
     ctx.fillStyle = TOK.ink3;
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
@@ -151,9 +191,12 @@ export default function ArcPlot({
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
       ctx.fillStyle = TOK.accent;
-      ctx.font = "8px system-ui, sans-serif";
+      // 8px was illegible at recording scale, and the label was the string "HOOK · 0–3s"
+      // while the band it labels is drawn from the `hookSeconds` prop — change the prop (or
+      // report.hookSeconds) and the picture moved while the caption kept saying 3s.
+      ctx.font = "10px system-ui, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText("HOOK · 0–3s", x0 + 5, y0 + 8);
+      ctx.fillText(`HOOK · 0–${hookSeconds % 1 === 0 ? hookSeconds : hookSeconds.toFixed(1)}s`, x0 + 5, y0 + 9);
     }
 
     // weak-spot bands — light error tint behind the curve
@@ -176,6 +219,19 @@ export default function ArcPlot({
 
     const xs = timestamps.map((t) => xAt(t));
 
+    // the "before" curve, if one was handed in — hairline, faint, behind everything, so
+    // the live curve reads as the subject and this reads as where it used to be.
+    if (ghost && ghost.dorsal.length > 1) {
+      ctx.strokeStyle = TOK.ink3;
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.lineJoin = "round";
+      drawCurve(ctx, ghost.timestamps.map((t) => xAt(t)), ghost.dorsal.map((v) => yAt(v)), 1);
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+
     // ventral (surprise) — dashed slate, drawn first so dorsal sits on top
     if (showVentral && ventral && ventral.length) {
       const yv = ventral.map((v) => yAt(v));
@@ -183,7 +239,7 @@ export default function ArcPlot({
       ctx.lineWidth = 1.6;
       ctx.setLineDash([5, 4]);
       ctx.lineJoin = "round";
-      smoothPath(ctx, xs, yv, progress);
+      drawCurve(ctx, xs, yv, progress);
       ctx.setLineDash([]);
     }
 
@@ -192,7 +248,7 @@ export default function ArcPlot({
     ctx.strokeStyle = TOK.ink;
     ctx.lineWidth = 2;
     ctx.lineJoin = "round";
-    smoothPath(ctx, xs, yd, progress);
+    drawCurve(ctx, xs, yd, progress);
 
     // brand-mention ticks along the baseline
     ctx.textAlign = "center";
@@ -215,25 +271,68 @@ export default function ArcPlot({
       ctx.lineTo(px, y1);
       ctx.stroke();
       ctx.globalAlpha = 1;
-      // dot on the dorsal curve
-      const idx = Math.max(0, Math.min(dorsal.length - 1, Math.round((playhead / span) * (dorsal.length - 1))));
+      // dot ON the dorsal curve — evaluated with the SAME Catmull-Rom the line is drawn
+      // with, at the exact playhead time, so it tracks the line cleanly (no floating).
+      const n = yd.length;
+      // Map playhead time → fractional sample index by walking the ACTUAL timestamps,
+      // rather than `((playhead - timestamps[0]) / span) * (n - 1)`. That old form divides
+      // by `span` (the video duration) and so assumes the samples are spread uniformly
+      // across the whole clip starting at t=0. The curve's own x positions come from
+      // xAt(timestamps[i]), so whenever the trace starts late or ends before the video does
+      // — which is the normal case, the sampler stops at the last whole second — the two
+      // disagreed and the dot rode above or below the line it is supposed to sit on.
+      const tp = Math.max(0, Math.min(span, playhead));
+      let idxF = 0;
+      if (n > 1) {
+        let hi = 1;
+        while (hi < n && timestamps[hi] < tp) hi++;
+        if (hi >= n) {
+          idxF = n - 1;
+        } else {
+          const lo = hi - 1;
+          const dt = timestamps[hi] - timestamps[lo];
+          idxF = lo + (dt > 0 ? (tp - timestamps[lo]) / dt : 0);
+        }
+      }
+      const seg = Math.max(0, Math.min(n - 2, Math.floor(idxF)));
+      const dotY = crAt(yd, seg, idxF - seg);
       ctx.fillStyle = TOK.ink;
       ctx.beginPath();
-      ctx.arc(px, yAt(dorsal[idx]), 3.5, 0, Math.PI * 2);
+      ctx.arc(px, dotY, 3.5, 0, Math.PI * 2);
       ctx.fill();
     }
 
     // x-axis end labels
     ctx.fillStyle = TOK.ink3;
-    ctx.font = "9px system-ui, sans-serif";
+    ctx.font = "10.5px system-ui, sans-serif";
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     ctx.fillText("0:00", x0, y1 + 6);
     ctx.textAlign = "right";
     ctx.fillText(fmtT(span), x1, y1 + 6);
+
+    // the new end of a shortened cut. Drawn last so it sits over the curves, and labelled,
+    // because an unlabelled rule short of the right edge reads as a rendering bug.
+    if (endMarker != null && endMarker > 0 && endMarker < span && progress >= 1) {
+      const ex = xAt(endMarker);
+      ctx.strokeStyle = TOK.ink;
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ex, y0);
+      ctx.lineTo(ex, y1);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = TOK.ink;
+      ctx.textAlign = "right";
+      ctx.fillText(fmtT(endMarker), ex - 4, y1 + 6);
+    }
   }, [
     dorsal, ventral, timestamps, duration, hookSeconds, weakSpots, brandMentions,
-    progress, playhead, height, showVentral, showHook,
+    progress, playhead, height, showVentral, showHook, ghost, endMarker,
+    // canvasW is not read in the body — clientWidth is. It is here so a resize re-runs
+    // the draw; removing it silently reintroduces the stale-width bug.
+    canvasW,
   ]);
 
   return (
@@ -246,7 +345,7 @@ export default function ArcPlot({
         style={{ height }}
       />
       {(showVentral || showHook) && (
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] uppercase tracking-[0.1em] text-ink-3">
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] uppercase tracking-[0.06em] text-ink-3">
           <span className="inline-flex items-center gap-1.5">
             <span className="inline-block h-[2px] w-4 bg-ink" /> {labelDorsal} · dorsal
           </span>

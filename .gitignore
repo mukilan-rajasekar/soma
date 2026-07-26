@@ -53,3 +53,8 @@ venv/
 # The Schaefer .annot downloads and the padded stimuli live here too.
 demo/.cache/
 demo/out/
+
+# Colab notebooks carry inline tokens — never commit
+colab_extract.ipynb
+colab_overnight.ipynb
+colab_overnight_full.ipynb

@@ -137,6 +137,37 @@ body {
   }
 }
 
+/* /demo social-proof marquee. An infinite, seamless sideways scroll of the beta
+   cohort's brand marks. The track holds TWO identical copies of the row; the
+   animation translates it exactly one copy width (-50%), so the second copy sits
+   flush where the first began and the loop has no seam. Pauses on hover; for
+   reduced-motion the animation stops and the row becomes a manual scroller so
+   every logo stays reachable. --marquee-gap / --marquee-duration are set
+   per-instance on the .marquee container and cascade to the track + chips. */
+@keyframes somaMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  animation: somaMarquee var(--marquee-duration, 36s) linear infinite;
+  will-change: transform;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    overflow-x: auto;
+  }
+  .marquee-track {
+    animation: none;
+  }
+}
+
 /* /demo transport scrubber. Range-input pseudo-elements (track/thumb/progress)
    can't be targeted by inline Tailwind utilities, so the demo console's scrubber
    is styled here. LIGHT surface theme (the /demo is white): a light hairline
@@ -174,4 +205,24 @@ body {
 .demo-scrub:focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 4px;
+}
+
+/* The scrubber above was the only control on the site with a designed focus ring —
+   everything else fell back to the browser's default blue, which is both off-palette and,
+   on the ink-coloured buttons, nearly invisible. One ink ring, matching the scrubber, for
+   every interactive element. `:focus-visible` (not `:focus`) so a mouse click never paints
+   a ring; keyboard and programmatic focus still do.
+
+   The /demo scroll container carries `outline-none` deliberately: it takes focus on mount
+   so PageDown works without a click, and a full-viewport ring on load would be noise. */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:not([tabindex="-1"]):not(.outline-none):focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+  border-radius: 4px;
 }

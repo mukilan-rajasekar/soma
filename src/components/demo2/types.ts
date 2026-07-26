@@ -37,6 +37,25 @@ export type Ad = {
   brandMentions: BrandMention[];
   reads: Reads;
   transcript: Speech[];
+  // Fraction of the clip's seconds carrying any on-screen type, from the OCR pass.
+  // Coverage rather than the strings themselves: macOS Vision mangles small, stylised
+  // social-video type often enough that the text is not publishable, while presence
+  // survives the mangling. null means no OCR pass exists for this clip — which is not
+  // the same as a measured zero.
+  screenCoverage: number | null;
+  // Per-network magnitude and its lift over the whole-cortex mean. Present only on the
+  // campaign variants: those have raw preds_*.npy on disk, so every mask can be applied.
+  // The TikTok batch ships as arcs whose roi_profile was frozen with three networks at
+  // export time, so batch ads carry no table until the GPU extraction is re-run.
+  regions?: Region[];
+};
+
+export type Region = {
+  net: string;
+  label: string;
+  value: number;
+  lift: number | null;
+  vertices: number;
 };
 
 export type Shot = { start: number; end: number; without: number; delta: number };
@@ -45,6 +64,10 @@ export type ShotDiagnosis = {
   adId: string;
   title: string;
   shots: Shot[];
+  // One frame per shot, written by build_report.py alongside the deltas. Optional because
+  // a report built before the thumbnails existed is still valid — consumers fall back to
+  // an empty tile.
+  thumbs?: (string | null)[];
 };
 
 export type Report = {

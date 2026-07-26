@@ -423,12 +423,6 @@ export default function SciencePage() {
           >
             How Soma compares
           </Link>
-          <Link
-            href="/faq"
-            className="inline-flex items-center gap-2 rounded-xl border border-line-2 px-5 py-[13px] text-ui font-medium text-ink transition-colors hover:border-ink"
-          >
-            Read the FAQ
-          </Link>
         </div>
       </section>
     </article>

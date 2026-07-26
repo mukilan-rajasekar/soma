@@ -20,14 +20,38 @@ function sampleAt(series: number[], t: number, dur: number): number {
   return series[a] + (series[b] - series[a]) * (i - a);
 }
 
-export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: number }) {
+export default function LivePlayer({
+  ad,
+  hookSeconds,
+  active = false,
+}: {
+  ad: Ad;
+  hookSeconds: number;
+  active?: boolean;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const rafRef = useRef(0);
 
+  // Start the clip when the section reveals. This section is the only frames of real ad
+  // footage in the 60-second take, and it used to require a human click: a scroll-recorded
+  // pass captured a frozen first frame under the caption "reading the hook…", i.e. the one
+  // beat that proves the measurement runs against video showed no video. The element is
+  // muted + playsInline, which is exactly the condition browsers allow autoplay under, and
+  // the play button below stays as the fallback for the case where a policy still blocks it.
   useEffect(() => {
+    if (!active) return;
+    const v = videoRef.current;
+    if (!v || !v.paused) return;
+    v.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+  }, [active]);
+
+  // The read-out only has to track while frames are actually advancing. Previously this ran
+  // a setState every frame for the life of the page, paused or not.
+  useEffect(() => {
+    if (!playing) return;
     const loop = () => {
       const v = videoRef.current;
       if (v) setT(v.currentTime);
@@ -35,7 +59,7 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, []);
+  }, [playing]);
 
   const toggle = () => {
     const v = videoRef.current;
@@ -66,6 +90,11 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
             preload="metadata"
             onClick={toggle}
             onEnded={() => setPlaying(false)}
+            onPause={() => setPlaying(false)}
+            onPlay={() => setPlaying(true)}
+            // Safety net: the rAF loop only runs while `playing`, so without this the
+            // read-out would hold a stale time after a pause or a seek.
+            onTimeUpdate={(e) => setT(e.currentTarget.currentTime)}
             aria-label={`${ad.title} — ad footage`}
             className="block h-[340px] w-full cursor-pointer object-contain"
           />
@@ -81,11 +110,11 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
             </button>
           )}
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-ink-3">
-          <button onClick={toggle} className="rounded-lg border border-line-2 px-2.5 py-1 text-ink-2 transition-colors hover:border-ink hover:text-ink">
+        <div className="flex items-center gap-3 text-[12.5px] text-ink-3">
+          <button onClick={toggle} className="rounded-lg border border-line-2 px-3 py-1.5 text-ink-2 transition-colors hover:border-ink hover:text-ink">
             {playing ? "Pause" : "Play"}
           </button>
-          <button onClick={() => { setMuted((m) => { const n = !m; if (videoRef.current) videoRef.current.muted = n; return n; }); }} className="rounded-lg border border-line-2 px-2.5 py-1 text-ink-2 transition-colors hover:border-ink hover:text-ink">
+          <button onClick={() => { setMuted((m) => { const n = !m; if (videoRef.current) videoRef.current.muted = n; return n; }); }} className="rounded-lg border border-line-2 px-3 py-1.5 text-ink-2 transition-colors hover:border-ink hover:text-ink">
             {muted ? "Unmute" : "Mute"}
           </button>
           <span className="ml-auto tabular-nums">{fmtT(t)} / {fmtT(dur)}</span>
@@ -98,12 +127,12 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
           <LiveStat label="Attention" sub="dorsal" value={att} tone="ink" flash={false} />
           <LiveStat label="Surprise" sub="ventral" value={sur} tone="accent" flash={inHook} />
           <div className="rounded-2xl border border-line bg-fill p-3">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-ink-3">Soma score</div>
+            <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">Soma score</div>
             <div className="mt-1.5 flex items-baseline gap-1">
               <span className="text-[28px] font-medium tabular-nums leading-none text-ink">{ad.scores.soma}</span>
               <span className="text-[12px] text-ink-3">/100</span>
             </div>
-            <div className="mt-2 text-[10px] leading-[1.4] text-ink-3">
+            <div className="mt-2 text-[12px] leading-[1.4] text-ink-3">
               {inHook ? "reading the hook…" : "full-ad composite"}
             </div>
           </div>
@@ -124,7 +153,7 @@ export default function LivePlayer({ ad, hookSeconds }: { ad: Ad; hookSeconds: n
           labelVentral="Surprise"
         />
 
-        <p className="text-[12.5px] leading-[1.55] text-ink-2">{ad.reads.soma} {ad.reads.hook}</p>
+        <p className="text-[13.5px] leading-[1.55] text-ink-2">{ad.reads.soma} {ad.reads.hook}</p>
       </div>
     </div>
   );
@@ -135,12 +164,12 @@ function LiveStat({ label, sub, value, tone, flash }: { label: string; sub: stri
   return (
     <div className={`rounded-2xl border bg-fill p-3 transition-colors ${flash ? "border-accent-2/60" : "border-line"}`}>
       <div className="flex items-baseline justify-between">
-        <div className="text-[10px] uppercase tracking-[0.12em] text-ink-3">{label}</div>
-        <div className="text-[9px] uppercase tracking-[0.08em] text-ink-3">{sub}</div>
+        <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
+        <div className="text-[11px] uppercase tracking-[0.06em] text-ink-3">{sub}</div>
       </div>
       <div className="mt-1.5 text-[22px] font-medium tabular-nums leading-none text-ink">{pct}</div>
-      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-line">
-        <div className={tone === "accent" ? "h-full rounded-full bg-accent-2" : "h-full rounded-full bg-ink"} style={{ width: `${pct}%` }} />
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
+        <div className={tone === "accent" ? "h-full w-full rounded-full bg-accent-2" : "h-full w-full rounded-full bg-ink"} style={{ transform: `scaleX(${pct / 100})`, transformOrigin: "left" }} />
       </div>
     </div>
   );

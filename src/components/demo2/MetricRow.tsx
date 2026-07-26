@@ -22,10 +22,10 @@ function CountUp({ value, active, big }: { value: number; active: boolean; big?:
 function Bar({ value, active, tone = "ink" }: { value: number; active: boolean; tone?: "ink" | "accent" }) {
   const p = useAnimeClock(active, 900);
   return (
-    <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-line">
+    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">
       <div
-        className={`h-full rounded-full ${tone === "accent" ? "bg-accent-2" : "bg-ink"}`}
-        style={{ width: `${value * p}%`, transition: "none" }}
+        className={`h-full w-full rounded-full ${tone === "accent" ? "bg-accent-2" : "bg-ink"}`}
+        style={{ transform: `scaleX(${(value * p) / 100})`, transformOrigin: "left" }}
       />
     </div>
   );
@@ -43,40 +43,42 @@ export default function MetricRow({ scores, reads, active, hookTone }: Props) {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {/* Soma score — the composite, larger */}
       <div className="rounded-2xl border border-line bg-fill p-4">
-        <div className="text-[10px] uppercase tracking-[0.13em] text-ink-3">Soma score</div>
+        <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">Soma score</div>
         <div className="mt-2 flex items-baseline gap-1">
           <CountUp value={scores.soma} active={active} big />
           <span className="text-[15px] text-ink-3">/100</span>
         </div>
         <Bar value={scores.soma} active={active} />
-        <p className="mt-3 text-[12.5px] leading-[1.5] text-ink-2">{reads.soma}</p>
+        <p className="mt-3 text-[13.5px] leading-[1.5] text-ink-2">{reads.soma}</p>
       </div>
 
-      <Metric label="Hook" suffix="/100" value={scores.hook} read={reads.hook} active={active} tone={hookTone ? "accent" : "ink"} sub="first 3s · ~45% of score" />
-      <Metric label="Hold" suffix="% of ad" value={scores.hold} read={reads.hold} active={active} altValue={scores.holdPct} sub="attention above median" />
-      <Metric label="Comprehension" suffix="/100" value={scores.comprehension} read={reads.comprehension} active={active} tone="accent" sub="message + brand named" />
+      <Metric label="Hook" suffix="/100" value={scores.hook} read={reads.hook} active={active} tone={hookTone ? "accent" : "ink"} />
+      <Metric label="Hold" suffix="% of ad" value={scores.hold} read={reads.hold} active={active} altValue={scores.holdPct} />
+      <Metric label="Comprehension" suffix="/100" value={scores.comprehension} read={reads.comprehension} active={active} tone="accent" />
     </div>
   );
 }
 
 function Metric({
-  label, suffix, value, read, active, tone = "ink", sub, altValue,
+  label, suffix, value, read, active, tone = "ink", altValue,
 }: {
   label: string; suffix: string; value: number; read: string; active: boolean;
-  tone?: "ink" | "accent"; sub: string; altValue?: number;
+  tone?: "ink" | "accent"; altValue?: number;
 }) {
+  const shown = altValue ?? value;
   return (
     <div className="rounded-2xl border border-line bg-fill p-4">
-      <div className="flex items-baseline justify-between">
-        <div className="text-[10px] uppercase tracking-[0.13em] text-ink-3">{label}</div>
-      </div>
+      <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
       <div className="mt-2 flex items-baseline gap-1">
-        <CountUp value={altValue ?? value} active={active} />
+        <CountUp value={shown} active={active} />
         <span className="text-[13px] text-ink-3">{suffix}</span>
       </div>
-      <Bar value={value} active={active} tone={tone} />
-      <div className="mt-1.5 text-[9.5px] uppercase tracking-[0.08em] text-ink-3">{sub}</div>
-      <p className="mt-2 text-[12.5px] leading-[1.5] text-ink-2">{read}</p>
+      {/* The bar has to plot the number printed above it. It used to plot `value` while the
+          CountUp printed `altValue ?? value`, and those are different quantities: the Hold
+          card passes value={scores.hold} (82) with altValue={scores.holdPct} (59), so the
+          card read "59% of ad" over a bar filled to 82%. Geometry and number now agree. */}
+      <Bar value={shown} active={active} tone={tone} />
+      <p className="mt-3 text-[13.5px] leading-[1.5] text-ink-2">{read}</p>
     </div>
   );
 }

@@ -227,7 +227,49 @@ def lanes_from_preds(preds_path, masks):
         "language": round(float(p[:, masks["language"]].mean()), 4),
         "ventral": round(float(p[:, masks["arousal"]].mean()), 4),
     }
-    return out, levels, p.shape[0]
+    return out, levels, p.shape[0], region_levels(p, masks, whole)
+
+
+# Human labels for the a-priori anatomical masks build_roi_mask.py writes. These are
+# hand-picked Destrieux label sets, not validated functional localisers — "Value (vmPFC)"
+# in particular is a CORTICAL proxy: the canonical buy-signal (nucleus accumbens) is
+# subcortical and not on the fsaverage5 surface at all, which is the whole reason the
+# translation layer exists. Label accordingly and never call it a buy signal.
+REGION_LABELS = {
+    "dan": "Dorsal attention",
+    "arousal": "Salience",
+    "language": "Language",
+    "dmn": "Default mode",
+    "memory": "Memory encoding",
+    "value": "Value (vmPFC)",
+}
+
+
+def region_levels(p, masks, baseline):
+    """Per-network absolute magnitude and its lift over the whole-cortex mean.
+
+    Only the campaign path can produce this. The TikTok batch ships as arcs with no
+    preds_*.npy on disk, and their roi_profile was frozen at export time with three
+    networks in it — so batch ads stay at three until the GPU extraction is re-run.
+
+    valence is deliberately excluded. PRODUCT.md holds the emotion lanes off public
+    surfaces until they clear more than n=4, and head_valence.json is n=4.
+    """
+    rows = []
+    for net, label in REGION_LABELS.items():
+        m = masks.get(net)
+        if m is None:
+            continue
+        value = float(p[:, m].mean())
+        rows.append({
+            "net": net,
+            "label": label,
+            "value": round(value, 4),
+            "lift": round(value / baseline, 3) if baseline else None,
+            "vertices": int(m.sum()),
+        })
+    rows.sort(key=lambda r: -(r["lift"] or 0))
+    return rows
 
 
 def lanes_from_arcs(public_arc, full_arc):
@@ -276,6 +318,48 @@ def find_brand(media, terms):
             continue
         merged.append(h)
     return merged
+
+
+def screen_coverage(media, duration):
+    """How much of the clip carries on-screen text, as a fraction of its seconds.
+
+    Deliberately a *coverage* measure and not the text itself. media_text.py runs macOS
+    Vision over social video where the type is small, stylised and often moving, and the
+    strings it returns are frequently mangled ("Mesh 5 Pan81", "weat,her"). Presence is
+    robust to that mangling — a garbled read still means type was on screen — so presence
+    is what we publish. Brand mentions are the one exception, and only because find_brand
+    matches against known terms, which survives the noise.
+
+    Returns None when no OCR pass exists for the clip, so the UI can distinguish
+    "measured zero" from "not measured".
+    """
+    if not media or "screen" not in media or not duration:
+        return None
+    seconds = {int(f["t"]) for f in media["screen"] if f.get("lines")}
+    return round(min(len(seconds) / float(duration), 1.0), 3)
+
+
+def speech_track(media, duration, limit=8):
+    """Spoken lines pinned to clip time, clipped to segments that start inside the clip.
+
+    faster-whisper occasionally runs a final segment past the end of short clips; those
+    would render off the end of the timeline, so they are dropped rather than clamped.
+    """
+    if not media:
+        return []
+    out = []
+    for seg in media.get("speech", []):
+        if duration and seg["t"] >= duration:
+            continue
+        text = " ".join(str(seg.get("text", "")).split())
+        if not text:
+            continue
+        out.append({
+            "t": round(float(seg["t"]), 2),
+            "end": round(min(float(seg["end"]), duration or seg["end"]), 2),
+            "text": text,
+        })
+    return out[:limit]
 
 
 # ======================================================================================
@@ -475,7 +559,8 @@ def build_batch():
             "timestamps": pa["timestamps"], "lanes": lanes, "levels": levels,
             "scores": sc, "weakSpots": weak, "brandMentions": brand,
             "reads": reads(sc, lanes, weak, brand, dur),
-            "transcript": (media or {}).get("speech", [])[:6],
+            "transcript": speech_track(media, dur),
+            "screenCoverage": screen_coverage(media, dur),
         })
     ads.sort(key=lambda a: -a["scores"]["soma"])
     for i, a in enumerate(ads):
@@ -491,7 +576,7 @@ def build_campaign(masks):
         preds = os.path.join(adir, f"preds_{vid}.npy")
         if not os.path.exists(preds):
             continue
-        lanes, levels, n = lanes_from_preds(preds, masks)
+        lanes, levels, n, regions = lanes_from_preds(preds, masks)
         media_p = os.path.join(ROOT, "data/demo/media_variants", f"{vid}.json")
         media = load_json(media_p) if os.path.exists(media_p) else None
         brand = find_brand(media, WELDING_TERMS)
@@ -505,7 +590,9 @@ def build_campaign(masks):
             "lanes": lanes, "levels": levels, "scores": sc,
             "weakSpots": weak, "brandMentions": brand,
             "reads": reads(sc, lanes, weak, brand, dur),
-            "transcript": (media or {}).get("speech", [])[:6],
+            "transcript": speech_track(media, dur),
+            "screenCoverage": screen_coverage(media, dur),
+            "regions": regions,
         })
     out.sort(key=lambda a: -a["scores"]["soma"])
     for i, a in enumerate(out):
@@ -531,7 +618,7 @@ def build_campaign(masks):
 
 def main():
     masks = {n: np.load(os.path.join(ROOT, f"data/roi_mask_{n}.npy")).astype(bool)
-             for n in ("dan", "arousal", "language")}
+             for n in REGION_LABELS}
     print("building batch…")
     batch = build_batch()
     print(f"  {len(batch)} ads scored")

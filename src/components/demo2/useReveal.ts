@@ -24,8 +24,10 @@ export function useReveal<T extends HTMLElement = HTMLDivElement>(
     const el = ref.current;
     if (!el || revealed) return;
     if (!("IntersectionObserver" in window)) {
-      setRevealed(true);
-      return;
+      // Deferred a frame rather than set synchronously in the effect body, which cascades
+      // an extra render pass. Same end state, no react-hooks/set-state-in-effect error.
+      const id = requestAnimationFrame(() => setRevealed(true));
+      return () => cancelAnimationFrame(id);
     }
     const io = new IntersectionObserver(
       (entries) => {
@@ -51,16 +53,21 @@ export function useAnimeClock(active: boolean, ms: number): number {
   useEffect(() => {
     if (!active) return;
     if (prefersReducedMotion()) {
-      setP(1);
-      return;
+      const id = requestAnimationFrame(() => setP(1));
+      return () => cancelAnimationFrame(id);
     }
+    // The clock is anchored to performance.now() at effect time, NOT to the first rAF
+    // timestamp. The old version did `if (!start) start = ts`, which meant frame one always
+    // computed u = 0 and rendered the initial state — every count-up needed two frames just
+    // to leave zero. On a throttled or contended frame budget (which is exactly what a
+    // screen recorder plus a 30-bar chart produces) that first frame can be the only one
+    // that lands before the recorder scrolls past, and the section is captured reading 0.
+    // Anchoring to effect time means frame one already carries ~16ms of elapsed progress.
+    const start = performance.now();
     let raf = 0;
-    let start = 0;
     const step = (ts: number) => {
-      if (!start) start = ts;
       const u = Math.min(1, (ts - start) / ms);
-      const eased = 1 - Math.pow(1 - u, 3);
-      setP(eased);
+      setP(1 - Math.pow(1 - u, 3));
       if (u < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
