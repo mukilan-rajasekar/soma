@@ -173,8 +173,12 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
       // 2) PUT the bytes straight to Storage (bypasses Vercel's 4.5 MB body cap)
       await putWithProgress(signedUrl, file, setProgress);
 
-      // 3) record the intake row
-      await fetch("/api/uploads/complete", {
+      // 3) record the intake row. The response MUST be checked: fetch only rejects on
+      // network errors, never on a 500, so an unchecked call here falls straight through
+      // to "success" while the bytes sit in Storage with no uploads row — invisible to
+      // the pipeline and only recoverable by scanning the bucket by hand. Retrying is
+      // safe: buildStoragePath is unique per attempt, so a fresh PUT can't collide.
+      const completeRes = await fetch("/api/uploads/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -186,6 +190,10 @@ export default function UploadDialog({ open, onClose, initialEmail }: Props) {
           note: note.trim() || null,
         }),
       });
+      if (!completeRes.ok) {
+        const b = await completeRes.json().catch(() => null);
+        throw new Error(b?.error ?? "Uploaded, but could not be queued. Please try again.");
+      }
 
       setPhase("success");
     } catch (err) {
