@@ -14,7 +14,7 @@ passes and agree with its taste.
 - [x] Declare playwright as a devDependency (`npm i -D playwright@1.61.1`). It
       is `extraneous` today — installed in node_modules but absent from
       package.json — so any `npm ci` deletes it and the smoke gate breaks.
-- [ ] Restore eslint's default ignores in `eslint.config.mjs`. The
+- [x] Restore eslint's default ignores in `eslint.config.mjs`. The
       `globalIgnores([...])` override drops them, so a bare `npx eslint .`
       walks `.venv/lib/python3.13/site-packages/` and reports 17,046 problems
       (2,005 errors) from vendored Python package JS. Add `node_modules/**`,

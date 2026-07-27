@@ -1,1 +1,1 @@
-Declare playwright as a devDependency so npm ci keeps the smoke gate working
+Restore eslint's default ignores in eslint.config.mjs

@@ -370,6 +370,14 @@ export default function DemoScrollPage({
       // Bars are gone from this beat entirely. Two of these three numbers have no 0-100 scale
       // for a bar to be a fraction OF, so it was never measuring anything here. §02's hook
       // tiles keep theirs, where 0-100 is real and the green/red pair IS the argument.
+      // A KNOWN TRADE, recorded so the next person does not re-litigate it. This is the last
+      // stop before the closing CTA, and that CTA is a full viewport with its content centred,
+      // which is what makes the final frame of the take clean. The cost is ~290px of blank
+      // paper at the CTA's top edge, and this frame is what sees it. Padding this section does
+      // not help: it lengthens the page without moving anything into shot, which was measured
+      // and reverted. Fixing it properly means either shortening the close (which trades the
+      // most-remembered frame for a mid-take one) or giving this beat a second element it does
+      // not need. The close wins.
       body: (revealed) => (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Stat big lg value={1500} suffix="+" label="Ads in the database" sub="the biggest in the category" active={revealed} />
