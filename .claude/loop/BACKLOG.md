@@ -31,10 +31,18 @@ passes and agree with its taste.
       This is the highest-leverage item in the file: the pytest step in
       `scripts/verify.sh` is dormant until a `test_*.py` exists, so this is
       what arms the gate for every future iteration on the science code.
-- [ ] Decide what to do with the root scratch scripts `_shoot.mjs` and
+- [x] Decide what to do with the root scratch scripts `_shoot.mjs` and
       `_verify.mjs` — either move them to `scripts/` as named, documented
       tools, or add them to `.gitignore`. They are untracked clutter at the
       repo root today.
+      Resolved as gitignore. By the time this ran the family was
+      `_brain/_shoot2/_sq/_text2/_verify2.mjs`, and loop.sh's `git add -A` had
+      already committed all five — so .gitignore alone was a no-op and they
+      needed `git rm --cached` first. Each is pinned to the :3055 dev server and
+      to a `/tmp` scratchpad that no longer exists, and each carries one-session
+      baselines ("was 6220", "was 53395ms") in its output strings; none is
+      promotable without a rewrite. The keeper of that family already exists:
+      `tools/demo/shoot.mjs`, which takes out-dir and URL as argv.
 
 ## Done
 

@@ -114,3 +114,25 @@ and kept the raw-text token assertion as the real check. (3) No pytest config ex
 anywhere (no pytest.ini/pyproject/setup.cfg/conftest.py), so collection relies
 entirely on defaults — .venv/ and .next/ are skipped only because norecursedirs' `.*`
 pattern catches them.
+
+## 2026-07-27 — Decide what to do with the root scratch scripts
+changed: .gitignore (+/_*.mjs), git rm --cached of _brain/_shoot2/_sq/_text2/_verify2.mjs
+why: the item offered "promote to scripts/ or gitignore" and the files answer it
+themselves — every one hardcodes the :3055 dev server and an absolute
+/private/tmp/claude-501/.../scratchpad/rev2 path that no longer exists, and prints
+one-session baselines ("was 6220", "was 53395ms / 9 stops") as its only output
+contract. They are assertions about a specific afternoon, not tools. The durable
+member of that family already exists and is what promotion would produce:
+tools/demo/shoot.mjs, argv-parameterised on out-dir and URL. So: untrack, ignore,
+leave the working copies on disk. Anchored the pattern as /_*.mjs so it cannot
+catch anything under src/ or tools/. Fast gate green (build, eslint src, 8 pytest).
+surprised: two things. (1) The item's premise had expired. It says "untracked
+clutter", and they were untracked when it was written — but loop.sh's `git add -A`
+has since committed all five across three iterations, so the item's own gitignore
+suggestion had become a no-op that needed `git rm --cached` to actually do
+anything. Also the two files it names by hand (_shoot.mjs, _verify.mjs) do not
+exist; the tree had five differently-named ones. Backlog items that describe
+untracked state go stale fast under this loop. (2) The fix is one-directional: it
+stops NEW scratch files from being swept in, but only because they all happen to
+start with an underscore. The next agent that drops check_thing.mjs at the root
+gets it committed just the same.

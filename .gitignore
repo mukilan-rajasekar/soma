@@ -61,3 +61,10 @@ colab_overnight_full.ipynb
 
 # colab upload bundles (soma_ads_7.zip alone is 58 MB) — never commit
 colab_upload/
+
+# One-shot playwright scratch scripts. These get written mid-session to check a
+# single change (hardcoded to the :3055 dev server and to a /tmp scratchpad that
+# is gone by the next session), so they are dead on arrival in a fresh checkout.
+# Anchored to the root: scripts/loop.sh runs `git add -A`, which would otherwise
+# commit every one of them. The keepers live in tools/ and take argv instead.
+/_*.mjs
