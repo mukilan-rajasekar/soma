@@ -11,7 +11,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Canonical production origin is `https://www.usesoma.work` — with the `www`.
 - Bare `pytest` also collects `*_test.py`: `head_null_test.py` must stay importable.
 - `scripts/loop.sh` runs `git add -A`: any untracked file lands in the iteration commit.
-- Uncommitted `.git/info/exclude` hides `tests/`, `data/`, `cloud/`; fresh clones lack them.
+- `tests/`, `data/`, `cloud/` are gitignored local-only; sources sit on `muki/oldlandingpage`.
 - Untracked `.impeccable/hook.cache.json` names old components; repo-wide greps hit it.
 - Identical `./tokens` import lines in demo2/ and preflight/ resolve to different modules.
 - `smoke.mjs` misses 404 media: a 404 is not a Playwright `requestfailed`.

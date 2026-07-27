@@ -1,1 +1,1 @@
-Give the repo a discoverable dev loop: add "typecheck" and "test" npm scripts so the two commands scripts/verify.sh already runs are reachable by name
+Record that tests/ is local-only, and stop leaning on an uncommitted .git/info/exclude to hide it — move the durable patterns into .gitignore

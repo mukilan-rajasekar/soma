@@ -106,7 +106,7 @@ passes and agree with its taste.
       discoverable command that always fails. This is the exact command verify.sh
       runs. `typecheck` exits 2 on a real type error, so it is a usable pre-build
       check and not a decoration.
-- [ ] Record that `tests/` is local-only, and stop leaning on an uncommitted file
+- [x] Record that `tests/` is local-only, and stop leaning on an uncommitted file
       to hide it. `.git/info/exclude` lives inside `.git`, so it exists on this
       machine and nowhere else; it hides `/tests/`, `/data/`, `/cloud/`, `/demo/`,
       `/__pycache__/` and the colab notebooks. `tests/` alone is 26 MB of
@@ -117,6 +117,18 @@ passes and agree with its taste.
       fails everywhere else; and on any other checkout that hiding is absent, so
       `scripts/loop.sh`'s `git add -A` would sweep those dirs into a commit. Move
       the durable patterns into `.gitignore`.
+      Moved `/data/`, `/tests/`, `/cloud/` and `.gstack/` into `.gitignore`, each with
+      the reason written above it; `git check-ignore -v` now names `.gitignore` rather
+      than `.git/info/exclude` for all four. Two corrections to the item. (1) `/demo/`
+      must NOT move: demo/ holds three tracked files (README.md, process_batch.py,
+      manifest.example.json), so a committed blanket ignore would silently swallow the
+      next real file added there. It stays in the local exclude, where all it hides is
+      demo/vendor/ and demo/.gstack/. (2) The eleven test modules are not gone —
+      tests/*.py is tracked on branch `muki/oldlandingpage` (12 files, including
+      make_synthetic_data.py, which regenerates tests/synth/). Only tests/synth/ itself
+      has never been in git on any branch. Trimming the now-shadowed lines out of
+      `.git/info/exclude` was refused by the sensitive-file guard; harmless, since that
+      file is per-machine and `.gitignore` already takes precedence over it.
 
 ## Done
 

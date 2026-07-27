@@ -305,3 +305,38 @@ noting for the next iteration that typecheck adds no gate coverage - next build 
 TypeScript ("Finished TypeScript in 2.0s" in the build log), so a type error was always
 caught. The value here is latency and discoverability, not new enforcement; do not write this
 up later as having closed a hole in the gate.
+
+## 2026-07-27 — Record that tests/ is local-only; move the durable patterns into .gitignore
+changed: .gitignore (+/data/, /tests/, /cloud/, .gstack/ with comments), AGENTS.md (one
+Learned line rewritten, not added)
+why: the only thing keeping 11 GB of `data/` and 26 MB of `tests/` out of a commit was
+`.git/info/exclude` — a file that lives inside `.git` and therefore exists on exactly one
+machine. Combined with the already-recorded fact that scripts/loop.sh runs `git add -A`,
+that is a loaded gun on any other checkout: clone, run the loop, commit 11 GB. Moved the
+four durable patterns into `.gitignore` and wrote the reason above them, including the
+constraint that matters most to this loop — a fresh clone has no `tests/`, so a `test_*.py`
+that reads `tests/synth/` is green here and red everywhere else, which is why
+test_head_io.py builds its own fixtures. Verified by precedence rather than by eyeballing:
+`.gitignore` outranks `.git/info/exclude` in git's ignore chain, so `git check-ignore -v`
+naming `.gitignore:86` for `data/foo.mp4` is proof the committed file is now the one doing
+the work. `git status --porcelain -uall` still lists exactly 2 entries, both mine, so
+nothing new became visible. Fast gate green.
+surprised: three things. (1) The item told me to move `/demo/` and that would have been a
+bug. `demo/` has three TRACKED files — README.md, process_batch.py, manifest.example.json
+— so a blanket `/demo/` in a committed .gitignore silently swallows the next real file
+anyone adds there, and `git add demo/x.py` would need `-f`. It is fine in a per-machine
+exclude precisely because it is per-machine. Left it there; what it actually hides locally
+is demo/vendor/ (empty) and demo/.gstack/. Three of the item's other patterns
+(`/__pycache__/`, both colab notebooks) were already in .gitignore, so only four needed
+moving. (2) The eleven orphan `__pycache__` entries are not orphans. `tests/*.py` is
+tracked on branch `muki/oldlandingpage` — 12 files, including `make_synthetic_data.py`,
+which regenerates `tests/synth/`. So the "stale .pyc for modules whose .py files are gone"
+reading is wrong: the modules are parked on another branch and the fixtures are
+reproducible. `tests/synth/` itself has never been tracked on any branch. Rewrote the
+AGENTS.md Learned line to say where the sources are, since the old line named the exclude
+as the mechanism and my change makes that false — one line replaced, not one added.
+(3) I could not finish the tidy half. Trimming the four now-shadowed lines out of
+`.git/info/exclude` was refused by the sensitive-file guard (anything under `.git/`, same
+as `.claude/`), so that file still lists patterns that `.gitignore` now overrides. That is
+cosmetic — it is per-machine, invisible to the commit, and loses every precedence contest
+with `.gitignore` — but a future iteration reading it will see duplication that is real.
