@@ -10,8 +10,9 @@
 //
 //   /demo        variant="full"   12 beats + the read-out. The page a cold YC reader or a
 //                                 buyer in diligence lands on with no video to guide them.
-//   /demo-short  variant="short"   6 beats. Built to be screen-recorded top to bottom in
-//                                 60 seconds, which is the only reason anything is missing.
+//   /demo-short  variant="short"   7 beats. The recording surface: scrolled by hand and
+//                                 narrated live at about three minutes, so what is missing
+//                                 from it is missing for being repetitive, not for time.
 //
 // Sections live in one ordered array (`defs`) and the short route is that array with the
 // `fullOnly` entries filtered out. Section numbers, background tint alternation and the
@@ -30,12 +31,18 @@
 // The standalone versions were redundant because they showed the same artifacts a section
 // or two early with no result attached, so neither route restores them.
 //
-// Short-only omissions: comprehension, the silent-ad message track, the read-out recap,
-// "watch it live", the service ladder and the buyer's checklist. Two pieces of chrome go the
-// other way and appear only on the SHORT route: the beta marquee (asked for there, and the
-// long page has diligence material instead of social proof) and, inversely, the act strip,
-// which the short route drops because its numbering reads 01 · 04 · 05 there. Both are
-// flagged where they are rendered.
+// Short-only omissions, now that time is not the constraint. Each one is dropped because
+// putting it in the walkthrough would say something the walkthrough already said:
+//   novoice     its figure is the one comprehension just used, back to back
+//   readout     three metrics the page has already shown being measured and then used
+//   tiers       how to buy, which is the founder's line to deliver, not a slide to read out
+//   checklist   the best diligence asset on the site and the worst thing to read aloud
+// The last three are for the reader who clicks the link, and /demo is where they live.
+//
+// Two pieces of chrome go the other way and appear only on the SHORT route: the beta marquee
+// (asked for there, and the long page has diligence material instead of social proof) and,
+// inversely, the act strip, which the short route drops because its numbering has holes in
+// it there. Both are flagged where they are rendered.
 //
 // Every number comes from public/demo/report.json, which tools/demo/build_report.py computes
 // from real frozen-TRIBE output, except the three founder-attested stats in the database
@@ -49,7 +56,7 @@ import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
-import AutoScroll from "./AutoScroll";
+import IntroCue from "./IntroCue";
 import Section from "./Section";
 import TwoRegionBrain3D from "./TwoRegionBrain3D";
 import ArcPlot from "./ArcPlot";
@@ -62,12 +69,13 @@ import MetricRow from "./MetricRow";
 import ServiceTiers from "./ServiceTiers";
 import VendorChecklist from "./VendorChecklist";
 import GenerateStudio from "./GenerateStudio";
+import CorpusWall from "./CorpusWall";
 import EditStudio from "./EditStudio";
 import { BRAND } from "./studio";
 import { fmtT, type Ad, type Report } from "./types";
 
 // "full" is /demo — the long-form page a cold reader lands on. "short" is /demo-short, the
-// six-beat cut built to be screen-recorded in 60 seconds.
+// recording surface: seven beats, scrolled by hand and narrated.
 export type DemoVariant = "short" | "full";
 
 type SectionDef = {
@@ -121,12 +129,25 @@ export default function DemoScrollPage({
   // correct for a reader, wrong for a take, because the hero fires at hydration and a click a
   // minute later would open the recording on an already-finished page. Rather than make the
   // latch resettable (it is depended on by every other consumer), the hero gates on the latch
-  // AND a local arm flag that AutoScroll drops and raises around its lead-in: blank while the
+  // AND a local arm flag that IntroCue drops and raises around its pause: blank while the
   // recorder is being started, then built on cue, so the take opens on the headline arriving.
-  const [heroArmed, setHeroArmed] = useState(true);
+  // /demo builds its hero on arrival like any other page. /demo-short starts BLANK and waits
+  // for the intro control, because "the first animation happens when I want it to, not when I
+  // open the page" is the whole reason that control exists: a hero that builds during
+  // hydration has always already finished by the time a screen recorder is running.
+  const [heroArmed, setHeroArmed] = useState(variant === "full");
   const heroOn = heroIn && heroArmed;
-  const heroCue = useCallback((cue: "blank" | "build") => {
-    setHeroArmed(cue === "build");
+  // Everything below the header is keyed on this, so a click on the intro control remounts the
+  // whole narrative and every reveal latch inside it goes back to false. That is the only way
+  // to get a genuinely COLD page for a retake: the latches are permanent by design (a figure
+  // must not re-animate when you scroll back past it mid-take), so the second take would
+  // otherwise open on a page that had already spent half its animations. A remount is cheap
+  // here — the page is a static document, and the scroll is pinned to the top when it happens.
+  const [takeId, setTakeId] = useState(0);
+  const introCue = useCallback((cue: "reset" | "build") => {
+    if (cue === "build") { setHeroArmed(true); return; }
+    setHeroArmed(false);
+    setTakeId((n) => n + 1);
   }, []);
   // Transitions run in BOTH directions, so sharing one would fade the hero out over a second
   // before rebuilding it — the recording would open on the page dissolving. Suppressed while
@@ -254,7 +275,11 @@ export default function DemoScrollPage({
     },
     {
       key: "comprehension",
-      fullOnly: true,
+      // Back on the recording route. It was cut when the take was a fixed 55 seconds and the
+      // three acts needed every one of them; the walkthrough is now narrated at three minutes,
+      // and this is the third leg of the measurement claim rather than a nice-to-have. Without
+      // it the page argues that attention is two networks and then shows a third lane
+      // (language) on §02's arc with nothing that ever explains what it is.
       eyebrow: "Comprehension",
       heading: <>Did the brand actually <span className="font-serif font-normal italic">land</span>?</>,
       lede: "A held gaze is worthless if the product never registers. Soma reads the ad's own words: on screen via text recognition, out loud via speech recognition. When the campaign is named and the language cortex confirms it registers, the score rises.",
@@ -269,6 +294,11 @@ export default function DemoScrollPage({
     },
     {
       key: "novoice",
+      // Kept OFF the recording route on purpose, even with the time to spare. Its figure is
+      // MessageTrack, which is the same component the section immediately above it already
+      // renders, so back to back the two beats read as one point made twice — and the
+      // instruction for this cut was explicitly not to repeat. The claim itself is worth
+      // having, which is why it stays on /demo where a reader arrives at it cold.
       fullOnly: true,
       eyebrow: "No voiceover",
       heading: <>An ad that says nothing <span className="font-serif font-normal italic">out loud</span>.</>,
@@ -337,7 +367,11 @@ export default function DemoScrollPage({
     },
     {
       key: "live",
-      fullOnly: true,
+      // Back on the recording route, and the single strongest addition the extra time buys.
+      // It is the only real footage on the page: everything before it is charts ABOUT an ad,
+      // and this is the ad, playing, with the score moving against the frames on screen. It
+      // was cut at 55 seconds for costing ~4s to re-prove the measurement; narrated, it is
+      // the shot where a viewer stops reading the page and believes it.
       eyebrow: "Watch it live",
       heading: <>The ad and its score, <span className="font-serif font-normal italic">side by side</span>.</>,
       lede: "The clip is the clock. Attention, surprise and the score track the frames on screen.",
@@ -345,6 +379,11 @@ export default function DemoScrollPage({
     },
     {
       key: "readout",
+      // Still off the recording route. It is a recap: by the time a viewer reaches it they
+      // have watched the composite be measured in §02, used to rank a batch in §05 and moved
+      // by an edit in §06. Restating the same three numbers with a paragraph under each is
+      // the one thing a narrated walkthrough cannot afford, because the founder is already
+      // saying it out loud.
       fullOnly: true,
       unnumbered: true,
       eyebrow: "The read-out",
@@ -376,19 +415,20 @@ export default function DemoScrollPage({
       // Bars are gone from this beat entirely. Two of these three numbers have no 0-100 scale
       // for a bar to be a fraction OF, so it was never measuring anything here. §02's hook
       // tiles keep theirs, where 0-100 is real and the green/red pair IS the argument.
-      // A KNOWN TRADE, recorded so the next person does not re-litigate it. This is the last
-      // stop before the closing CTA, and that CTA is a full viewport with its content centred,
-      // which is what makes the final frame of the take clean. The cost is ~290px of blank
-      // paper at the CTA's top edge, and this frame is what sees it. Padding this section does
-      // not help: it lengthens the page without moving anything into shot, which was measured
-      // and reverted. Fixing it properly means either shortening the close (which trades the
-      // most-remembered frame for a mid-take one) or giving this beat a second element it does
-      // not need. The close wins.
+      // This used to be a heading and one row of numbers, and framed for the walkthrough it was
+      // the emptiest shot on the page: ~310px of blank paper below the tiles, about a third of
+      // the screen, under the largest claim the page makes. Padding was tried and reverted — it
+      // lengthens the page without moving anything into shot. CorpusWall below is the fix that
+      // works, because the claim is about ads and the answer to it is ads: ten real ones from
+      // report.json's batch, each with the score the model gave it.
       body: (revealed) => (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Stat big lg value={1500} suffix="+" label="Ads in the database" sub="the biggest in the category" active={revealed} />
-          <Stat big lg value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
-          <Stat big lg value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
+        <div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Stat big lg value={1500} suffix="+" label="Ads in the database" sub="the biggest in the category" active={revealed} />
+            <Stat big lg value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
+            <Stat big lg value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
+          </div>
+          <CorpusWall batch={batch} active={revealed} />
         </div>
       ),
     },
@@ -431,14 +471,17 @@ export default function DemoScrollPage({
     >
       <SiteHeader />
 
-      {/* One click runs the page as a STEPPED take: a lead-in long enough to start a screen
-          recorder, then travel to a beat, hold while it plays, travel to the next. Both the
-          stops and the hold lengths are derived from the live DOM — from the data-reveal
-          gates useReveal stamps — so editing a section or cutting copy retimes the take and
-          relabels the button automatically, on both routes, with no per-route constant. The
-          control hides itself while playing and any input cancels it. */}
-      <AutoScroll scrollRef={scrollRef} onHeroCue={heroCue} />
+      {/* The page does not scroll itself. It is narrated live, by hand, and the only thing
+          this control owns is WHEN the first animation happens: it resets the page cold,
+          fades itself out of shot, and builds the hero after a short deliberate pause so the
+          recording opens on the headline arriving instead of on a page that finished
+          animating during hydration. Everything after it is arrival-gated (see useReveal).
+          Short route only: /demo is a page to read, and a control that resets it to blank is
+          chrome there, not a feature. */}
+      {variant === "short" ? <IntroCue scrollRef={scrollRef} onCue={introCue} /> : null}
 
+      {/* Keyed so the intro control can hand back a cold page for a retake: see `takeId`. */}
+      <Fragment key={takeId}>
       {/* ── 0 · the problem ─────────────────────────────────────────── */}
       <section
         ref={heroRef}
@@ -552,21 +595,12 @@ export default function DemoScrollPage({
       ))}
 
       {/* ── CTA ─────────────────────────────────────────────────────────
-          The 60-second cut ends on the editor. "Watch it live" (LivePlayer) stood here and
-          was cut on purpose: it was the only real footage in the take, but it spent ~4s
-          re-proving the measurement the first three beats had already established, and the
-          two beats that actually differentiate — generate and edit — are worth that time
-          instead. The read-out recap, the moat stats, the service ladder and the buyer's
-          checklist were removed earlier. All of it is preserved in this branch's history;
-          the checklist and service ladder are the strongest diligence assets on the site
-          and want a home on /science or a /demo/full route rather than deletion. */}
-      {/* The last stop is pinned to maxScroll, so this section IS the closing frame, and it is
-          held longer than any other. It used to be a short block: at 900px tall the frame was
-          the top 460px of the database beat, the CTA in a narrow left column, and roughly 40%
-          empty paper bottom-right. The most-remembered frame of the take was half leftovers,
-          carried no wordmark, and gave a reader no address to go to.
-          min-h-screen with the content centred makes the frame contain nothing but the close,
-          whatever the viewport. */}
+          The closing frame, and the only section on the page sized to BE a frame rather than
+          to be scrolled through. min-h-screen with its content centred means that however far
+          the founder scrolls at the end, the last thing on screen is the close and nothing
+          else: no leftovers of the database beat sliced across the top, no empty paper in a
+          corner. It used to be a short block, and the most-remembered frame of the take was
+          half debris, carried no wordmark and gave a viewer no address to go to. */}
       <section className="flex min-h-screen flex-col justify-center border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(56px,12vh,128px)]">
         <div className="mx-auto w-full max-w-[980px] text-center">
           <span className="text-wordmark text-ink">soma</span>
@@ -592,6 +626,7 @@ export default function DemoScrollPage({
           <div className="mt-12 text-[13px] tracking-[0.02em] text-ink-3">usesoma.work</div>
         </div>
       </section>
+      </Fragment>
     </main>
   );
 }

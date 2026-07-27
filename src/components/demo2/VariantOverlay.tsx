@@ -192,8 +192,9 @@ export default function VariantOverlay({ variants, active }: { variants: Ad[]; a
           );
         })}
         {/* This said "Pick a cut to bring its arc forward." — an interaction affordance on a
-            page whose primary delivery is a silent 55-second recording where nothing is ever
-            clicked. It advertised an action that never happens on camera. The rows ARE still
+            page whose primary delivery is a narrated screen recording, where the founder is
+            scrolling and talking and nothing is ever clicked. It advertised an action that
+            never happens on camera. The rows ARE still
             selectable for a reader who opens the link; that just does not need a caption. What
             the footer can carry instead is the one thing the ranking alone does not say: that
             the three pale arcs are the field, not noise. */}

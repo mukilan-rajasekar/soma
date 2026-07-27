@@ -42,9 +42,11 @@ export default function LivePlayer({
   const [hostRef, framed] = useReveal<HTMLDivElement>(ON_SCREEN);
 
   // Start the clip when the section reveals. This section is the only frames of real ad
-  // footage in the 60-second take, and it used to require a human click: a scroll-recorded
-  // pass captured a frozen first frame under the caption "reading the hook…", i.e. the one
-  // beat that proves the measurement runs against video showed no video. The element is
+  // footage anywhere in the walkthrough, and it used to require a human click: a scroll
+  // recorded pass captured a frozen first frame under the caption "reading the hook…", i.e.
+  // the one beat that proves the measurement runs against video showed no video. Autoplay
+  // matters more now than it did: the founder is scrolling and talking, not clicking, and a
+  // click on camera is a click the edit has to explain. The element is
   // muted + playsInline, which is exactly the condition browsers allow autoplay under, and
   // the play button below stays as the fallback for the case where a policy still blocks it.
   useEffect(() => {

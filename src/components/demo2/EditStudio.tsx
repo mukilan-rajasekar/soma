@@ -34,9 +34,10 @@ import {
 // is earlier, which lands the splice at ~2640ms and leaves the finished comparison on camera for
 // the remainder of the hold instead of for its last moment.
 //
-// BEAT_MS is exported to AutoScroll through data-beat below. The planner's generic estimate
-// (BEAT_FLOOR + BEAT_PER_PX x height) came out ~1800ms short for this panel, so it sized the
-// hold for an animation shorter than the one that actually runs.
+// BEAT_MS is published on the panel as data-beat below: it is the longest single animation on
+// the page, and the one the narration has to be paced against. Nothing reads it at runtime any
+// more (the page is scrolled by hand), but a measurement pass can, and so can whoever is
+// deciding how long to hold on this beat while talking over it.
 export const BEAT_MS = 4400;
 const T_TYPED = 0.30; // instruction finishes typing
 const T_OPTS = 0.44;  // candidate edits land
@@ -89,9 +90,9 @@ export default function EditStudio({ report, active }: { report: Report; active:
   const after = source && cut ? spliceLane(source, cut.start, cut.end) : { dorsal: [], timestamps: [], duration: 0 };
 
   return (
-    // data-beat tells AutoScroll's planner how long this panel actually animates for. Without
-    // it the planner falls back to a linear fit on element height, which under-read this one by
-    // ~1800ms and therefore scheduled a hold too short to contain its own payoff.
+    // data-beat states, in the DOM, how long this panel actually animates for: 4.4s from the
+    // instruction typing to the re-scored comparison. It is the number to hold the scroll still
+    // for, and it is here rather than in a comment so a measurement pass can read it.
     <div ref={ref} data-beat={BEAT_MS} className="flex flex-col gap-5">
       {/* ── the instruction ─────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-line-2 bg-paper p-4">

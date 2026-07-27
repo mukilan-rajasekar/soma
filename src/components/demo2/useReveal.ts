@@ -1,10 +1,11 @@
 "use client";
 
-// Reveal-on-enter, the one motion primitive for the whole /demo page. A section fires
-// its animation exactly ONCE, the first time it scrolls into view — so scroll speed
-// never affects playback and a screen-recording take can't be ruined by scrolling too
-// fast or too slow (the spec's hard constraint). Honours prefers-reduced-motion by
-// reporting "revealed" immediately with no animation clock.
+// Reveal-on-enter, the one motion primitive for the whole /demo page, and since the page is
+// now narrated live and scrolled by hand it is the ONLY playback mechanism there is. A figure
+// fires exactly ONCE, the first time it is scrolled into frame, so the recording can be taken
+// at whatever pace the voiceover wants: pausing on a beat, scrolling back, or moving fast
+// through a section cannot desynchronise anything, because there is no clock but arrival.
+// Honours prefers-reduced-motion by reporting "revealed" immediately with no animation clock.
 
 import { useEffect, useRef, useState } from "react";
 
@@ -28,29 +29,38 @@ export function prefersReducedMotion(): boolean {
 // 53px). Zero threshold plus a negative bottom root margin fires when the element's TOP
 // crosses a fixed line, at the same screen position whatever the element's height.
 //
-// One caveat before reusing it: an element that can never scroll above that line, i.e. one
-// sitting inside the last 40% of a viewport at the document's maximum scroll, never fires at
-// all. Check the geometry before gating anything at the very bottom of a page.
+// The one hole this leaves — an element that can never climb above the line, because it sits
+// inside the last screenful at the document's maximum scroll — is closed by the `atEnd`
+// fallback in useReveal below rather than by checking geometry per call site.
 //
-// WHY 40 AND NOT 45. This margin has a second job nobody designed it for: AutoScroll refuses to
-// stop above a figure's fire line, so the number is also the FLOOR on where the camera may come
-// to rest. At -45% it was the binding constraint on two of the nine stops rather than
-// composition being it. On §02 the stat tiles' fire line stopped the camera 48px above the
-// section's own top edge, which tucked the eyebrow under the header and left 255px of empty
-// paper below the tiles. 60% still has the element's top well inside the frame when it starts
-// animating, which is all the gate was ever protecting.
+// WHY 40 IS A FLOOR AND NOT THE ANSWER. -40% fires an element when its top crosses 60% of the
+// viewport. For a 240px chart that means it is fully on camera before a pixel of it moves,
+// which is exactly right. For the 870px generation panel it means 41% of it is on camera and
+// 510px of it is still below the fold — the panel spends the first third of a five-second
+// animation playing to nobody. A single margin cannot serve both, because it is a fixed
+// screen position and the elements are not a fixed size.
 //
-// It does not go further. -32% was tried and cost three of the nine stops: a lower floor also
-// satisfies the planner's frame-merge test more often, so units that should be separate beats
-// fused and the take jumped 1,437px in one leg, skipping the ranked board entirely. 40 is the
-// point that buys placement freedom without collapsing the beat structure.
-export const ON_SCREEN = { threshold: 0, rootMargin: "0px 0px -40% 0px" } as const;
+// `frame` fixes that: it asks for a FRACTION OF THE ELEMENT to be on camera, and useReveal
+// converts it to a root margin using the element's measured height. 0.62 of an 870px panel is
+// a -60% margin; 0.62 of a 240px chart works out below the floor, so the floor holds and short
+// figures keep firing fully framed. Everything self-tunes when a component changes height,
+// which is the property the old hand-picked number never had.
+//
+// The floor does not go lower. -32% was tried and read as figures animating while they were
+// still arriving from the bottom edge; 40 is the point where the element's top is comfortably
+// inside the frame before anything moves, which is all this gate was ever protecting.
+export const ON_SCREEN = { threshold: 0, rootMargin: "0px 0px -40% 0px", frame: 0.62 } as const;
+// The ceiling on the computed margin. Past this the fire line is so high on screen that a
+// figure sitting near the document's end can never reach it — and while `atEnd` below catches
+// that case, a reveal that only ever happens because you hit the bottom of the page is not a
+// reveal anyone watches.
+const FRAME_MAX_PCT = 65;
 
 // Returns [ref, revealed]. `revealed` flips true once and stays true. The element type is
 // only constrained to Element so an <svg> can be observed directly (TwoRegionBrain), which
 // an HTMLElement bound would have forced into a wrapper div.
 export function useReveal<T extends Element = HTMLDivElement>(
-  opts: { threshold?: number; rootMargin?: string } = {},
+  opts: { threshold?: number; rootMargin?: string; frame?: number } = {},
 ): [React.RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
   const [revealed, setRevealed] = useState(false);
@@ -64,7 +74,19 @@ export function useReveal<T extends Element = HTMLDivElement>(
       const id = requestAnimationFrame(() => setRevealed(true));
       return () => cancelAnimationFrame(id);
     }
-    const rootMargin = opts.rootMargin ?? "0px 0px -8% 0px";
+    let rootMargin = opts.rootMargin ?? "0px 0px -8% 0px";
+    // Height-aware fire line: see ON_SCREEN above. Measured off the element itself at observe
+    // time, so a panel that grows or shrinks re-derives its own gate instead of inheriting a
+    // number that was chosen when it was a different size. `min(h, vh)` caps the ask at one
+    // screenful, because an element taller than the viewport can never be 62% framed and
+    // asking for it would push the line off the top of the screen.
+    const vh = window.innerHeight;
+    const h = el.getBoundingClientRect().height;
+    if (opts.frame != null && vh > 0 && h > 0) {
+      const floor = -parseFloat(/(-?\d+(?:\.\d+)?)%\s*0px\s*$/.exec(rootMargin)?.[1] ?? "0") || 0;
+      const want = Math.min(FRAME_MAX_PCT, Math.max(floor, (opts.frame * Math.min(h, vh) / vh) * 100));
+      rootMargin = `0px 0px -${want.toFixed(1)}% 0px`;
+    }
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
@@ -74,19 +96,69 @@ export function useReveal<T extends Element = HTMLDivElement>(
       },
       { threshold: opts.threshold ?? 0.35, rootMargin },
     );
-    // Stamp the gate onto the element so anything that has to PLAN around reveals can read
-    // them off the DOM instead of keeping its own list of selectors. AutoScroll uses this to
-    // work out the scroll position at which each figure starts animating, and therefore
-    // where it is allowed to stop; a hand-maintained list would drift from this observer
-    // silently, and the failure mode is a recording that halts on a blank chart.
-    // data-reveal is the bottom root-margin as a positive percentage: 40 here, 25 for Section.
+    // Stamp the resolved gate onto the element, as a positive percentage of the viewport. It
+    // is what makes the fire line auditable from outside: a measurement pass can read every
+    // gate off the live DOM and check that nothing on the page starts animating while it is
+    // below the fold, without keeping its own list of selectors that would drift from this
+    // observer silently. Stamped AFTER the height-aware adjustment above, so what is recorded
+    // is the margin that actually fired, not the one that was asked for.
     const pct = /(-?\d+(?:\.\d+)?)%\s*0px\s*$/.exec(rootMargin);
     if (el instanceof HTMLElement || el instanceof SVGElement) {
       el.dataset.reveal = String(pct ? -parseFloat(pct[1]) : 0);
     }
+
+    const scroller = el.closest("main") ?? document.scrollingElement;
+    const fire = () => {
+      setRevealed(true);
+      io.disconnect();
+      scroller?.removeEventListener("scroll", onScroll);
+      if (idle) clearTimeout(idle);
+    };
+
+    // ── IF IT IS ON CAMERA AND THE PAGE HAS STOPPED, IT PLAYS ────────────────────────
+    // The fire line above is a fixed height on screen, which is the right rule while the page
+    // is MOVING: it is what stops a figure animating to nobody as it arrives from the bottom
+    // edge. It is the wrong rule the moment the page stops, because everything between that
+    // line and the bottom of the screen is then something the viewer is looking straight at,
+    // sitting in its zero state, for as long as the narration lasts.
+    //
+    // That is not hypothetical. The hook beat's two score tiles land 594px down a 900px
+    // screen, 54px below the line, and a walkthrough that came to rest on that section held
+    // two tiles reading "0 /100" with empty bars under a heading about how much the first
+    // three seconds matter. The old stepped take never showed it because its planner could
+    // raise the camera until every figure in shot had fired; hand-scrolled, nothing can.
+    //
+    // Coming to rest is the strongest signal available that a frame is being composed on
+    // purpose, so it is treated as one: settle for REST_MS with a third of the element on
+    // camera and it plays. The fraction matters — it keeps a tall panel peeking in at the
+    // bottom edge from starting a five-second animation that will finish before it is framed,
+    // which is exactly what the fixed line exists to prevent. `min(h, vh)` again, because an
+    // element taller than the screen can never show a third of ITSELF and would be excluded
+    // from its own rule.
+    const REST_MS = 260, REST_FRAC = 0.34;
+    let idle: ReturnType<typeof setTimeout> | null = null;
+    const settled = () => {
+      const r = el.getBoundingClientRect();
+      const view = window.innerHeight;
+      const shown = Math.max(0, Math.min(r.bottom, view) - Math.max(r.top, 0));
+      if (shown >= REST_FRAC * Math.min(r.height, view)) fire();
+    };
+    const onScroll = () => {
+      // The end of the document is the one place the fire line can strand a figure outright:
+      // an element inside the last screenful at maximum scroll can never climb high enough to
+      // cross it, however long anyone looks at it.
+      if (scroller && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2) { fire(); return; }
+      if (idle) clearTimeout(idle);
+      idle = setTimeout(settled, REST_MS);
+    };
+    scroller?.addEventListener("scroll", onScroll, { passive: true });
     io.observe(el);
-    return () => io.disconnect();
-  }, [revealed, opts.threshold, opts.rootMargin]);
+    return () => {
+      io.disconnect();
+      scroller?.removeEventListener("scroll", onScroll);
+      if (idle) clearTimeout(idle);
+    };
+  }, [revealed, opts.threshold, opts.rootMargin, opts.frame]);
 
   return [ref, revealed];
 }
