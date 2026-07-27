@@ -142,16 +142,13 @@ Three constraints that apply to all of them:
   everywhere else. `test_head_io.py` is the pattern to copy.
 - **Never touch the network.** `nilearn` 0.14.0 *is* installed, but every
   `datasets.fetch_atlas_*` downloads. Monkeypatch the fetcher instead.
-- **Declare `pytest` in `requirements.txt` in the same commit as whichever of
-  these you take first.** It is not in there today — `scipy` and `nilearn` are,
-  `pytest` is not — so `pytest` 9.1.1 exists only because this `.venv` happens to
-  have it. A fresh `pip install -r requirements.txt` produces an environment where
-  `npm test` and `scripts/verify.sh`'s pytest step both fail, which is exactly the
-  playwright-was-extraneous bug from the first iteration of this loop, one language
-  over. One line; it is the precondition for all seven items being runnable
-  anywhere but this machine, so it does not deserve its own iteration.
+- ~~**Declare `pytest` in `requirements.txt`.**~~ DONE, in the same commit as
+  `test_honest_corr.py` (the first of these taken). It was absent — `scipy` and
+  `nilearn` were declared, `pytest` was not — so a fresh
+  `pip install -r requirements.txt` produced an environment where `npm test` and
+  `scripts/verify.sh`'s pytest step both failed. Nothing further to do here.
 
-- [ ] Add `test_honest_corr.py` for the shared stats/alignment core in
+- [x] Add `test_honest_corr.py` for the shared stats/alignment core in
       `honest_corr_timeseries.py`. Highest leverage in this block: all four
       pipeline modules import from it, and none of it is tested. Four verified
       properties. (1) `circular_shift_p` enumerates rather than samples when
@@ -168,6 +165,16 @@ Three constraints that apply to all of them:
       `scipy.stats.rankdata(..., method="average")` (scipy 1.18.0 is in the venv
       and in requirements.txt). (4) `pearson` returns NaN, never a number, for
       len<3 and for a zero-variance input.
+      Shipped as 15 tests; all four properties held exactly as measured (p == 1/16,
+      `[10., 20.]`, scipy parity, NaN guards). Added three the item did not name,
+      because each pins a claim the four leave open: the SAMPLING branch is
+      seed-dependent and its denominator is `n_perm + 1` (forced with `n_perm=5` —
+      which is what makes the enumerate branch's seed-invariance a demonstrated
+      branch rather than a coincidence); `circular_shift_p` returns `(nan, r, 0)`
+      for n<8 and `(nan, nan, 0)` for a flat series; and `pearson` still returns a
+      real number for the smallest legitimate input, so the NaN guards are not
+      over-eager. Also asserted `spearman` against `scipy.stats.spearmanr`
+      directly, not only `_rankdata` against `rankdata`.
 - [ ] Add `test_incremental_validity.py`. This module answers "why not just use
       ffmpeg?", and its central claim — that the partial correlation collapses when
       the brain arc is only re-deriving the edit — has never been executed by a

@@ -384,3 +384,34 @@ an environment where `npm test` and verify.sh's pytest step both fail — the id
 shape to the playwright-was-extraneous bug this loop opened with, one language over.
 Recorded it as a hard prerequisite in the section's constraints block, to be done in the
 same commit as whichever item is taken first, rather than leaving it to be rediscovered.
+
+## 2026-07-27 — Add test_honest_corr.py for the shared stats/alignment core
+changed: test_honest_corr.py (new, 15 tests), requirements.txt (+pytest), BACKLOG.md
+why: honest_corr_timeseries.py is imported by six other modules — head_io, train_head,
+affect_head, head_apply and incremental_validity all pull `_read_csv`, `resample_to_grid`,
+`spearman`, `circular_shift_p`, `_rankdata`, `pearson`, `first_diff`, `stouffer` and
+`fisher` out of it — and none of it was executed by a test, so a silent change there moves
+every number the pipeline reports. All four properties the item measured held exactly:
+circular_shift_p returns p == 1/16 for x=y=arange(20.) (M=15 distinct shifts, enumerate
+branch, no RNG); resample_to_grid([0,1,2],[10,20,30],[0,1,2]) == [10., 20.]; _rankdata
+matches scipy.stats.rankdata 'average'; pearson/spearman return NaN for len<3 and for zero
+variance. Added three the item did not name, each pinning a claim the four leave open — the
+SAMPLING branch (forced with n_perm=5) is seed-dependent with a denominator of n_perm+1,
+which is what turns "the enumerate branch ignores seed" from a coincidence into a
+demonstrated branch; circular_shift_p returns (nan, r, 0) for n<8 and (nan, nan, 0) for a
+flat series; and pearson still returns a real number for the smallest legitimate input, so
+the NaN guards are not over-eager. Fixtures are built inline, per the constraint that a
+fresh clone has no tests/. Also took the section's stated prerequisite in the same commit:
+`pytest` is now declared in requirements.txt — it was not, so a fresh
+`pip install -r requirements.txt` produced an env where `npm test` and verify.sh's pytest
+step both failed while every module they import was present. Fast gate green: 23 pytest
+(8 head_io + 15 here) in 0.56s.
+surprised: two things. (1) The item's claim that scipy makes _rankdata checkable is truer
+than it wrote — scipy.stats.spearmanr exists too, so spearman() itself can be asserted
+end-to-end against a reference implementation rather than only its rank helper. Did both.
+(2) resample_to_grid silently drops samples BELOW the first edge as well as on the last
+one: resample_to_grid([-1,0.5,9],[1,2,3],[0,1,2]) is [2., nan]. np.digitize(-1, [0,1,2])-1
+is -1, and had the function indexed (out[idx]) rather than masked (idx == b), Python's
+negative indexing would have dumped that sample into the LAST bin. It masks, so it is
+correct today — but correct by construction rather than by intent, which is worth a test.
+Pinned it.

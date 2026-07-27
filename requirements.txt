@@ -55,6 +55,11 @@ nibabel                 # Schaefer-400 .annot -> Yeo-7 network masks (demo/proce
                         # it directly, so it is declared. NOT interchangeable with the nilearn
                         # path: Destrieux is anatomical and cannot express DorsAttn /
                         # SalVentAttn / Cont_* , which the preflight score is defined on.
+pytest                  # the test_*.py suite, and scripts/verify.sh's third gate step.
+                        # Declared because the gate depends on it: without this line a fresh
+                        # `pip install -r requirements.txt` yields an env where `npm test` and
+                        # verify.sh's pytest step both fail, even though every module they
+                        # import is installed.
 faster-whisper          # ASR for the Communication Clarity component (demo/process_batch.py).
                         # Falls back to openai-whisper, then degrades to OCR-only and says so.
 # ALSO REQUIRED for demo/process_batch.py (not pip deps): the `ffmpeg` and `ffprobe`
