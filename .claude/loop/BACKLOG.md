@@ -61,7 +61,7 @@ passes and agree with its taste.
       values, and have /preflight pass its own. The preflight copy already
       imports `../demo2/TwoRegionBrain`, so cross-directory import is an
       established pattern here. Removes ~660 duplicated lines.
-- [ ] Collapse the duplicated 6.4 MB video set. sha256 confirms
+- [x] Collapse the duplicated 6.4 MB video set. sha256 confirms
       `public/campaign/v0{1..5}_30s_*.mp4` and `public/preflight/videos/`'s
       `{story_hook,deal_first,product_first,urgency_first,weak_open}.mp4` are
       the same five files under two naming schemes — 6.4 MB shipped twice in
@@ -74,6 +74,14 @@ passes and agree with its taste.
       whichever Python default feeds it — `build_report.py:589` or
       `process_batch.py`'s `--video-url-prefix` (line 1299) — or the next
       regeneration re-creates the fork. Confirm both routes still play.
+      Resolved by keeping public/campaign/ (its names match the source cuts in
+      data/ads/variants/talk_ad/) and pointing the preflight artifact there. Neither
+      Python default moved: the preflight report reaches its media by basename
+      (story_hook.mp4) and campaign by variant id (v01_30s_story_hook.mp4), so no
+      prefix change can bridge them — and --web-videos names transcodes by ad id
+      (ad_01.mp4), a third scheme. Set the five `video` fields instead (they take
+      precedence over the basename fallback) and wrote the reason into
+      demo/README.md, where a re-run would hit it.
 - [ ] `git rm public/preflight/batch_report_old.json` (12 KB). It is tracked and
       referenced by nothing in `src/`, `scripts/`, `tools/` or `demo/`. The live
       artifact is `batch_report.json`, named at `preflight/report.ts:15`.

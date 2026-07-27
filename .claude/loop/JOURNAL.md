@@ -228,3 +228,37 @@ directories is not evidence that the imports are the same. (2) The demo2 comment
 old alpha was 0.55, but /preflight's is 0.48 — /preflight moved after that comment was
 written. Wrote the new comment against the value /preflight actually passes today rather
 than repeating the stale number.
+
+## 2026-07-27 — Collapse the duplicated 6.4 MB video set
+changed: git rm public/preflight/videos/*.mp4 (5); public/preflight/batch_report.json
+(5 `video` fields null -> /campaign/...); demo/README.md (bring-back note)
+why: the same five welding cuts were tracked twice, 6.4 MB in every clone and every
+deploy. Kept public/campaign/ as the survivor on evidence rather than taste: its
+filenames are byte-identical AND name-identical to the source cuts in
+data/ads/variants/talk_ad/, and they match the repo's existing convention that a media
+basename equals the artifact id (/ad-videos/tt_128.mp4 for id tt_128). The preflight
+copies were renamed derivatives. Derived the five-way mapping from sha256, not from the
+matching name suffixes, and asserted every preflight file had a byte-identical campaign
+twin before touching anything; then diffed the parsed JSON before/after and asserted the
+ONLY delta was those five video fields. Both routes verified against a production
+`next start`: all five /campaign/*.mp4 answer 206 to a range request (seeking works, not
+just GET), /preflight and /demo each render src="/campaign/v03_30s_product_first.mp4",
+and the rendered /preflight HTML contains zero references to the deleted directory,
+which now 404s. Full gate green, all 4 routes ok.
+surprised: three things. (1) The item's prescription does not work. It says to update
+"whichever Python default feeds it", but there are THREE naming schemes here, not two:
+/demo names by variant id (v01_30s_story_hook), /preflight's report reaches media by
+source basename (story_hook.mp4), and process_batch's --web-videos names transcodes by
+ad id (ad_01.mp4). No value of --video-url-prefix bridges a basename to a variant id, so
+a prefix change alone would have 404'd /preflight. Used the report's `video` field
+instead, which safeVideoPath already prefers over the basename fallback — so both Python
+defaults stay correct for a generic batch and nothing generated was falsified (`filename`
+still records the batch's own basename; `video` now records where the copy actually is).
+(2) public/preflight/videos/ is far more embedded than "a duplicate directory" suggests:
+demo/README.md's scp block, process_batch.py's default AND its closing print, report.ts's
+fallback prefix, and user-facing copy in PreflightEmpty.tsx:38. Dismantling the convention
+would have been wrong; only the five files in it were redundant, so the directory's role
+as the landing zone for future batch transcodes is untouched. (3) batch_report_old.json —
+the orphan fixture that is the next backlog item — proves that directory ONCE held
+campaign-named files (`/preflight/videos/v03_30s_product_first.mp4`). The naming split is
+recent drift, not an original design decision.

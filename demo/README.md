@@ -111,6 +111,18 @@ scp gpu:workdir/batch/out/run.log        → keep
 
 Then `npm run build` — `/preflight` reads the JSON at build time.
 
+Skip the mp4 copy when the batch scored footage the site already ships. The current
+`batch_report.json` is the five welding cuts, byte-identical to
+`public/campaign/v0[1-5]*.mp4`, so its `video` fields were pointed there by hand and
+`public/preflight/videos/` does not exist. Copying the transcodes in as well would put
+the same 6.4 MB in the repo twice, which is what it used to do.
+
+`--video-url-prefix` can't express that on its own: `--web-videos` names each transcode
+by ad id (`ad_01.mp4`), not by the source cut, so the prefix only ever yields
+`<prefix>/ad_0N.mp4`. Re-running *this* batch means re-pointing those five `video`
+fields again. A batch of genuinely new footage takes the default path above and needs
+none of this.
+
 Also worth keeping `demo/.cache/preds/*.npy`: they're deterministic and expensive, and
 this repo's history shows not bringing raw preds back from a GPU run is a recurring
 regret (see the note at the top of `tools/demo/build_report.py`). With them cached,

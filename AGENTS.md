@@ -14,3 +14,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Uncommitted `.git/info/exclude` hides `tests/`, `data/`, `cloud/`; fresh clones lack them.
 - Untracked `.impeccable/hook.cache.json` names old components; repo-wide greps hit it.
 - Identical `./tokens` import lines in demo2/ and preflight/ resolve to different modules.
+- `smoke.mjs` misses 404 media: a 404 is not a Playwright `requestfailed`.
