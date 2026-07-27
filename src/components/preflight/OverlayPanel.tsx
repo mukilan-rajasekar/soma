@@ -23,12 +23,27 @@ type Props = {
   selectedId: string;
   onSelect: (id: string) => void;
   active: boolean;
+  /** Which lane the picker opens on. /preflight opens on attention, because that section is
+   *  about the batch and attention is the headline metric. /demo's comprehension beat opens on
+   *  comprehension, because the heading above it asks whether the brand landed and the chart
+   *  should be answering that question rather than waiting to be asked. */
+  defaultMetric?: LaneKey;
+  /** Whether the list beside the chart carries each cut's score. On /preflight it must: that
+   *  page IS the ranking, and the list is how you read it. On /demo it must NOT, and the
+   *  reason is a genuine conflict rather than a taste call — this artifact scores the same
+   *  five cuts on a different scale from report.json (Product First is 80 here and 73 on the
+   *  board two beats later, and ranks 4 and 5 come out in the other order), so printing both
+   *  on one page makes the page contradict itself about its own numbers. Here the list is a
+   *  legend: it says which curve is which, and the board says what won. */
+  showScore?: boolean;
 };
 
-export default function OverlayPanel({ report, selectedId, onSelect, active }: Props) {
+export default function OverlayPanel({
+  report, selectedId, onSelect, active, defaultMetric = "attention", showScore = true,
+}: Props) {
   const progress = useAnimeClock(active, 1400);
   const scale = report.chart.defaultScale;
-  const [metric, setMetric] = useState<LaneKey>("attention");
+  const [metric, setMetric] = useState<LaneKey>(defaultMetric);
   const lane = LANES.find((l) => l.key === metric) ?? LANES[0];
 
   const ordered = useMemo(
@@ -133,6 +148,7 @@ export default function OverlayPanel({ report, selectedId, onSelect, active }: P
         selectedId={selectedId}
         onSelect={onSelect}
         orientation="column"
+        showScore={showScore}
         active={active}
       />
     </div>

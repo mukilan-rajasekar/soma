@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import DemoScrollPage from "@/components/demo2/DemoScrollPage";
 import { loadDemoReport } from "@/lib/demo-report";
+import { loadPreflightReport } from "@/components/preflight/report";
 
 // /demo-short is the recording surface: the same page as /demo with seven beats instead of
 // twelve, scrolled by hand and narrated live at about three minutes. Hero → the science →
-// hook scoring → comprehension → generation → editing → watch it live → the database → CTA.
+// hook scoring → "Did the brand actually land?" → generation → editing → watch it live →
+// the database → CTA.
 //
 // The page does not scroll itself. One control (IntroCue) decides when the first animation
 // happens, so the take can open on the headline arriving rather than on a page that finished
@@ -48,5 +50,5 @@ export const metadata: Metadata = {
 };
 
 export default function DemoShortPage() {
-  return <DemoScrollPage report={loadDemoReport()} variant="short" />;
+  return <DemoScrollPage report={loadDemoReport()} preflight={loadPreflightReport()} variant="short" />;
 }

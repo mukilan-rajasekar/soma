@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import DemoScrollPage from "@/components/demo2/DemoScrollPage";
 import { loadDemoReport } from "@/lib/demo-report";
+import { loadPreflightReport } from "@/components/preflight/report";
 
 // /demo is the LONG-FORM product narrative — the link pasted into a YC application, and the
 // page someone in diligence reads with no video to guide them. It renders every section,
@@ -39,5 +40,5 @@ export const metadata: Metadata = {
 };
 
 export default function DemoPage() {
-  return <DemoScrollPage report={loadDemoReport()} variant="full" />;
+  return <DemoScrollPage report={loadDemoReport()} preflight={loadPreflightReport()} variant="full" />;
 }

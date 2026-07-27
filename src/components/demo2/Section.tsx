@@ -19,12 +19,7 @@ type Props = {
   lede?: React.ReactNode;
   children?: (revealed: boolean) => React.ReactNode;
   tint?: boolean;
-  /** Promote this heading to the size the hero uses. For the two or three lines in the
-   *  walkthrough that are the ARGUMENT rather than a label for the figure under them: they
-   *  are what the founder says out loud, and at section size they were set in the same type
-   *  as six other headings and carried no more weight than any of them. A flag rather than a
-   *  one-off class, because the list of promoted lines is a content decision that will grow,
-   *  and it should be made in the section list where the copy is, not in the markup. */
+  /** Heading at hero size: see SectionDef.feature in DemoScrollPage. */
   feature?: boolean;
 };
 

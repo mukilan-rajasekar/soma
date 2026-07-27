@@ -24,9 +24,7 @@
 // order on purpose: generation only means anything after a reader believes the measurement.
 //
 // Acts two and three carry the weight, and each absorbed the section that used to duplicate
-// it — on both routes. Generation ends with the five-arc overlay that was "compare the
-// cuts": the same five ads the board just ranked, on one time axis, so it is evidence for
-// the ranking rather than a second demo of it. Editing opens with the dip arc and the
+// it — on both routes. Editing opens with the dip arc and the
 // per-shot deltas that were "weak-spot detection", then splices the exact shot they name.
 // The standalone versions were redundant because they showed the same artifacts a section
 // or two early with no result attached, so neither route restores them.
@@ -60,7 +58,6 @@ import IntroCue from "./IntroCue";
 import Section from "./Section";
 import TwoRegionBrain3D from "./TwoRegionBrain3D";
 import ArcPlot from "./ArcPlot";
-import VariantOverlay from "./VariantOverlay";
 import ShotDiagnosis from "./ShotDiagnosis";
 import ComprehensionPanel from "./ComprehensionPanel";
 import MessageTrack from "./MessageTrack";
@@ -70,9 +67,11 @@ import ServiceTiers from "./ServiceTiers";
 import VendorChecklist from "./VendorChecklist";
 import GenerateStudio from "./GenerateStudio";
 import CorpusWall from "./CorpusWall";
+import BatchOverlay from "./BatchOverlay";
 import EditStudio from "./EditStudio";
 import { BRAND } from "./studio";
 import { fmtT, type Ad, type Report } from "./types";
+import type { PreflightReport } from "../preflight/types";
 
 // "full" is /demo — the long-form page a cold reader lands on. "short" is /demo-short, the
 // recording surface: seven beats, scrolled by hand and narrated.
@@ -86,17 +85,25 @@ type SectionDef = {
   lede: string;
   fullOnly?: boolean;
   unnumbered?: boolean;
-  /** Set the heading at hero size. The lines asked for by name, because they are the argument
-   *  the walkthrough is making out loud rather than a caption for the figure below them. */
+  /** Set this heading at hero size. For a line that is the ARGUMENT rather than a label for
+   *  the figure under it: the founder asks it out loud and then answers it, and at section
+   *  size it was set in the same type as six other headings and carried no more weight than
+   *  any of them. A flag in the section list, next to the copy, because which lines get
+   *  promoted is a content decision that will grow. */
   feature?: boolean;
   body: (revealed: boolean) => React.ReactNode;
 };
 
 export default function DemoScrollPage({
   report,
+  preflight = null,
   variant = "full",
 }: {
   report: Report;
+  /** public/preflight/batch_report.json, a different artifact from report.json and one that
+   *  can legitimately be absent on a fresh clone. Null just falls the comprehension beat back
+   *  to its own panels, which is why the loader is fault-tolerant rather than throwing. */
+  preflight?: PreflightReport | null;
   variant?: DemoVariant;
 }) {
   const batch = report.batch;
@@ -279,21 +286,45 @@ export default function DemoScrollPage({
     },
     {
       key: "comprehension",
-      // Back on the recording route. It was cut when the take was a fixed 55 seconds and the
-      // three acts needed every one of them; the walkthrough is now narrated at three minutes,
-      // and this is the third leg of the measurement claim rather than a nice-to-have. Without
-      // it the page argues that attention is two networks and then shows a third lane
-      // (language) on §02's arc with nothing that ever explains what it is.
-      eyebrow: "Comprehension",
+      // The heading is the line this beat was kept for, so it is set at hero size: it is the
+      // question the founder asks out loud and then answers, not a caption for the figure.
       feature: true,
+      eyebrow: "Comprehension",
       heading: <>Did the brand actually <span className="font-serif font-normal italic">land</span>?</>,
       lede: "A held gaze is worthless if the product never registers. Soma reads the ad's own words: on screen via text recognition, out loud via speech recognition. When the campaign is named and the language cortex confirms it registers, the score rises.",
+      // The figure is /preflight's OverlayPanel, not demo2's VariantOverlay, and it moved here
+      // from the generation beat. Two reasons it belongs here specifically. It carries a lane
+      // picker, so the same five cuts can be re-read as attention, surprise or COMPREHENSION —
+      // which turns a static ranking into the question this heading asks, answered on screen.
+      // And it is the better instrument: DeltaChart takes series style as data rather than as a
+      // pile of booleans, so one component serves the single-ad player and the five-ad overlay
+      // instead of demo2 keeping two copies of the same canvas maths.
+      //
+      // It reads public/preflight/batch_report.json, which is a DIFFERENT artifact from
+      // report.json and can legitimately be absent on a fresh clone. Absent, this falls back
+      // to the panels below rather than rendering a hole, and on /demo the panels render
+      // anyway: a reader arriving cold wants the words that were actually said, and the
+      // walkthrough does not, because the founder is saying them.
       body: (revealed) => (
         <div className="space-y-8">
-          <ComprehensionPanel ad={compAd} active={revealed} />
-          {/* The words themselves, under the mention pins. The panel above shows THAT
-              the brand was named; this shows what was actually said around it. */}
-          <MessageTrack ad={compAd} active={revealed} />
+          {preflight ? (
+            <div>
+              <BatchOverlay report={preflight} active={revealed} />
+              <p className="mt-4 max-w-[68ch] text-[13.5px] leading-[1.6] text-ink-2">
+                The same five cuts on one axis. Change the lane and the batch answers a
+                different question: which one held the eye, which one surprised, and which one
+                actually registered.
+              </p>
+            </div>
+          ) : null}
+          {variant === "full" || !preflight ? (
+            <>
+              <ComprehensionPanel ad={compAd} active={revealed} />
+              {/* The words themselves, under the mention pins. The panel above shows THAT
+                  the brand was named; this shows what was actually said around it. */}
+              <MessageTrack ad={compAd} active={revealed} />
+            </>
+          ) : null}
         </div>
       ),
     },
@@ -316,23 +347,13 @@ export default function DemoScrollPage({
       eyebrow: "Generation",
       heading: <>Write a brief. Get back the cut that <span className="font-serif font-normal italic">wins</span>.</>,
       lede: "Describe the ad in plain language. Soma generates against your brand kit and kills the losers before you see them.",
-      body: (revealed) => (
-        <div className="space-y-9">
-          <GenerateStudio report={report} active={revealed} />
-          {/* The five survivor cards on the board above are these five arcs — same ads,
-              same scores, one shared time axis. Kept inside this section rather than as its
-              own "compare the cuts" section, on BOTH routes: as a separate section it read
-              as a second, independent demonstration of the same five clips. Here it is the
-              evidence for the board's ranking — the board says 73 beat 51, this shows where. */}
-          <div>
-            <div className="mb-3 max-w-[68ch] text-[13.5px] leading-[1.6] text-ink-2">
-              The five that cleared the bar, on one timeline. Same footage, recut, and the
-              spread opens in the first seconds, which is where the opener decides the arc.
-            </div>
-            <VariantOverlay variants={variants} active={revealed} />
-          </div>
-        </div>
-      ),
+      // The five-arc overlay used to close this beat, as evidence for the board's ranking. It
+      // now opens the comprehension beat instead, in /preflight's version with a lane picker.
+      // The trade is deliberate: here it could only ever re-state a ranking the board had just
+      // made in a form the reader had just read, and there it answers the heading above it.
+      // This beat is 650px shorter for losing it and does not miss it — the cull chart and the
+      // winner card are the argument, and the board is the payoff.
+      body: (revealed) => <GenerateStudio report={report} active={revealed} />,
     },
     {
       key: "edit",
@@ -682,16 +703,29 @@ function ActStrip({ acts }: { acts: { n: string; title: string; body: string; hr
 // `rawLogo` is set, meaning the SVG already carries its own on-badge colours and must be
 // rendered as-is.
 //   → To add a logo later: drop public/logos/<name>.svg and set `logo` below.
-type Brand = { name: string; mark: string; logo?: string; rawLogo?: boolean };
-// TikTok leads. It is the only mark here with a real logo file rather than a monogram, and the
-// opening frame of the recording is the one frame guaranteed to be seen, so the roster should
-// enter on its strongest item instead of ending on it.
+//
+// `size` is the rendered box in px, defaulting to 19. It exists because equal boxes do not
+// give equal weight: a wide silhouette letterboxed into a square box lands optically smaller
+// than a square glyph in the same box, and a solid disc lands larger. The three values below
+// are the ones that read level against TikTok and Browserbase at the real 36px badge.
+type Brand = { name: string; mark: string; logo?: string; rawLogo?: boolean; size?: number };
+// TikTok leads. The opening frame of the recording is the one frame guaranteed to be seen, so
+// the roster enters on its most recognisable mark instead of ending on it.
 const BETA_BRANDS: Brand[] = [
   { name: "TikTok", mark: "T", logo: "/logos/tiktok.svg" },
   { name: "Browserbase", mark: "B", logo: "/logos/browserbase.svg", rawLogo: true },
-  { name: "Supercell", mark: "S" }, // only a 3-line pixel wordmark exists, illegible at badge size
-  { name: "MrBeast", mark: "M" }, // no standalone symbol logo, monogram for now
-  { name: "NextXI", mark: "N" }, // logo dropping in later
+  // Supercell's only mark is the stacked SUP/ERC/ELL wordmark, which at 19px is nine glyphs
+  // across three rows and rasterises to noise. The badge carries its S alone, cut from that
+  // wordmark, so the slab letterform is theirs rather than a monogram set in our UI face.
+  { name: "Supercell", mark: "S", logo: "/logos/supercell.svg", size: 18 },
+  // Panther head with the bolt through it, reduced to one silhouette: the bolt and the open
+  // jaw are knocked out, which is what keeps it reading as a cat and not a blob. The long
+  // thin bolt tail is cropped off — at this size it only stole width from the head. Runs
+  // larger than the rest because the artwork is wider than it is tall.
+  { name: "MrBeast", mark: "M", logo: "/logos/mrbeast.svg", size: 22 },
+  // Disc, dashed ring, light letterforms. "NEXTXI" cannot be read at 19px so only the XI is
+  // kept, and the ring is coarsened to 14 dashes so the gaps survive the downsample.
+  { name: "NextXI", mark: "N", logo: "/logos/nextxi.svg", size: 18 },
 ];
 
 // Per-instance marquee tuning. --marquee-gap is the space between logos (and, because
@@ -725,10 +759,14 @@ function BrandMark({ brand }: { brand: Brand }) {
           <img
             src={brand.logo}
             alt=""
-            className="h-[19px] w-[19px] object-contain"
-            // rawLogo SVGs are already coloured for the ink badge; everything else is forced
-            // to a clean white silhouette so any dark logo file works.
-            style={brand.rawLogo ? undefined : { filter: "brightness(0) invert(1)" }}
+            className="object-contain"
+            style={{
+              width: brand.size ?? 19,
+              height: brand.size ?? 19,
+              // rawLogo SVGs are already coloured for the ink badge; everything else is forced
+              // to a clean white silhouette so any dark logo file works.
+              filter: brand.rawLogo ? undefined : "brightness(0) invert(1)",
+            }}
           />
         ) : (
           <span className="text-[15px] font-semibold leading-none text-white">{brand.mark}</span>
