@@ -12,3 +12,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Bare `pytest` also collects `*_test.py`: `head_null_test.py` must stay importable.
 - `scripts/loop.sh` runs `git add -A`: any untracked file lands in the iteration commit.
 - Uncommitted `.git/info/exclude` hides `tests/`, `data/`, `cloud/`; fresh clones lack them.
+- Untracked `.impeccable/hook.cache.json` names old components; repo-wide greps hit it.

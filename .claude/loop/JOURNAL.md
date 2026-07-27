@@ -169,3 +169,30 @@ generator just means the duplicate returns on the next run. (3) next build does 
 TypeScript ("Running TypeScript ... Finished TypeScript in 2.0s" in the build log), so
 typecheck is already gated even though verify.sh never calls tsc. The npm-script item is
 about discoverability, not coverage — I nearly wrote it up as a hole in the gate.
+
+## 2026-07-27 — Delete the unused demo2 components RankBoard.tsx and RegionTable.tsx
+changed: git rm src/components/demo2/{RankBoard,RegionTable}.tsx; comments in
+useReveal.ts, Stat.tsx, DemoScrollPage.tsx
+why: 229 lines that nothing imports, typechecked and linted on every build. Re-verified
+the item's premise before acting rather than trusting it — a repo-wide grep (not just
+src/) finds the two definitions, the three prose comments the item names, and nothing
+else except a stale .impeccable/hook.cache.json edit log, which is tooling state and not
+a reference. Both files are self-contained default exports with no helper anything else
+pulls, so deletion is local. For the comments: RankBoard was cited twice as a "counts up
+rather than fading in" sibling (Stat.tsx:41, DemoScrollPage.tsx:801) and once as a
+reveal-timing measurement (useReveal.ts:20). Dropped it from the two lists — MetricRow is
+still a live import at DemoScrollPage.tsx:61 so those keep a real example — and in
+useReveal replaced the dead 0.05s measurement with a pointer to DemoScrollPage's stat
+tiles, which hit the same problem and call ON_SCREEN for the same documented reason. Kept
+the surviving ~8.8s overlay figure and its measurement conditions verbatim; did not invent
+numbers for the replacement. Fast gate green: build, eslint src, 8 pytest.
+surprised: two things. (1) RegionTable was the only renderer of `Ad.regions`, so the
+`Region` type in types.ts is now referenced by its own declaration and nothing else — but
+it is NOT dead: tools/demo/build_report.py:596 still writes a `regions` array into every
+ad in the generated report.json, so the type is a live description of data on disk.
+Deleting it would have been the tidy-looking wrong move, and it is out of this item's
+scope either way. (2) The item said "the only occurrences in the repo are three prose
+comments". True for tracked source, but a repo-wide grep also hits
+.impeccable/hook.cache.json — an untracked per-session edit-count cache that names both
+files under an old /Users/mukilan/Projects/Brain Project/ path. Worth knowing that
+repo-wide greps in this checkout carry that file's history of every component ever edited.

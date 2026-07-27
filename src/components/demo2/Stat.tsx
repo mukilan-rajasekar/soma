@@ -38,7 +38,7 @@ export default function Stat({
   baseline?: number;
 }) {
   // Counts up rather than fading in at full value, which is what every other number on the
-  // page does (MetricRow, RankBoard, the studios). Rounded off the eased clock, so the last
+  // page does (MetricRow, the studios). Rounded off the eased clock, so the last
   // digit settles.
   const p = useAnimeClock(active, big ? 1200 : 900);
   const bar =

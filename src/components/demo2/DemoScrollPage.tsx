@@ -798,7 +798,7 @@ function Stat({
   lg?: boolean;
 }) {
   // Counts up rather than fading in at full value, which is what every other number on the
-  // page does (MetricRow, RankBoard, the studios) — these three were the only headline
+  // page does (MetricRow, the studios) — these three were the only headline
   // figures that just appeared, and next to a self-drawing arc that read as a static image
   // dropped into a moving page. Rounded off the eased clock, so the last digit settles.
   // Off its own arrival, not the section's: the hook tile sits ~720px below §02's top edge

@@ -44,7 +44,7 @@ passes and agree with its taste.
       promotable without a rewrite. The keeper of that family already exists:
       `tools/demo/shoot.mjs`, which takes out-dir and URL as argv.
 
-- [ ] Delete `src/components/demo2/RankBoard.tsx` (128 lines) and
+- [x] Delete `src/components/demo2/RankBoard.tsx` (128 lines) and
       `src/components/demo2/RegionTable.tsx` (101 lines). Neither is imported
       anywhere in `src` — the only occurrences of either name in the repo are
       three prose comments (`DemoScrollPage.tsx:801`, `useReveal.ts:20`,

@@ -17,8 +17,9 @@ export function prefersReducedMotion(): boolean {
 //
 // Section reveals on the section's top edge, which for anything sitting below the first
 // screen of a tall section is seconds of scroll before the thing itself is on camera: the
-// five-arc overlay's race finished ~8.8s before its first pixel, and RankBoard's ended
-// 0.05s before its (measured at 1440x900, scrolled at 109px/s).
+// five-arc overlay's race finished ~8.8s before its first pixel (measured at 1440x900,
+// scrolled at 109px/s); DemoScrollPage's stat tiles hit the same thing, which is why they
+// call this too.
 //
 // NOT a ratio, for the reason Section.tsx:26-31 already documents: an IntersectionObserver
 // threshold is a fraction of the TARGET's area, so `threshold: 0.22` fires when a tall
