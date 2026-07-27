@@ -86,6 +86,9 @@ type SectionDef = {
   lede: string;
   fullOnly?: boolean;
   unnumbered?: boolean;
+  /** Set the heading at hero size. The lines asked for by name, because they are the argument
+   *  the walkthrough is making out loud rather than a caption for the figure below them. */
+  feature?: boolean;
   body: (revealed: boolean) => React.ReactNode;
 };
 
@@ -131,12 +134,13 @@ export default function DemoScrollPage({
   // latch resettable (it is depended on by every other consumer), the hero gates on the latch
   // AND a local arm flag that IntroCue drops and raises around its pause: blank while the
   // recorder is being started, then built on cue, so the take opens on the headline arriving.
-  // /demo builds its hero on arrival like any other page. /demo-short starts BLANK and waits
-  // for the intro control, because "the first animation happens when I want it to, not when I
-  // open the page" is the whole reason that control exists: a hero that builds during
-  // hydration has always already finished by the time a screen recorder is running.
-  const [heroArmed, setHeroArmed] = useState(variant === "full");
-  const heroOn = heroIn && heroArmed;
+  // Three states, not two, and the middle one is the whole point. "rest" is a finished hero
+  // with every transition suppressed: nothing has animated, but nothing is missing either, so
+  // anyone opening the link sees a page rather than a white void. "blank" is the recorder
+  // window the intro control opens, and it is a cut, not a fade. "build" is the arrival.
+  // /demo never leaves "build": it has no intro control and should behave like any other page.
+  const [heroPhase, setHeroPhase] = useState<"rest" | "blank" | "build">(variant === "full" ? "build" : "rest");
+  const heroOn = heroIn && heroPhase !== "blank";
   // Everything below the header is keyed on this, so a click on the intro control remounts the
   // whole narrative and every reveal latch inside it goes back to false. That is the only way
   // to get a genuinely COLD page for a retake: the latches are permanent by design (a figure
@@ -145,14 +149,14 @@ export default function DemoScrollPage({
   // here — the page is a static document, and the scroll is pinned to the top when it happens.
   const [takeId, setTakeId] = useState(0);
   const introCue = useCallback((cue: "reset" | "build") => {
-    if (cue === "build") { setHeroArmed(true); return; }
-    setHeroArmed(false);
+    if (cue === "build") { setHeroPhase("build"); return; }
+    setHeroPhase("blank");
     setTakeId((n) => n + 1);
   }, []);
   // Transitions run in BOTH directions, so sharing one would fade the hero out over a second
-  // before rebuilding it — the recording would open on the page dissolving. Suppressed while
-  // blanked, so the reset is a cut and only the build is animated.
-  const heroT = (t: string) => (heroArmed ? t : "none");
+  // before rebuilding it — the recording would open on the page dissolving. Only "build" gets
+  // a transition, which makes the blanking a cut and leaves "rest" completely still.
+  const heroT = (t: string) => (heroPhase === "build" ? t : "none");
 
   // §01's body, gated on its own arrival rather than on the section's. The two region cards
   // are timed against TwoRegionBrain's internal stages (880ms and 1260ms against the frames
@@ -281,6 +285,7 @@ export default function DemoScrollPage({
       // it the page argues that attention is two networks and then shows a third lane
       // (language) on §02's arc with nothing that ever explains what it is.
       eyebrow: "Comprehension",
+      feature: true,
       heading: <>Did the brand actually <span className="font-serif font-normal italic">land</span>?</>,
       lede: "A held gaze is worthless if the product never registers. Soma reads the ad's own words: on screen via text recognition, out loud via speech recognition. When the campaign is named and the language cortex confirms it registers, the score rises.",
       body: (revealed) => (
@@ -588,7 +593,7 @@ export default function DemoScrollPage({
       {sections.map((sec, i) => (
         <Fragment key={sec.key}>
           {sec.anchor ? <div id={sec.anchor} className="scroll-mt-[68px]" /> : null}
-          <Section n={sec.n} eyebrow={sec.eyebrow} heading={sec.heading} lede={sec.lede} tint={i % 2 === 0}>
+          <Section n={sec.n} eyebrow={sec.eyebrow} heading={sec.heading} lede={sec.lede} tint={i % 2 === 0} feature={sec.feature}>
             {sec.body}
           </Section>
         </Fragment>

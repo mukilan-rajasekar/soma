@@ -11,9 +11,17 @@
 // which means it is always already finished by the time a screen recorder is running, and
 // the take opens on a page that has stopped moving. This button moves that moment under the
 // founder's thumb: click it and the page resets cold (every reveal latch cleared, scrolled
-// to the top, hero blank), the control fades out of shot, and after CUE_MS of deliberate
+// to the top, hero blanked), the control fades out of shot, and after CUE_MS of deliberate
 // stillness the hero builds. That gap is the window to get the pointer out of frame and let
 // the recorder settle, and it is also trimmable dead air if the take starts late.
+//
+// AT REST THE PAGE IS FINISHED, NOT EMPTY. The first version of this held the hero blank from
+// load until the button was pressed, on the reasoning that nothing should animate before it is
+// asked to. What that produced was a white void with a marquee floating in it and a small
+// control in the corner, which reads as a page that failed to load — and it is the first thing
+// anyone opening the link sees. The cue is about MOTION, not content: "rest" shows the hero
+// complete with every transition suppressed, so nothing has animated and nothing is missing.
+// Only the click blanks it, and only for the length of the pause.
 //
 // It re-arms itself, because takes get retried: scroll away and come back to the very top
 // and the control is there again, and clicking it starts a genuinely cold take rather than a
@@ -34,7 +42,7 @@ export default function IntroCue({
 }: {
   scrollRef: React.RefObject<HTMLElement | null>;
   /** "reset" at click (blank the hero, clear every reveal, go cold) and "build" at CUE_MS
-   *  (run the hero's arrival). */
+   *  (run the hero's arrival). Before either, the page sits at rest: complete, unanimated. */
   onCue: (cue: "reset" | "build") => void;
 }) {
   const [phase, setPhase] = useState<Phase>("idle");

@@ -19,9 +19,16 @@ type Props = {
   lede?: React.ReactNode;
   children?: (revealed: boolean) => React.ReactNode;
   tint?: boolean;
+  /** Promote this heading to the size the hero uses. For the two or three lines in the
+   *  walkthrough that are the ARGUMENT rather than a label for the figure under them: they
+   *  are what the founder says out loud, and at section size they were set in the same type
+   *  as six other headings and carried no more weight than any of them. A flag rather than a
+   *  one-off class, because the list of promoted lines is a content decision that will grow,
+   *  and it should be made in the section list where the copy is, not in the markup. */
+  feature?: boolean;
 };
 
-export default function Section({ n, eyebrow, heading, lede, children, tint }: Props) {
+export default function Section({ n, eyebrow, heading, lede, children, tint, feature }: Props) {
   // Triggered on the section's top edge crossing 75% of the viewport, NOT on a visible-area
   // ratio. `threshold: 0.25` made the trigger point depend on section height: 25% of a
   // 1,187px section is ~300px of scroll, 25% of a 514px section is ~128px, so sections
@@ -55,7 +62,7 @@ export default function Section({ n, eyebrow, heading, lede, children, tint }: P
         ) : null}
         {heading ? (
           <h2
-            className="max-w-[20ch] text-balance text-section text-ink"
+            className={`text-balance text-ink ${feature ? "max-w-[15ch] text-hero" : "max-w-[20ch] text-section"}`}
             style={{ opacity: revealed ? 1 : 0, transform: revealed ? "none" : "translateY(8px)", transition: "opacity .6s .05s, transform .6s .05s" }}
           >
             {heading}
