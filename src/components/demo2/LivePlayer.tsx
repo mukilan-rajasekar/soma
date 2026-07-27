@@ -157,9 +157,20 @@ export default function LivePlayer({
           progress={1}
           playhead={t}
           height={168}
+          // Third time this page would have drawn the same three-lane legend, and by the
+          // section that plays the actual footage a reader has met the lanes twice already:
+          // in the hero card and under the arc in the hook beat, where the legend is the
+          // teaching moment and belongs. Repeating a legend that has been read is 120px of
+          // cost with no information in it.
+          showLegend={false}
         />
 
-        <p className="text-[13.5px] leading-[1.55] text-ink-2">{ad.reads.soma} {ad.reads.hook}</p>
+        {/* reads.soma only. This used to print `{reads.soma} {reads.hook}`, and on both routes
+            `reads.hook` for this same ad is already the whole read-out card in the hook beat —
+            so the one sentence a viewer had read most carefully on the page came back at them
+            word for word, which on a short page reads as a duplicated component rather than as
+            reinforcement. The verdict line is the one that belongs next to a playing clip. */}
+        <p className="text-[13.5px] leading-[1.55] text-ink-2">{ad.reads.soma}</p>
       </div>
     </div>
   );

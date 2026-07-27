@@ -68,6 +68,7 @@ import VendorChecklist from "./VendorChecklist";
 import GenerateStudio from "./GenerateStudio";
 import CorpusWall from "./CorpusWall";
 import BatchOverlay from "./BatchOverlay";
+import LaneSplit, { type SplitMoment } from "./LaneSplit";
 import EditStudio from "./EditStudio";
 import { BRAND } from "./studio";
 import { fmtT, type Ad, type Report } from "./types";
@@ -76,6 +77,31 @@ import type { PreflightReport } from "../preflight/types";
 // "full" is /demo — the long-form page a cold reader lands on. "short" is /demo-short, the
 // recording surface: seven beats, scrolled by hand and narrated.
 export type DemoVariant = "short" | "full";
+
+// ── §01's provenance chips ──────────────────────────────────────────
+//
+// The three most credibility-bearing facts the company owns, and until now none of them was
+// on either demo route: they lived on /science, which almost nobody who watches a three-minute
+// walkthrough ever opens. Each traces to something in this repository, which is the only
+// reason any of them is here:
+//   TRIBE v2 / real fMRI     docs/strategy/VISION.md, SiteFooter.tsx, publish_to_supabase.py
+//   1st of 263 teams         docs/GTM/YC-APPLICATION.md ("Algonauts 2025, first out of 263")
+//   20,484 points at 1 Hz    docs/science/PREREGISTRATION.md ("all 20484 vertices", "1 Hz arc")
+// The model is Meta's and the benchmark result is Meta's; the chips say so in that order, for
+// the same reason YC-APPLICATION.md insists on it. Deliberately no scanner field strength: 3T
+// is a property of the Algonauts dataset that nothing in this repo states, and a chip is only
+// worth its space if every word of it survives being looked up.
+const PROVENANCE = [
+  "Meta's TRIBE v2, benchmarked against real fMRI",
+  "1st of 263 teams, Algonauts 2025",
+  "20,484 cortical points, once a second",
+] as const;
+
+/** The still cut from `ad`'s own clip at second `t`, under public/demo/split. */
+const stillFor = (ad: Ad, t: number) =>
+  ad.video
+    .replace("/campaign/", "/demo/split/")
+    .replace(/\.mp4$/, `_${String(t).padStart(2, "0")}.jpg`);
 
 type SectionDef = {
   key: string;
@@ -133,6 +159,20 @@ export default function DemoScrollPage({
     for (let i = 1; i < Math.min(n, v.length); i++) if (v[i] > v[best]) best = i;
     return hookAd.timestamps[best] ?? 0;
   })();
+
+  // The two seconds §01's split figure reads. Chosen by looking at heroAd's lanes: 0:05 is
+  // where the surprise network runs furthest ahead of the attention network in this cut, and
+  // 0:22 is where that reverses hardest. They are FIXED here rather than recomputed on every
+  // render for one reason — the stills have to exist on disk, and a moment derived at render
+  // time would point at a frame nobody cut. The numbers printed beside them are read from the
+  // lanes every time (see LaneSplit), and the figure removes itself if a rebuilt report ever
+  // stops the two moments disagreeing, so the pairing cannot go quietly false either way.
+  // The stills are pulled from heroAd's own video path, so promoting a different cut to the
+  // hero cannot leave this pointing at the old ad's frames.
+  const splitMoments: [SplitMoment, SplitMoment] = [
+    { t: 5, src: stillFor(heroAd, 5), caption: "the hood comes out of the box" },
+    { t: 22, src: stillFor(heroAd, 22), caption: "held steady, brand on screen" },
+  ];
 
   const [heroRef, heroIn] = useReveal<HTMLDivElement>({ threshold: 0.2 });
   // The hero build is replayed for the recording. useReveal latches `revealed` permanently —
@@ -197,7 +237,10 @@ export default function DemoScrollPage({
       anchor: "science",
       eyebrow: "The science",
       heading: <>Attention isn&rsquo;t one thing. Different regions do <span className="font-serif font-normal italic">different</span> jobs.</>,
-      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself: two networks, measured separately.",
+      // "two networks" was wrong about the page it opens. §02's arc draws three lanes and §03
+      // is entirely the third one, so the beat that introduces the read-out was naming two of
+      // the three things the next two beats measure.
+      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself: three networks, read separately, once a second for the whole runtime.",
       // The two cards are timed against the figure beside them, not against each other: the
       // dorsal card arrives as the dorsal region lights (TwoRegionBrain's STAGE.dorsal opens
       // at 0.42 of a 2100ms build ≈ 880ms) and the ventral card as the ventral one does
@@ -205,6 +248,32 @@ export default function DemoScrollPage({
       // having both; two cards sliding in on a generic 80ms stagger would have been motion
       // for its own sake.
       body: (revealed) => (
+        <div>
+        {/* The provenance, three chips, at the top of the beat that asks to be believed. Every
+            one of these is checkable and none of them was on this route: the strongest
+            credibility facts the company owns lived on /science, which most people watching a
+            three-minute walkthrough will never open. Sourced, in order:
+            docs/strategy/VISION.md and SiteFooter (TRIBE v2, Meta, benchmarked vs real fMRI),
+            docs/GTM/YC-APPLICATION.md (1st of 263 teams, Algonauts 2025) and
+            docs/science/PREREGISTRATION.md (20,484 vertices, the 1 Hz arc).
+            NOT "3T": the scanner field strength is a property of the Algonauts dataset that
+            this repository nowhere states, and the chips are only worth having if every one of
+            them survives being looked up. */}
+        <div className="mb-7 flex flex-wrap gap-2">
+          {PROVENANCE.map((c, i) => (
+            <span
+              key={c}
+              className="rounded-badge border border-line-2 px-3 py-[7px] text-[12px] leading-none text-ink-2"
+              style={{
+                opacity: revealed ? 1 : 0,
+                transform: revealed ? "none" : "translateY(6px)",
+                transition: `opacity .5s ${120 + i * 90}ms, transform .5s ${120 + i * 90}ms`,
+              }}
+            >
+              {c}
+            </span>
+          ))}
+        </div>
         <div ref={scienceRef} className="grid grid-cols-1 items-stretch gap-8 md:grid-cols-[1fr_360px]">
           {/* Stacked, not side by side. Two short cards next to a ~390px figure left a 130px
               hole above them and another below: the beat's own frame had a void in the middle
@@ -256,6 +325,33 @@ export default function DemoScrollPage({
                 Do not raise this to "give the brain room". It has the room; it cannot use it. */}
             <TwoRegionBrain3D active={revealed && scienceIn} height={290} />
           </div>
+        </div>
+
+        {/* The third lane, queued rather than presented. Deliberately NOT a third RegionCard:
+            the two above it are the networks this beat's figure actually lights, and the two
+            columns beside them are tuned to the same height (see the grid note above), so a
+            third peer card would both break that and claim the cortex render shows something
+            it does not. Dashed and low-contrast reads as "coming", which is the truth — §03 is
+            entirely this lane. The triad is established before §02 draws all three arcs, which
+            is the point: it stops §02 introducing a metric §01 never mentioned. */}
+        <div
+          className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-2xl border border-dashed border-line-2 px-4 py-3"
+          style={{
+            opacity: revealed && scienceIn ? 1 : 0,
+            transition: "opacity .55s 1640ms",
+          }}
+        >
+          <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-ink-3" />
+          <span className="text-ui font-medium text-ink-2">Comprehension</span>
+          <span className="text-[11px] uppercase tracking-[0.06em] text-ink-3">
+            association cortex
+          </span>
+          <span className="ml-auto text-[12.5px] text-ink-3">
+            where meaning gets built · read in 03
+          </span>
+        </div>
+
+        <LaneSplit ad={heroAd} moments={splitMoments} active={revealed} />
         </div>
       ),
     },
@@ -474,6 +570,29 @@ export default function DemoScrollPage({
             <Stat big lg value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
           </div>
           <CorpusWall batch={batch} active={revealed} />
+          {/* The one thing on this route that did not work, next to the tile that claims 92%.
+              Every figure on the page until here moves the right way: scores climb, the edit
+              adds points, the top candidate wins, the losers get culled. A page on which
+              nothing ever misses is a page a technical reader discounts wholesale, and this
+              company happens to own the strongest possible answer to that — a pre-registered
+              test with a null outcome, published rather than buried. It was on /demo only,
+              inside the vendor checklist, which is the section a narrated walkthrough drops
+              because it is five questions to read aloud. The claim survives on its own in one
+              sentence, and it belongs under the accuracy number rather than anywhere else.
+              Wording is VendorChecklist's, deliberately: that answer is already the vetted
+              phrasing and the two must not drift. Source: docs/science/PREREGISTRATION.md
+              (Stouffer p ~ 0.69 across 15 videos) and validation/…/retention_head_roi.json. */}
+          <Rise on={revealed} delay={900}>
+            <p className="mt-6 max-w-[74ch] text-[13px] leading-[1.6] text-ink-3">
+              And the one we published that did not work: retention, tested against real
+              most-replayed data. It came back null. It sits on{" "}
+              <Link href="/science" className="text-ink underline decoration-line-2 underline-offset-[3px] transition-colors hover:decoration-ink">
+                the science page
+              </Link>{" "}
+              next to everything that did work, because a read-out you cannot check is not a
+              read-out.
+            </p>
+          </Rise>
         </div>
       ),
     },
@@ -597,6 +716,13 @@ export default function DemoScrollPage({
                 // widths its top sits just below the 55% line at scrollTop 0, which would
                 // leave the hero holding an empty chart until the take started moving.
                 eager
+                // No legend on the hero card. The lanes get named properly one screen later,
+                // in §01, which is the section that exists to name them, and then explained
+                // under §02's arc where all three are drawn; printing the same six lines here
+                // first made the hero card a figure with a key attached and pushed the score
+                // out of the opening frame. A viewer meets the curves here and learns what
+                // they are immediately after, which is the right order.
+                showLegend={false}
                 height={172}
               />
             </div>
@@ -657,6 +783,19 @@ export default function DemoScrollPage({
               seconds of generate-and-edit that immediately precede it. */}
           <p className="mx-auto mt-6 max-w-[44ch] text-body text-ink-2">
             Send us your batch. We rank it, diagnose it, and give you back the cut that wins.
+          </p>
+          {/* What the intake actually is. The page spends three minutes proving the read-out
+              and then closed without ever saying what a customer hands over or how long it
+              takes, so the last thing a viewer saw was a promise with no mechanics attached.
+              Both halves are checkable rather than aspirational: src/lib/upload.ts pins
+              ACCEPT_ATTR to "video/mp4" and MAX_UPLOAD_BYTES to 150MB, so mp4 is the literal
+              and only thing the product accepts, and "hours, not a research cycle" is
+              ServiceTiers' own line, which /demo already carries.
+              NO PRICE, on purpose. Every tier is sold in a conversation right now and
+              ServiceTiers records the decision not to print one; a number invented for a
+              closing frame is exactly the kind this repo calls a bug. */}
+          <p className="mx-auto mt-3 max-w-[46ch] text-[13.5px] leading-[1.6] text-ink-3">
+            An mp4 per cut is the whole intake. Turnaround in hours, not a research cycle.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link href="/" className="rounded-xl bg-ink px-6 py-[15px] text-ui font-medium text-white transition-colors hover:bg-ink/85">

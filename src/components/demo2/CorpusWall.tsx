@@ -28,6 +28,9 @@ export default function CorpusWall({ batch, active }: { batch: Ad[]; active: boo
   // already finished.
   const [ref, framed] = useReveal<HTMLDivElement>(ON_SCREEN);
   const on = active && framed;
+  const scores = batch.map((a) => a.scores.soma);
+  const hi = Math.max(...scores);
+  const lo = Math.min(...scores);
   return (
     <div ref={ref} className="mt-8">
       <div className="grid grid-cols-5 gap-2.5 sm:grid-cols-10">
@@ -62,9 +65,20 @@ export default function CorpusWall({ batch, active }: { batch: Ad[]; active: boo
           </figure>
         ))}
       </div>
-      <div className="mt-4 text-[13px] leading-[1.6] text-ink-2">
-        Ten of them, as they came in, under the Soma score each one came back with. Nothing here
-        was made for this page.
+      {/* The range, stated. Ten bare numbers in a row is a texture; the same ten with their
+          span named is a distribution, and it is the only thing on the page that gives the
+          generated scores upstream anything to be measured against. It also closes a gap a
+          careful reader will find on their own: these ten run lower than the five generated
+          cuts, and unexplained that reads as two grids on two different scales. They are on
+          ONE scale — build_report.py's score_ad() is the single place the weights live and
+          every ad here goes through it — so the honest move is to say so and let the
+          comparison be the claim. Both numbers come off the batch rather than being typed,
+          so a rebuilt report cannot leave this sentence describing the old one. */}
+      <div className="mt-4 max-w-[74ch] text-[13px] leading-[1.6] text-ink-2">
+        Ten of them, as they came in, under the Soma score each one came back with. They run{" "}
+        <span className="tabular-nums text-ink">{hi}</span> down to{" "}
+        <span className="tabular-nums text-ink">{lo}</span> on the same 0-100 the generated cuts
+        were scored on, by the same model. Nothing here was made for this page.
       </div>
     </div>
   );
