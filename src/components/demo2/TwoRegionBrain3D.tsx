@@ -281,10 +281,17 @@ export default function TwoRegionBrain3D({ active = true, height = 320 }: Props)
       uBreathV: { value: 1 },
       // A pale cloud: ink-3 lifted most of the way to the hairline grey. Lighter than the
       // hero's cortex on purpose — here the dots are background, not the subject.
-      uGrey: { value: literalColor(tokens.ink3).lerp(literalColor(tokens.line2), 0.52) },
+      // Pushed paler and fainter than it was (0.52 / 0.55). At 1:1 the old cloud was fine, but
+      // this figure is watched at ~640px in the recording, and there the two lit patches were
+      // a slightly darker smudge inside a grey mass: the beat whose entire claim is "two
+      // networks, measured separately" could not show two networks. Nothing about the regions
+      // themselves changed, which matters — their size is anatomy, not a design decision. Only
+      // the field they sit in got quieter, so the same patches read as figure instead of as
+      // texture. Verified at 640px, not at 1:1.
+      uGrey: { value: literalColor(tokens.ink3).lerp(literalColor(tokens.line2), 0.7) },
       uDorsal: { value: literalColor(tokens.ink) },
       uVentral: { value: literalColor(tokens.accent2) },
-      uBaseAlpha: { value: 0.55 },
+      uBaseAlpha: { value: 0.44 },
       uLitAlpha: { value: 1.0 },
       uFarFade: { value: FAR_FADE },
       uFarFadeLit: { value: FAR_FADE_LIT },

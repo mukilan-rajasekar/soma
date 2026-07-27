@@ -84,3 +84,33 @@ whole project gets traced for /preflight.
 note: two new untracked root scratch files (_sq.mjs, _text2.mjs) appeared mid-iteration
 from the concurrent session — not mine, left alone; loop.sh's `git add -A` will sweep
 them in. The existing backlog item about root scratch scripts now covers four files.
+
+## 2026-07-27 — Add the first test_*.py for the Python pipeline
+changed: test_head_io.py (new)
+why: the pytest step in scripts/verify.sh was dormant — it skips until a test_*.py
+exists — so nothing in the Python pipeline was gated at all. Chose head_io.py's
+saved-head contract as the first target because it is pure, imports in 0.05s, and
+every claim the module makes rests on it: masks are packed INSIDE the head file so
+the feature definition cannot drift between fit and apply. 8 tests: pack/unpack is
+lossless for a 20484-vertex mask; packbits' byte padding is sliced back off (a
+length of 20481 must not gain phantom trailing vertices); a tampered n_true is
+rejected rather than silently redefining the features; save/load roundtrips weights,
+intercept, alpha, shot_sec, baseline_col and both masks; the serialized
+feature_names layout is asserted against what train_head.pool_features actually
+emits (2 cols/mask + baseline last), so changing the pooling breaks the test instead
+of shipping stale names; clean_stamp maps NaN/±Inf to None; and a null head's file
+is checked to contain no literal NaN/Infinity token. Fast gate green, pytest step
+now runs and passes.
+surprised: three things. (1) Two files already match pytest's default python_files
+via the `*_test.py` half of the pattern — head_null_test.py at the root and
+validation/recheck/C-cognimuse-saliency/saliency_test.py. Arming the gate therefore
+also put those two on the collection path; both import cleanly and define no test
+functions, so `pytest -q` is green, but a future import-time break in either now
+fails the gate for reasons unrelated to the change under test. Worth knowing before
+someone edits them. (2) I wrote a comment claiming json.loads is strict about NaN —
+it is not, Python's json accepts bare NaN and Infinity; only JavaScript's JSON.parse
+rejects them, which is exactly the failure head_io guards against. Fixed the comment
+and kept the raw-text token assertion as the real check. (3) No pytest config exists
+anywhere (no pytest.ini/pyproject/setup.cfg/conftest.py), so collection relies
+entirely on defaults — .venv/ and .next/ are skipped only because norecursedirs' `.*`
+pattern catches them.

@@ -25,7 +25,7 @@ passes and agree with its taste.
       open-graph and twitter images resolve against `http://localhost:3000`,
       which means link previews for /demo and /demo-short are wrong wherever
       they are shared. Use the production origin (usesoma.work).
-- [ ] Add the first `test_*.py` for the Python pipeline. Pick one pure,
+- [x] Add the first `test_*.py` for the Python pipeline. Pick one pure,
       dependency-free function (start with `head_io.py` or the mask-shaping
       logic in `build_roi_mask.py`) and test it against a small fixture.
       This is the highest-leverage item in the file: the pytest step in

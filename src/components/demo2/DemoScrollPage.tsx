@@ -174,7 +174,13 @@ export default function DemoScrollPage({
       // for its own sake.
       body: (revealed) => (
         <div ref={scienceRef} className="grid grid-cols-1 items-center gap-8 md:grid-cols-[1fr_360px]">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Stacked, not side by side. Two short cards next to a ~390px figure left a 130px
+              hole above them and another below: the beat's own frame had a void in the middle
+              of it. Stacked, the left column is close to the figure's height and the row reads
+              as two columns rather than as a figure with something small parked beside it. It
+              also survives the downscale better, since each card is now full column width
+              instead of half. */}
+          <div className="grid grid-cols-1 gap-4">
             <RegionCard
               title="Dorsal attention"
               tag="IPS · FEF · superior parietal"

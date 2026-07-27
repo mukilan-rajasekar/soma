@@ -132,6 +132,11 @@ function buildPlan(m: HTMLElement): Stop[] {
   type F = { top: number; bot: number; sec: HTMLElement; h2d: { top: number; bot: number } | null;
              chromeOnly: boolean; textOnly: boolean; hasH2: boolean };
   const frames: F[] = [];
+  // Every section's bottom edge, beat or not. The debris clamp below needs this because the
+  // things that end up sliced across the top of a frame are not only previous BEATS: the beta
+  // marquee is skipped as "a band, not a beat" and therefore has no frame of its own, so a
+  // clamp that only knew about frames let it sit at the top of the science beat.
+  const sectionBots = [...m.querySelectorAll<HTMLElement>("section")].map((s) => doc(s).bot);
   for (const sec of m.querySelectorAll<HTMLElement>("section")) {
     const inner = sec.querySelector(":scope > div") ?? sec;
     const id = doc(inner);
@@ -207,10 +212,13 @@ function buildPlan(m: HTMLElement): Stop[] {
     // capped at `ceil`, so it can only ever tighten the frame inside the band the constraints
     // above already agreed on: it can never push this beat's own heading under the header, and
     // it can never drop below the gate floor, because it only raises s.
-    if (fi > 0) {
-      const prevBot = frames[fi - 1].bot;
-      s = Math.max(s, Math.min(ceil, prevBot - hdr + CLEAR));
-    }
+    // `prevBot` is the lowest edge of everything that belongs to an EARLIER beat: the previous
+    // frame, plus any whole section that has already finished above this frame's top. The
+    // second term is what catches the marquee, which is not a beat and so never appears in
+    // `frames` at all.
+    const doneAbove = sectionBots.filter((b) => b <= f.top + 4);
+    const prevBot = Math.max(fi > 0 ? frames[fi - 1].bot : -1e9, ...(doneAbove.length ? doneAbove : [-1e9]));
+    if (prevBot > -1e9) s = Math.max(s, Math.min(ceil, prevBot - hdr + CLEAR));
     let fix: number | null = null;
     for (const b of straddlers) {
       if (b.paint > s) continue; // not painted yet — at opacity 0 it cannot be "cut"
