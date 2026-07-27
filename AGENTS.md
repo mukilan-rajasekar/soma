@@ -22,3 +22,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `pearson`'s zero-variance guard is exact `std()==0`; residualized constants slip through.
 - Constant first-diffs make score_r NaN: linear test arcs need curvature.
 - Pipeline guards raise SystemExit; head_io raises ValueError — check before `pytest.raises`.
+- numpy 2.5 in `.venv`: `arr.ptp()` is gone, only `np.ptp(arr)` works.

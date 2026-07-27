@@ -537,3 +537,39 @@ are most load-bearing. Every failure mode in this file is silent by construction
 there is no shape error, no exception, no wrong-looking number downstream, just a
 mask over the wrong cortex. That is exactly the shape of bug a gate catches and a
 human review does not.
+
+## 2026-07-27 — Add test_head_badge.py: pin the fail-closed badge_text ladder and the to_unit/to_signed display mappings in head_io.py
+changed: test_head_badge.py (new, 36 tests), .claude/loop/{BACKLOG.md,LAST_TASK}, AGENTS.md
+why: test_head_io.py stops at save/load/pack, so the half of head_io a human
+actually reads was unexecuted: badge_text (the gate head_apply refuses on) and
+to_unit/to_signed (the only two functions between a head's raw output and the
+numbers in arc_<id>.json). Every rung of badge_text is an honesty claim, and each
+must fail CLOSED — absence of evidence must never read as evidence of validation.
+Every property the item named held as measured. One correction: to_signed is not
+open-bounded in (-1,1). A zero MAD falls back to a scale of 1.0 and float tanh
+saturates, so [5,5,5,5,5,100] returns exactly 1.0; the assertion is the closed
+bound. Added beyond the item, in rough order of how much they close: a null head
+SAVED and RELOADED must be unvalidated (clean_stamp rewrites NaN to None, so None
+— not NaN — is what badge_text sees in production, and that composition had never
+been run); the four statuses are exactly head_apply's STATUS_RANK keys, and since
+.get(s, 0) sends an unknown status to the WORST rank, a rename there silently
+demotes a lane rather than erroring; leak_check must be the exact lowercase
+"pass", so "PASS"/"passed"/True are all poisoned; the poison gate outranks a
+perfect stamp and does not print the inflated r; a missing n_videos is smoke while
+a numeric string still counts; and the badge never renders the word "None". For
+to_unit the percentile window is the whole point — a 1e6 spike clips to 1.0 while
+the bulk keeps the full lane and the median stays at 0.5, where min-max would
+crush it to ~1e-4. Then checked the suite bites rather than trusting green: 13
+hand mutations to head_io.py (poison gate on FAIL only, leak_check defaulting to
+"pass", smoke threshold 5, >=/or in the is_real test, unreadable stamp treated as
+real, n-parse failure to 99, both non-finite guards dropped, min-max, clip
+dropped, zero-MAD fallback dropped, tanh dropped, mean for median) each turn it
+red; source restored clean. Fast gate green: 107 pytest in 1.16s.
+surprised: two things. (1) Pinning a flat input needed a judgment call the other
+test files did not. to_unit on a constant series returns all-zeros — flat at the
+FLOOR of the lane, not the middle — because (a-lo) is 0 and the +1e-9 is only a
+divide guard. That is arguably wrong for a display lane, but it is a design choice
+rather than a contract, so the test asserts the invariant (flat, finite, in range)
+and leaves the floor value to a comment. Asserting 0.0 would have enshrined it.
+(2) numpy 2.5 removed ndarray.ptp() — arr.ptp() is an AttributeError now, only
+np.ptp(arr) works. Cost a probe run.

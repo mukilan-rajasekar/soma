@@ -283,7 +283,7 @@ Three constraints that apply to all of them:
       (hemisphere swap, case-sensitive match, reversed substring direction, deleted empty
       guard, deleted parcel-count guard, plain `np.load`, label-index off-by-one) each
       turn the file red; the source was restored clean afterwards.
-- [ ] Add `test_head_badge.py` for `head_io.badge_text` + the display mappings —
+- [x] Add `test_head_badge.py` for `head_io.badge_text` + the display mappings —
       the half of `head_io.py` that `test_head_io.py` does NOT cover (it stops at
       save/load/pack). `badge_text` is the gate `head_apply` refuses on, and it is
       a fail-closed ladder worth pinning at every rung: a stamp with NO
@@ -295,6 +295,37 @@ Three constraints that apply to all of them:
       demo JSON cannot carry NaN), and `to_signed` is bounded in (-1,1), maps the
       median to ~0, and survives an all-identical input without dividing by a zero
       MAD.
+      Shipped as 36 tests; every rung the item named held exactly — no `leak_check`
+      key and `leak_check="FAIL"` both give `poisoned`, `n_videos=5` gives `smoke`,
+      `median_r<=0` and `stouffer_p>=0.05` give `unvalidated`, a non-numeric
+      `median_r` never reaches `learned-hypothesis`, `to_unit` clips into [0,1] and
+      sends every non-finite entry to 0.0, and `to_signed` puts the median at exactly
+      0.0 and survives a zero MAD. One correction: `to_signed` is NOT open-bounded in
+      (-1,1). When MAD is 0 the scale falls back to 1.0 and float `tanh` saturates, so
+      `[5,5,5,5,5,100]` returns exactly 1.0 — the assertion is the closed bound
+      `|out| <= 1`, also checked at 1e300. Added beyond the item: `leak_check` must be
+      the exact lowercase `"pass"`, so `"PASS"`, `"passed"` and `True` are all poisoned
+      (fail-closed on a near miss); the poison gate outranks a perfect stamp AND the
+      poisoned badge does not print the inflated r; all three verdicts
+      `train_head.leak_check()` can return are covered; the smoke boundary is exactly 8;
+      a missing `n_videos` is smoke but a numeric string still counts; the badge never
+      renders the word `None` (unreadable numbers print `?`, a missing dataset prints
+      "the training proxy"); the four statuses are exactly `head_apply`'s `STATUS_RANK`
+      keys, which matters because `.get(s, 0)` there sends an unknown status to the
+      WORST rank — a rename silently demotes a lane instead of erroring; and a null head
+      SAVED and RELOADED is `unvalidated`, which is the composition that actually runs in
+      production (`clean_stamp` rewrites NaN to None, and None is what `badge_text` then
+      reads) and which nothing had executed. For `to_unit` the percentile window is the
+      point: a 1e6 spike clips to 1.0 while the bulk keeps the whole lane and the median
+      stays at 0.5, where min-max would crush it to ~1e-4. Flat input is pinned as an
+      invariant (flat, finite, in range) rather than at its exact floor value, since
+      flat-at-0 vs flat-at-0.5 is a design choice and not a contract. Verified the suite
+      bites: 13 hand-applied mutations to `head_io.py` (poison gate firing only on FAIL,
+      `leak_check` defaulting to "pass", smoke threshold 5, `>=`/`or` in the is_real
+      test, unreadable stamp treated as real, n-parse failure defaulting to 99, both
+      non-finite guards dropped, min-max instead of p2..p98, clip dropped, zero-MAD
+      fallback dropped, tanh dropped, mean instead of median) each turn the file red; the
+      source was restored clean afterwards.
 - [ ] Add `test_affect_head.py` for `_proxy_arc`, the nested baseline the whole
       affect claim is measured against. Small and exact: with a hand-built preds
       array and one mask, `valence` must be the SIGNED mean over the mask (so an

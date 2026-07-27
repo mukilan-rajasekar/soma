@@ -1,1 +1,1 @@
-Add test_build_roi_mask.py: offline, monkeypatched-atlas coverage for the mask-shaping logic in build_roi_mask.py
+Add test_head_badge.py: pin the fail-closed badge_text ladder and the to_unit/to_signed display mappings in head_io.py
