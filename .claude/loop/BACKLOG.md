@@ -130,6 +130,121 @@ passes and agree with its taste.
       `.git/info/exclude` was refused by the sensitive-file guard; harmless, since that
       file is per-machine and `.gitignore` already takes precedence over it.
 
+## Test coverage — the Python pipeline (critique pass, 2026-07-27)
+
+Seven items, one per module, no overlap: each is a single new `test_*.py` that
+can ship on its own. Every assertion below was run against the real code before
+being written down, so the expected values are measured, not guessed.
+
+Three constraints that apply to all of them:
+- **Build fixtures inline.** A fresh clone has no `tests/` (it is gitignored,
+  local-only), so a test that reads `tests/synth/` is green here and red
+  everywhere else. `test_head_io.py` is the pattern to copy.
+- **Never touch the network.** `nilearn` 0.14.0 *is* installed, but every
+  `datasets.fetch_atlas_*` downloads. Monkeypatch the fetcher instead.
+- **Declare `pytest` in `requirements.txt` in the same commit as whichever of
+  these you take first.** It is not in there today — `scipy` and `nilearn` are,
+  `pytest` is not — so `pytest` 9.1.1 exists only because this `.venv` happens to
+  have it. A fresh `pip install -r requirements.txt` produces an environment where
+  `npm test` and `scripts/verify.sh`'s pytest step both fail, which is exactly the
+  playwright-was-extraneous bug from the first iteration of this loop, one language
+  over. One line; it is the precondition for all seven items being runnable
+  anywhere but this machine, so it does not deserve its own iteration.
+
+- [ ] Add `test_honest_corr.py` for the shared stats/alignment core in
+      `honest_corr_timeseries.py`. Highest leverage in this block: all four
+      pipeline modules import from it, and none of it is tested. Four verified
+      properties. (1) `circular_shift_p` enumerates rather than samples when
+      M <= n_perm, so it is deterministic with no RNG — and its honest p-floor is
+      1/(M+1), not 1/(n_perm+1): for `x=y=arange(20.)` with the default
+      `min_shift=3` there are exactly 15 distinct shifts and it returns p=0.0625
+      == 1/16, r=1.0. Assert the floor by that identity, and assert two calls with
+      different `seed=` give the identical p (the enumerate branch ignores seed).
+      (2) `resample_to_grid` bins are HALF-OPEN at the top:
+      `resample_to_grid([0,1,2], [10,20,30], [0,1,2])` returns `[10., 20.]` — the
+      sample sitting exactly on the last edge is dropped. That is load-bearing and
+      undocumented; pin it. Also assert an empty bin comes back NaN, not 0.
+      (3) `_rankdata` averages ties — cross-check against
+      `scipy.stats.rankdata(..., method="average")` (scipy 1.18.0 is in the venv
+      and in requirements.txt). (4) `pearson` returns NaN, never a number, for
+      len<3 and for a zero-variance input.
+- [ ] Add `test_incremental_validity.py`. This module answers "why not just use
+      ffmpeg?", and its central claim — that the partial correlation collapses when
+      the brain arc is only re-deriving the edit — has never been executed by a
+      test. Three verified properties. (1) Construct `z` (the baseline) and make
+      BOTH the brain arc and the human arc equal `z` plus 1% noise: raw rank r is
+      1.000 while `partial_spearman(x, y, z)` drops to 0.14. Assert raw > 0.9 and
+      partial < 0.3 — that is the whole "no lift over baseline" verdict. Then flip
+      it: give the brain arc a signal orthogonal to `z` that the human also has,
+      and assert the partial correlation SURVIVES. (2) `_residualize` returns
+      residuals orthogonal to Z — `abs(res @ z)` is 1.1e-13, so assert < 1e-8.
+      (3) Regression test for the bug `_align`'s docstring describes: pass a
+      baseline whose timebase is a DIFFERENT length from the arc's (39 baseline
+      samples vs 42 arc samples over 20 human shots) and assert it returns
+      `(19,), (19,), (19, 2)` instead of raising. Also assert the both-endpoints-
+      valid contiguity rule: punch a NaN into an interior bin and check the two
+      shots either side of it never produce a diff.
+- [ ] Add `test_train_head.py` for the leakage-safety of the fit machinery.
+      `train_head.py` is what `affect_head.py` reuses wholesale, so a leak here is
+      a leak in both. Three verified properties. (1) `_standardize` is per-video
+      and uses ONLY `good` shots: standardize X, then set a masked-out row to 1e6
+      and standardize again — the good rows must be bit-identical (they are). That
+      is the leakage claim in the docstring, executed. (2) `pool_features` emits
+      exactly 2 columns per mask in `[mean|preds|, mean signed preds]` order —
+      assert with a hand-built 2-mask fixture where the two differ in sign — and
+      raises `ValueError` when a mask length does not match `preds.shape[1]`.
+      (3) `paired_sign_perm` is exact for n<=18: for five equal positive deltas
+      only the all-+ and all-- sign vectors reach the observed mean, so it returns
+      p = 2/32 = 0.0625 exactly, median 0.2. Assert both, and assert n<3 returns
+      NaN rather than a p-value.
+- [ ] Add `test_build_roi_mask.py` — offline, via a monkeypatched atlas. The
+      mask-shaping logic is pure and currently unexecuted; only the fetch is
+      heavy. Monkeypatch `nilearn.datasets.fetch_atlas_surf_destrieux` (the
+      function does `from nilearn import datasets` at CALL time, so patching the
+      module attribute works — verified) with a tiny fake atlas and assert:
+      vertex order is `[left; right]` concatenated in that order; region matching
+      is case-insensitive substring, so `"g_precuneus"` in the atlas matches the
+      `"G_precuneus"` entry in `DMN_REGIONS`; a wrong total length raises
+      `SystemExit` naming 20484; and a region set that matches nothing raises
+      `SystemExit` rather than returning an all-False mask. `build_mask_schaefer1000`
+      takes `n_rois`, so it can be tested with an 8-label fake and no size fiction.
+      Also cover the two pure helpers: `build_mask(n_units=999)` raises `SystemExit`
+      naming both valid spaces, and `detect_n_units` reads 20484 off a
+      `(3, 20484)` `.npy` header by mmap without loading it.
+- [ ] Add `test_head_badge.py` for `head_io.badge_text` + the display mappings —
+      the half of `head_io.py` that `test_head_io.py` does NOT cover (it stops at
+      save/load/pack). `badge_text` is the gate `head_apply` refuses on, and it is
+      a fail-closed ladder worth pinning at every rung: a stamp with NO
+      `leak_check` key returns `"poisoned"` (absence must not be waved through);
+      `leak_check="FAIL"` returns `"poisoned"`; `n_videos=5` returns `"smoke"`;
+      `median_r<=0` or `stouffer_p>=0.05` returns `"unvalidated"`; a non-numeric
+      `median_r` returns `"unvalidated"`, never `"learned-hypothesis"`. Then
+      `to_unit` clips into [0,1] and maps non-finite entries to 0.0 (not NaN — the
+      demo JSON cannot carry NaN), and `to_signed` is bounded in (-1,1), maps the
+      median to ~0, and survives an all-identical input without dividing by a zero
+      MAD.
+- [ ] Add `test_affect_head.py` for `_proxy_arc`, the nested baseline the whole
+      affect claim is measured against. Small and exact: with a hand-built preds
+      array and one mask, `valence` must be the SIGNED mean over the mask (so an
+      all-negative ROI gives a negative arc — assert it actually goes below zero)
+      while `arousal` must be the `|.|` mean (assert the same all-negative input
+      gives a positive arc). Getting these two swapped would silently invert every
+      valence lane, and nothing today would catch it. Also assert `_proxy_arc`
+      returns `None` — not a fabricated zero arc — for a dim with no matching mask,
+      since `head_apply._baseline_series` branches on exactly that None.
+- [ ] Add `test_head_apply.py` for the `arc_<id>.json` contract in `apply_one`.
+      Bigger than the others (it needs a head fixture, which `head_io.save_head`
+      can build in-test) but it is the only writer of the file the demo renders.
+      Four behaviours, all already implemented and all unverified: an existing
+      arithmetic `activation` array is DEMOTED into `arc["baseline"]` with its
+      label, never deleted; an affect-only apply onto an arc whose existing
+      activation length disagrees with `preds.shape[0]` raises `SystemExit` rather
+      than misaligning the lanes; the block-level `arc["affect"]["status"]` is the
+      WORST status among applied dims, so one `smoke` valence head plus one
+      `learned-hypothesis` arousal head yields `smoke`; and the emitted JSON parses
+      with `json.loads(..., parse_constant=<raise>)`, proving `allow_nan=False`
+      held and no bare `NaN` token reached the browser.
+
 ## Done
 
 <!-- completed items get moved down here with their commit sha -->

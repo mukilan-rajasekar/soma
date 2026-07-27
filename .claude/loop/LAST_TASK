@@ -1,1 +1,1 @@
-Record that tests/ is local-only, and stop leaning on an uncommitted .git/info/exclude to hide it — move the durable patterns into .gitignore
+critique pass: test coverage

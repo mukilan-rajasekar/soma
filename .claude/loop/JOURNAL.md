@@ -340,3 +340,47 @@ as the mechanism and my change makes that false — one line replaced, not one a
 as `.claude/`), so that file still lists patterns that `.gitignore` now overrides. That is
 cosmetic — it is per-machine, invisible to the commit, and loses every precedence contest
 with `.gitignore` — but a future iteration reading it will see duplication that is real.
+
+## 2026-07-27 — critique pass: test coverage (Python pipeline)
+changed: .claude/loop/{BACKLOG.md,LAST_TASK,JOURNAL.md}, AGENTS.md (no source touched)
+why: every seeded item was checked, so this is the second critique pass. /health had the
+first turn; of the four lenses that have never run, three (/design-review, /qa-only,
+/devex-review) need a browser and a dev server, and the fourth is the one PROMPT.md says
+is always high value because it widens the gate rather than just describing problems.
+Took that one. Wrote seven items, one per module, deliberately non-overlapping so the loop
+can take them one per iteration without collision: honest_corr_timeseries (the shared
+stats/alignment core all four named modules import), incremental_validity, train_head,
+build_roi_mask, the untested half of head_io (badge_text + the display mappings),
+affect_head._proxy_arc, and head_apply.apply_one. Did not write a single item from
+reading alone — ran every claimed property against the real code first and put the
+MEASURED value in the item, so the implementing iteration inherits the expected number
+instead of rediscovering it: circular_shift_p returns exactly 1/16 for n=20 (15 distinct
+shifts, enumerate branch, no RNG); paired_sign_perm returns exactly 2/32 for five equal
+positive deltas; partial_spearman drops a raw r of 1.000 to 0.14 when both series are the
+baseline; _residualize is orthogonal to 1.1e-13; _align survives a 39-sample baseline
+against a 42-sample arc; _standardize's good rows are bit-identical after a masked-out
+row is set to 1e6. Also confirmed all seven modules import in under 0.1s with nilearn
+present, so none of these tests will be slow. Fixed nothing, per the lens's hard gate.
+surprised: three things. (1) `resample_to_grid` bins are half-open at the TOP and nothing
+says so: resample_to_grid([0,1,2],[10,20,30],[0,1,2]) returns [10., 20.] — a sample
+sitting exactly on the final edge is silently dropped. np.digitize(t,edges)-1 gives
+len(edges)-1 for t == edges[-1], which is never a valid bin index. head_io._shot_edges
+already compensates by ceil-ing the last edge past n_sec ("the last second is never
+dropped"), so the workaround exists and the underlying convention does not. Wrote it into
+the item because a future edit to either side could quietly resurrect it. (2) nilearn
+0.14.0 IS installed here, which I had assumed was the blocker for testing build_roi_mask.
+The real blocker is that fetch_atlas_* downloads. Both builders do `from nilearn import
+datasets` INSIDE the function, so patching the module attribute at call time works — I
+verified the patch lands by watching build_mask_surface reach its own length guard with a
+5-vertex fake atlas. That turns the one module I expected to be untestable into the
+easiest of the seven. (3) scipy 1.18.0 is installed AND in requirements.txt, so _rankdata's
+"matches scipy rankdata 'average'" docstring claim can be asserted against scipy directly
+rather than hand-computed. test_head_io.py avoided scipy; it did not need to.
+note: one finding did not become an item, because the lens is capped at seven and it is a
+one-line fix rather than an iteration's worth of work — `pytest` is not in
+requirements.txt. scipy and nilearn are declared there; pytest 9.1.1 exists only because
+this .venv happens to have it. A fresh `pip install -r requirements.txt` therefore yields
+an environment where `npm test` and verify.sh's pytest step both fail — the identical
+shape to the playwright-was-extraneous bug this loop opened with, one language over.
+Recorded it as a hard prerequisite in the section's constraints block, to be done in the
+same commit as whichever item is taken first, rather than leaving it to be rediscovered.
