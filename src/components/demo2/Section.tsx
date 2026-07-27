@@ -42,7 +42,7 @@ export default function Section({ n, eyebrow, heading, lede, children, tint }: P
       ref={ref}
       className={`scroll-mt-16 border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(40px,6.5vh,76px)] ${tint ? "bg-fill" : "bg-paper"}`}
     >
-      <div className="mx-auto max-w-[980px]">
+      <div className="mx-auto max-w-[1180px]">
         {n || eyebrow ? (
           <div
             className="mb-3 flex items-center gap-2.5 text-[12px] uppercase tracking-[0.1em] text-ink-3"

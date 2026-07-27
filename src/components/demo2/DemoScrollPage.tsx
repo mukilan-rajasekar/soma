@@ -444,7 +444,7 @@ export default function DemoScrollPage({
         ref={heroRef}
         className="relative overflow-hidden px-[clamp(18px,5vw,40px)] pb-[clamp(40px,8vh,80px)] pt-[clamp(40px,9vh,96px)]"
       >
-        <div className="mx-auto grid max-w-[980px] grid-cols-1 items-center gap-10 md:grid-cols-[1.15fr_1fr]">
+        <div className="mx-auto grid max-w-[1180px] grid-cols-1 items-center gap-12 md:grid-cols-[1.1fr_1fr]">
           <div>
             <div
               className="mb-4 text-[12px] uppercase tracking-[0.12em] text-ink-3"
@@ -618,7 +618,7 @@ const ACT_COPY = {
 function ActStrip({ acts }: { acts: { n: string; title: string; body: string; href: string }[] }) {
   return (
     <section className="border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(20px,4vh,34px)]">
-      <div className="mx-auto grid max-w-[980px] grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-3">
+      <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-3">
         {acts.map((a) => (
           <a key={a.href} href={a.href} className="group flex gap-3">
             <span className="mt-[3px] text-[12px] tabular-nums tracking-[0.1em] text-ink-3">{a.n}</span>
@@ -702,7 +702,7 @@ function BrandMark({ brand }: { brand: Brand }) {
 function BetaMarquee() {
   return (
     <section className="border-y border-line bg-fill py-[clamp(24px,5vh,44px)]">
-      <div className="mx-auto mb-[clamp(14px,2.6vh,22px)] max-w-[980px] px-[clamp(18px,5vw,40px)]">
+      <div className="mx-auto mb-[clamp(14px,2.6vh,22px)] max-w-[1180px] px-[clamp(18px,5vw,40px)]">
         <span className="text-[12px] uppercase tracking-[0.12em] text-ink-3">
           Already running ads through the beta
         </span>

@@ -1,1 +1,1 @@
-Make `npm test` fail with the fix instead of a raw shell error: guard the script on a missing .venv and print the create-and-install command
+Fix requirements.txt's numpy pin — it excludes the numpy the gate actually passes under: move the <2.1 C-ABI ceiling into GROUP A prose (it constrains the GPU box, not this file) and give GROUP B a pin that describes this venv

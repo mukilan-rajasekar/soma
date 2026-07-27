@@ -477,7 +477,7 @@ first would pin the build to a numpy nobody actually runs.
       the gate reaches for system python while `npm test` now refuses with guidance. That
       divergence is deliberate — `npm test` is the human-facing command, and system python3
       here has neither pytest nor numpy, so its failure would be the confusing one.
-- [ ] Fix `requirements.txt`'s numpy pin — it excludes the numpy the gate
+- [x] Fix `requirements.txt`'s numpy pin — it excludes the numpy the gate
       actually passes under. Declared: `numpy>=1.26,<2.1` (line 26). Installed in
       `.venv`: **2.5.1**. Verified against the specifier: not satisfied. So a
       fresh `pip install -r requirements.txt` builds an environment two minor
@@ -493,6 +493,25 @@ first would pin the build to a numpy nobody actually runs.
       GROUP B a pin that describes this venv. Do not just delete the ceiling —
       keep the WHY comment intact, it is the reason the constraint exists at all.
       Re-run `npm test` after; the suite is the check.
+      Shipped. The `<2.1` ceiling moved out of GROUP A's requirement lines and into its
+      prose, where the neuralset/tribev2 revision pins already live; GROUP B now declares
+      `numpy>=1.26,<3` with the reason above it, replacing the false "already declared above
+      (>=1.26,<2.1) and is compatible with this group" line. Verified with
+      `packaging.specifiers`: 2.5.1 does NOT satisfy the old pin and DOES satisfy the new
+      one, every uncommented line in the file still parses as a PEP 508 requirement, and
+      the 158 tests are still green.
+      Chose `<3` over deleting the ceiling or raising the floor. No numpy-2-removed name
+      (`np.float_`, `np.in1d`, `row_stack`, `np.product`, ...) and no numpy-2-only name
+      (`np.trapezoid`, `np.vecdot`, `np.strings`, `np.astype`, ...) appears in any of the 33
+      tracked `.py` files, so there is no evidence for moving the 1.26 floor and inventing a
+      `>=2.1` one would be as unmeasured as the pin being replaced. A major boundary is
+      where numpy's C-ABI and public API actually break, so `<3` is a real guard.
+      One thing found on the way that is NOT fixed here, because it is a different bug and
+      this item is scoped to the pin: `torch` (line 31) is still an ACTIVE requirement line
+      in GROUP A, so `pip install -r requirements.txt` pulls a multi-GB CUDA wheel into the
+      CPU venv that the file's own header says to install separately. torch is absent from
+      this `.venv`'s pip list — which is how we know the file has never been installed as
+      written. Commenting it out alongside tribev2/neuralset is worth its own item.
 - [ ] Declare the Node floor. `node_modules/next/package.json` says
       `engines: {"node": ">=20.9.0"}`; soma's own `package.json` has no `engines`
       field and there is no `.nvmrc` (both verified absent). So `npm install` on
