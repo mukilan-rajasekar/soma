@@ -78,4 +78,30 @@ export type Report = {
   campaign: { name: string; variants: Ad[]; shots: ShotDiagnosis; dipId?: string };
 };
 
+/** Where an ad sits in its cohort. Drives colour, which is bound to RANK, not selection. */
+export type AdRole = "best" | "worst" | "mid";
+
+/**
+ * Rank-derived, not id-derived. /preflight's report ships `bestId` / `worstId`; this one
+ * does not — `rank` (1 = best) is the only ordering build_report.py emits, and it is
+ * numbered WITHIN a cohort, so the cohort has to come in alongside the ad. Pass the list
+ * the ad actually belongs to (`report.batch`, or `report.campaign.variants`), never a mix
+ * of the two, or "worst" lands on whichever list happens to be longer.
+ *
+ * A one-ad cohort has no spread to encode, so it stays "mid" rather than being both the
+ * best and the worst thing in it.
+ */
+export function roleOf(ad: Ad, cohort: Ad[]): AdRole {
+  if (cohort.length < 2) return "mid";
+  let best = Infinity;
+  let worst = -Infinity;
+  for (const a of cohort) {
+    if (a.rank < best) best = a.rank;
+    if (a.rank > worst) worst = a.rank;
+  }
+  if (ad.rank === best) return "best";
+  if (ad.rank === worst) return "worst";
+  return "mid";
+}
+
 export const fmtT = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;

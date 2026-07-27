@@ -13,7 +13,8 @@
 
 import { useState } from "react";
 import ArcPlot from "./ArcPlot";
-import { useAnimeClock, useReveal } from "./useReveal";
+import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
+import { tokenVar } from "./tokens";
 import { BRAND, BRIEF, GENERATED, LATTICE, SURVIVORS, rankedDirections } from "./studio";
 import type { Direction } from "./studio";
 import type { Ad, Report } from "./types";
@@ -45,7 +46,12 @@ export default function GenerateStudio({ report, active }: { report: Report; act
   // Section fires at 25% of the SECTION — i.e. when the heading enters — and this section
   // is taller than the viewport, so on a continuous scroll the cull would play out above
   // the fold and be finished before the chart is on camera.
-  const [ref, seen] = useReveal<HTMLDivElement>({ threshold: 0.22 });
+  //
+  // ON_SCREEN rather than the `threshold: 0.22` this used to pass: a threshold is a fraction
+  // of the TARGET's area, so the trigger point moved with the panel's own height (0.22 of
+  // this 806px panel is 177px of it showing, 0.22 of the 240px overlay below it is 53px).
+  // The bottom root margin fires every gated element at one screen position instead.
+  const [ref, seen] = useReveal<HTMLDivElement>(ON_SCREEN);
   const p = useAnimeClock(active && seen, 5200);
   const ranked = rankedDirections(report);
   const [sel, setSel] = useState(0);
@@ -100,7 +106,7 @@ export default function GenerateStudio({ report, active }: { report: Report; act
             >
               <span
                 className="h-px flex-1"
-                style={{ backgroundImage: "repeating-linear-gradient(90deg,#727272 0 5px,transparent 5px 11px)" }}
+                style={{ backgroundImage: `repeating-linear-gradient(90deg,${tokenVar("ink3")} 0 5px,transparent 5px 11px)` }}
               />
               {/* Hidden on phones: at 390px the label sits over the last four columns,
                   and a legend that obscures its own chart is worse than no legend. The
@@ -138,9 +144,8 @@ export default function GenerateStudio({ report, active }: { report: Report; act
           <p className="mt-3.5 max-w-[64ch] text-[13px] leading-[1.55] text-ink-2">
             {culled ? (
               <>
-                Nineteen never reach you. Every candidate goes through the model first on hook,
-                attention and comprehension, and only the cuts that clear the bar are surfaced.
-                <span className="text-ink"> You are shown survivors, not output.</span>
+                Nineteen never reach you. Only the cuts that clear the bar are surfaced.
+                <span className="text-ink"> Survivors, not output.</span>
               </>
             ) : (
               <>Generating against the brand kit, then scoring every candidate before anyone sees it.</>
@@ -182,8 +187,6 @@ export default function GenerateStudio({ report, active }: { report: Report; act
             <span className="tabular-nums text-ink">{ranked[ranked.length - 1]?.ad.scores.soma}</span> to{" "}
             <span className="tabular-nums text-ink">{ranked[0]?.ad.scores.soma}</span> is the difference
             between an ad that works and one that burns the budget, decided before a dollar is spent.
-            Every score here is measured output over real footage: five real cuts of one campaign,
-            scored by the same pipeline that ranked the batch above.
           </p>
         </div>
       </div>
@@ -267,20 +270,28 @@ function BrandCard() {
 
       <div className="mt-3.5 text-[11px] uppercase tracking-[0.1em] text-ink-3">Brand kit</div>
       <div className="mt-2 flex items-center gap-1.5">
+        {/* Rings, not filled discs. These five brand hexes are the loudest colour event in
+            §04, and they sit ~340px above the overlay where green/red stops being decoration
+            and starts being the encoding. Filled, they teach the eye that colour on this
+            section is just brand texture right before the section needs colour to mean rank
+            — and the tan (#c08060) is close enough to the red at a 640px downscale to be read
+            as related to it. An inset ring keeps every hex identifiable at the same 20px
+            while cutting its saturated area by roughly three quarters, so the only filled
+            colour left in §04 is the one that carries meaning. */}
         {BRAND.palette.map((s) => (
           <span
             key={s.hex}
             title={s.name}
             aria-label={s.name}
             className="h-5 w-5 rounded-full border border-line"
-            style={{ background: s.hex }}
+            style={{ boxShadow: `inset 0 0 0 3px ${s.hex}` }}
           />
         ))}
         <span className="ml-1 truncate text-[11.5px] text-ink-3">{BRAND.typeface}</span>
       </div>
       <div className="mt-2.5 flex flex-wrap gap-1.5">
         {BRAND.tone.map((t) => (
-          <span key={t} className="rounded-md border border-line bg-paper px-1.5 py-0.5 text-[11px] text-ink-2">
+          <span key={t} className="rounded-full border border-line bg-paper px-1.5 py-0.5 text-[11px] text-ink-2">
             {t}
           </span>
         ))}
@@ -337,9 +348,8 @@ function WinnerCard({
             claim and a demonstration. */}
         {hookLead ? (
           <p className="mt-2 border-t border-line pt-2 text-[12.5px] leading-[1.5] text-ink-3">
-            Checked against the measurement: at all{" "}
-            <span className="tabular-nums text-ink">{hookLead}</span> samples in the hook window, this
-            cut carries the highest surprise response of the five.
+            Highest surprise of the five, at all{" "}
+            <span className="tabular-nums text-ink">{hookLead}</span> samples in the hook window.
           </p>
         ) : null}
       </div>
@@ -358,8 +368,6 @@ function WinnerCard({
           animate={active}
           drawMs={1100}
           height={112}
-          labelDorsal="Attention"
-          labelVentral="Surprise"
         />
       </div>
     </div>
@@ -368,7 +376,7 @@ function WinnerCard({
 
 function MiniScore({ label, v, tone }: { label: string; v: number; tone?: "accent" }) {
   return (
-    <div className="rounded-lg border border-line bg-paper px-2 py-1.5">
+    <div className="rounded-xl border border-line bg-paper px-2 py-1.5">
       <div className="text-[10.5px] uppercase tracking-[0.09em] text-ink-3">{label}</div>
       <div className="mt-0.5 text-[16px] font-medium leading-none tabular-nums text-ink">{v}</div>
       <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-line">
@@ -402,7 +410,7 @@ function RunnerRow({
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={dir.poster} alt="" className="block h-[38px] w-[31px] shrink-0 rounded-md border border-line object-cover" />
+      <img src={dir.poster} alt="" className="block h-[38px] w-[31px] shrink-0 rounded-xl border border-line object-cover" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13px] font-medium text-ink">{dir.label}</span>
         <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-line">

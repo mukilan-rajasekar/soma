@@ -19,12 +19,16 @@
 // Nothing here computes numbers; it only plots what it's given.
 
 import { useEffect, useRef, useState } from "react";
-import { useAnimeClock } from "./useReveal";
+import { LANES, laneByKey } from "./lanes";
+import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
+import { hexToRgba, readVizTokens, tokenVar } from "./tokens";
 import { fmtT, type BrandMention, type WeakSpot } from "./types";
 
 type Props = {
   dorsal: number[];
   ventral?: number[];
+  /** The comprehension lane (association cortex). Off unless a caller asks for it. */
+  comprehension?: number[];
   timestamps: number[];
   duration: number;
   hookSeconds?: number;
@@ -36,6 +40,11 @@ type Props = {
   // default) leaves `progress` in charge, which is what the live player needs.
   animate?: boolean | null;
   drawMs?: number;
+  // Bypass the on-screen gate below and draw as soon as `animate` turns true. Exactly one
+  // caller wants this: the hero chart, which is above the fold by construction and is the
+  // frame a recording opens on, so it must not sit empty waiting to be scrolled into.
+  // Every other plot on the page is deep inside a section and has to wait to be framed.
+  eager?: boolean;
   // A labelled dot on one lane at a given time, faded in only once the curve has finished
   // drawing. §02 uses it to put the ventral peak the read-out names ("spikes at 0:02") on
   // the picture, so the sentence and the chart point at the same instant.
@@ -43,9 +52,10 @@ type Props = {
   playhead?: number | null; // seconds; a vertical rule + dot on the dorsal curve
   height?: number;
   showVentral?: boolean;
+  /** Draw and label the comprehension lane. Off by default: most charts on the page are
+   *  about the hook, where a third curve is clutter rather than information. */
+  showComprehension?: boolean;
   showHook?: boolean;
-  labelDorsal?: string;
-  labelVentral?: string;
   // A second, faint dorsal curve drawn behind the main one on the SAME time axis — the
   // "before" of an edit. §08 passes the unspliced arc here and the spliced arc as `dorsal`,
   // so the change is a single picture rather than two charts side by side.
@@ -56,17 +66,10 @@ type Props = {
   endMarker?: number | null;
 };
 
-const TOK = {
-  ink: "#0a0a0a",
-  ink2: "#4a4a4a",
-  ink3: "#727272",
-  line: "#e2e2e2",
-  line2: "#d8d8d8",
-  fill: "#fafafa",
-  accent: "#3f6f7a",
-  accent2: "#5f8b99",
-  error: "#b42318",
-};
+// The palette used to be a literal copy of globals.css pasted here (and again in
+// VariantOverlay, and again in TwoRegionBrain). It is now resolved from the real CSS custom
+// properties inside the draw effect — see ./tokens — so those copies cannot drift apart, and
+// the labels come out in the site face instead of system-ui.
 
 const PADL = 34;
 const PADR = 14;
@@ -132,6 +135,7 @@ function tipAt(xs: number[], ys: number[], upto: number): { x: number; y: number
 export default function ArcPlot({
   dorsal,
   ventral,
+  comprehension,
   timestamps,
   duration,
   hookSeconds = 3,
@@ -140,20 +144,27 @@ export default function ArcPlot({
   progress = 1,
   animate = null,
   drawMs = 1500,
+  eager = false,
   peakMark = null,
   playhead = null,
   height = 190,
   showVentral = true,
+  showComprehension = false,
   showHook = true,
-  labelDorsal = "Attention",
-  labelVentral = "Surprise",
   ghost = null,
   endMarker = null,
 }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
+  // The curve draws off the CANVAS arriving, not off its section revealing. `animate` says
+  // the beat is due; ON_SCREEN says this plot is actually in frame. Both are required, so a
+  // plot can be delayed by its own arrival but never fire ahead of its section. Without it
+  // every arc below the first screen of its section drew itself off camera: §02's hook arc
+  // finished with 71px of itself on screen, and the winner arc inside GenerateStudio
+  // finished 68px of scroll before its first pixel at 640px wide.
+  const [hostRef, framed] = useReveal<HTMLDivElement>(ON_SCREEN);
   // Constant rate, not eased: see the note on useAnimeClock's `ease` argument. The hook is
   // called unconditionally and simply ignored when the caller owns `progress`.
-  const clock = useAnimeClock(animate === true, drawMs, "linear");
+  const clock = useAnimeClock(animate === true && (eager || framed), drawMs, "linear");
   // Pulled out of the object because callers build it inline (`peakMark={{ t, lane }}`), a
   // fresh identity every render. Depending on the fields keeps the draw effect from re-running
   // on every parent render, and lets exhaustive-deps verify the list rather than be silenced.
@@ -184,6 +195,9 @@ export default function ArcPlot({
     if (!c) return;
     const ctx = c.getContext("2d");
     if (!ctx) return;
+    // Live tokens, resolved here rather than at module scope: inside an effect `document`
+    // exists and the stylesheet has applied, which is the only place either is guaranteed.
+    const TOK = readVizTokens();
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const W = c.clientWidth;
     const H = height;
@@ -206,7 +220,7 @@ export default function ArcPlot({
     // grid — 4 horizontal hairlines
     ctx.strokeStyle = TOK.line;
     ctx.lineWidth = 1;
-    ctx.font = "10.5px system-ui, sans-serif";
+    ctx.font = `10.5px ${TOK.fontFamily}`;
     ctx.fillStyle = TOK.ink3;
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
@@ -236,7 +250,7 @@ export default function ArcPlot({
       // appears once the trace reaches it, because a rule sitting ahead of the curve reads as
       // a target the chart is aiming for rather than a measurement it just took.
       const bandTo = animate == null ? hx : Math.min(hx, Math.max(x0, tip.x));
-      ctx.fillStyle = "rgba(63,111,122,0.05)";
+      ctx.fillStyle = hexToRgba(TOK.accent, 0.05);
       ctx.fillRect(x0, y0, bandTo - x0, y1 - y0);
       if (bandTo >= hx - 0.5) {
         ctx.strokeStyle = TOK.accent;
@@ -260,7 +274,7 @@ export default function ArcPlot({
       // 0.9 within the first three seconds, so the dashed line ran straight through the
       // caption. Nudging the offset only moved which ad collided. Above y0 there is no data
       // by construction, which is why PADT grows to PADT_HOOK to make room for it.
-      ctx.font = "10px system-ui, sans-serif";
+      ctx.font = `10px ${TOK.fontFamily}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "bottom";
       ctx.fillText(`HOOK · 0–${hookSeconds % 1 === 0 ? hookSeconds : hookSeconds.toFixed(1)}s`, x0, y0 - 6);
@@ -272,9 +286,9 @@ export default function ArcPlot({
     for (const w of weakSpots) {
       const wx0 = xAt(w.start);
       const wx1 = xAt(w.end);
-      ctx.fillStyle = "rgba(180,35,24,0.07)";
+      ctx.fillStyle = hexToRgba(TOK.error, 0.07);
       ctx.fillRect(wx0, y0, wx1 - wx0, y1 - y0);
-      ctx.strokeStyle = "rgba(180,35,24,0.35)";
+      ctx.strokeStyle = hexToRgba(TOK.error, 0.35);
       ctx.setLineDash([2, 2]);
       ctx.beginPath();
       ctx.moveTo(wx0, y0);
@@ -298,20 +312,38 @@ export default function ArcPlot({
       ctx.globalAlpha = 1;
     }
 
-    // ventral (surprise) — dashed slate, drawn first so dorsal sits on top
+    // Strokes come off the lane table (lanes.ts), which is also what the legend below
+    // renders — so a curve's weight and dash cannot drift away from the swatch describing
+    // it. Painted in ascending z, so the solid attention curve finishes on top.
+    const COMP = laneByKey("comprehension");
+    if (showComprehension && comprehension && comprehension.length) {
+      const yc = comprehension.map((v) => yAt(v));
+      ctx.strokeStyle = TOK[COMP.colorToken];
+      ctx.lineWidth = COMP.width;
+      // Round caps turn the near-zero dash into beads rather than ticks; it has to be put
+      // back afterwards or the pen and the tip dots inherit it.
+      ctx.lineCap = "round";
+      ctx.setLineDash(COMP.dash ? [...COMP.dash] : []);
+      ctx.lineJoin = "round";
+      drawCurve(ctx, xs, yc, p);
+      ctx.setLineDash([]);
+      ctx.lineCap = "butt";
+    }
+
+    const SURP = laneByKey("surprise");
     if (showVentral && ventral && ventral.length) {
       const yv = ventral.map((v) => yAt(v));
-      ctx.strokeStyle = TOK.accent2;
-      ctx.lineWidth = 1.6;
-      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = TOK[SURP.colorToken];
+      ctx.lineWidth = SURP.width;
+      ctx.setLineDash(SURP.dash ? [...SURP.dash] : []);
       ctx.lineJoin = "round";
       drawCurve(ctx, xs, yv, p);
       ctx.setLineDash([]);
     }
 
-    // dorsal (attention) — solid ink
-    ctx.strokeStyle = TOK.ink;
-    ctx.lineWidth = 2;
+    const ATT = laneByKey("attention");
+    ctx.strokeStyle = TOK[ATT.colorToken];
+    ctx.lineWidth = ATT.width;
     ctx.lineJoin = "round";
     drawCurve(ctx, xs, yd, p);
 
@@ -368,7 +400,7 @@ export default function ArcPlot({
         ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
         ctx.stroke();
         if (markLabel) {
-          ctx.font = "10px system-ui, sans-serif";
+          ctx.font = `10px ${TOK.fontFamily}`;
           ctx.textBaseline = "middle";
           // Trailing side by default. A marked peak is a peak, so the curve climbs INTO the
           // ring from the left and falls away to the right — putting the label ahead of the
@@ -384,7 +416,7 @@ export default function ArcPlot({
           // area on some ad; a 3px stroke in the surface colour keeps the label readable over
           // any of them without moving it somewhere it no longer points at anything.
           ctx.lineWidth = 3;
-          ctx.strokeStyle = "#ffffff";
+          ctx.strokeStyle = TOK.paper;
           ctx.strokeText(markLabel, lx, my);
           ctx.fillStyle = col;
           ctx.fillText(markLabel, lx, my);
@@ -448,7 +480,7 @@ export default function ArcPlot({
 
     // x-axis end labels
     ctx.fillStyle = TOK.ink3;
-    ctx.font = "10.5px system-ui, sans-serif";
+    ctx.font = `10.5px ${TOK.fontFamily}`;
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     ctx.fillText("0:00", x0, y1 + 6);
@@ -472,7 +504,7 @@ export default function ArcPlot({
       ctx.fillText(fmtT(endMarker), ex - 4, y1 + 6);
     }
   }, [
-    dorsal, ventral, timestamps, duration, hookSeconds, weakSpots, brandMentions,
+    dorsal, ventral, comprehension, showComprehension, timestamps, duration, hookSeconds, weakSpots, brandMentions,
     p, animate, playhead, height, showVentral, showHook, ghost, endMarker,
     markT, markLane, markLabel,
     // canvasW is not read in the body — clientWidth is. It is here so a resize re-runs
@@ -481,29 +513,48 @@ export default function ArcPlot({
   ]);
 
   return (
-    <div>
+    <div ref={hostRef}>
       <canvas
         ref={ref}
         role="img"
-        aria-label={`${labelDorsal} across the ad timeline`}
+        aria-label={`${laneByKey("attention").label} across the ad timeline`}
         className="block w-full rounded-xl border border-line bg-paper"
         style={{ height }}
       />
       {(showVentral || showHook) && (
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] uppercase tracking-[0.06em] text-ink-3">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-[2px] w-4 bg-ink" /> {labelDorsal} · dorsal
-          </span>
-          {showVentral && ventral && ventral.length ? (
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-[2px] w-4" style={{ background: "repeating-linear-gradient(90deg,#5f8b99 0 4px,transparent 4px 7px)" }} />
-              {labelVentral} · ventral
-            </span>
-          ) : null}
+        /* The explained legend, ported from /preflight: a rule in the lane's ACTUAL colour
+           and dash, the plain word, the region parenthesised, and a second line saying what
+           the lane is for. The old one-row version named the anatomy ("ATTENTION · DORSAL")
+           without ever saying what it measured, which is the one thing a reader who is not a
+           neuroscientist needs. Sized so the notes sit under their own labels rather than
+           wrapping into each other. */
+        <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          {LANES.filter((l) =>
+            l.key === "attention" ||
+            (l.key === "surprise" && showVentral && ventral && ventral.length) ||
+            (l.key === "comprehension" && showComprehension && comprehension && comprehension.length)
+          ).map((l) => (
+            <div key={l.key} className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="inline-block w-5 shrink-0"
+                  style={{ borderTopWidth: l.width, borderTopStyle: l.border, borderTopColor: tokenVar(l.colorToken) }}
+                />
+                <span className="text-[12.5px] font-medium text-ink">{l.label}</span>
+                <span className="whitespace-nowrap text-[12.5px] text-ink-3">({l.region})</span>
+              </div>
+              <div className="mt-0.5 pl-7 text-[11.5px] leading-[1.45] text-ink-3">{l.note}</div>
+            </div>
+          ))}
           {brandMentions.length ? (
-            <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-ink" /> brand named
-            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span aria-hidden="true" className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />
+                <span className="text-[12.5px] font-medium text-ink">Brand named</span>
+              </div>
+              <div className="mt-0.5 pl-[26px] text-[11.5px] leading-[1.45] text-ink-3">on screen or out loud</div>
+            </div>
           ) : null}
         </div>
       )}

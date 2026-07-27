@@ -13,8 +13,29 @@ export function prefersReducedMotion(): boolean {
     && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 }
 
-// Returns [ref, revealed]. `revealed` flips true once and stays true.
-export function useReveal<T extends HTMLElement = HTMLDivElement>(
+// The options a COMPONENT uses to fire off its own arrival instead of its section's.
+//
+// Section reveals on the section's top edge, which for anything sitting below the first
+// screen of a tall section is seconds of scroll before the thing itself is on camera: the
+// five-arc overlay's race finished ~8.8s before its first pixel, and RankBoard's ended
+// 0.05s before its (measured at 1440x900, scrolled at 109px/s).
+//
+// NOT a ratio, for the reason Section.tsx:26-31 already documents: an IntersectionObserver
+// threshold is a fraction of the TARGET's area, so `threshold: 0.22` fires when a tall
+// element is still a sliver at the bottom edge and the trigger point moves with the
+// element's height (0.22 of an 806px panel is 177px of it showing, 0.22 of a 240px chart is
+// 53px). Zero threshold plus a -45% bottom root margin fires when the element's TOP crosses
+// 55% of the viewport, at the same screen position whatever the element's height.
+//
+// One caveat before reusing it: an element that can never scroll above the 55% line, i.e.
+// one sitting inside the last 45% of a viewport at the document's maximum scroll, never
+// fires at all. Check the geometry before gating anything at the very bottom of a page.
+export const ON_SCREEN = { threshold: 0, rootMargin: "0px 0px -45% 0px" } as const;
+
+// Returns [ref, revealed]. `revealed` flips true once and stays true. The element type is
+// only constrained to Element so an <svg> can be observed directly (TwoRegionBrain), which
+// an HTMLElement bound would have forced into a wrapper div.
+export function useReveal<T extends Element = HTMLDivElement>(
   opts: { threshold?: number; rootMargin?: string } = {},
 ): [React.RefObject<T | null>, boolean] {
   const ref = useRef<T>(null);
@@ -29,6 +50,7 @@ export function useReveal<T extends HTMLElement = HTMLDivElement>(
       const id = requestAnimationFrame(() => setRevealed(true));
       return () => cancelAnimationFrame(id);
     }
+    const rootMargin = opts.rootMargin ?? "0px 0px -8% 0px";
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
@@ -36,8 +58,18 @@ export function useReveal<T extends HTMLElement = HTMLDivElement>(
           io.disconnect();
         }
       },
-      { threshold: opts.threshold ?? 0.35, rootMargin: opts.rootMargin ?? "0px 0px -8% 0px" },
+      { threshold: opts.threshold ?? 0.35, rootMargin },
     );
+    // Stamp the gate onto the element so anything that has to PLAN around reveals can read
+    // them off the DOM instead of keeping its own list of selectors. AutoScroll uses this to
+    // work out the scroll position at which each figure starts animating, and therefore
+    // where it is allowed to stop; a hand-maintained list would drift from this observer
+    // silently, and the failure mode is a recording that halts on a blank chart.
+    // data-reveal is the bottom root-margin as a positive percentage: 45 here, 25 for Section.
+    const pct = /(-?\d+(?:\.\d+)?)%\s*0px\s*$/.exec(rootMargin);
+    if (el instanceof HTMLElement || el instanceof SVGElement) {
+      el.dataset.reveal = String(pct ? -parseFloat(pct[1]) : 0);
+    }
     io.observe(el);
     return () => io.disconnect();
   }, [revealed, opts.threshold, opts.rootMargin]);

@@ -6,7 +6,7 @@
 // rule). The Soma Score reads larger; the three drivers sit beside it. Numbers are
 // tabular-nums sans (never mono, per the design system).
 
-import { useAnimeClock } from "./useReveal";
+import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
 import type { Reads, Scores } from "./types";
 
 function CountUp({ value, active, big }: { value: number; active: boolean; big?: boolean }) {
@@ -39,22 +39,26 @@ type Props = {
 };
 
 export default function MetricRow({ scores, reads, active, hookTone }: Props) {
+  // Own arrival, not the section's: the row sits ~310px below §11's top edge, so all four
+  // count-ups finished while the tiles were still a sliver at the bottom of the frame.
+  const [ref, framed] = useReveal<HTMLDivElement>(ON_SCREEN);
+  const on = active && framed;
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div ref={ref} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {/* Soma score — the composite, larger */}
       <div className="rounded-2xl border border-line bg-fill p-4">
         <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">Soma score</div>
         <div className="mt-2 flex items-baseline gap-1">
-          <CountUp value={scores.soma} active={active} big />
+          <CountUp value={scores.soma} active={on} big />
           <span className="text-[15px] text-ink-3">/100</span>
         </div>
-        <Bar value={scores.soma} active={active} />
+        <Bar value={scores.soma} active={on} />
         <p className="mt-3 text-[13.5px] leading-[1.5] text-ink-2">{reads.soma}</p>
       </div>
 
-      <Metric label="Hook" suffix="/100" value={scores.hook} read={reads.hook} active={active} tone={hookTone ? "accent" : "ink"} />
-      <Metric label="Hold" suffix="% of ad" value={scores.hold} read={reads.hold} active={active} altValue={scores.holdPct} />
-      <Metric label="Comprehension" suffix="/100" value={scores.comprehension} read={reads.comprehension} active={active} tone="accent" />
+      <Metric label="Hook" suffix="/100" value={scores.hook} read={reads.hook} active={on} tone={hookTone ? "accent" : "ink"} />
+      <Metric label="Hold" suffix="% of ad" value={scores.hold} read={reads.hold} active={on} altValue={scores.holdPct} />
+      <Metric label="Comprehension" suffix="/100" value={scores.comprehension} read={reads.comprehension} active={on} tone="accent" />
     </div>
   );
 }

@@ -6,6 +6,8 @@
 // whose removal DROPS the score is load-bearing (neutral). This is the spec's "full ad vs
 // versions with specific shots removed" — computed leave-one-shot-out over the real arc.
 
+import { tokenAlpha } from "./tokens";
+import { ON_SCREEN, useReveal } from "./useReveal";
 import { fmtT, type ShotDiagnosis as Diag } from "./types";
 
 export default function ShotDiagnosis({
@@ -34,16 +36,21 @@ export default function ShotDiagnosis({
   const runtime = Math.max(...diag.shots.map((s) => s.end), 1);
   const at = worst.start / runtime;
   const worstWhere = at <= 0.2 ? "The opening" : at >= 0.7 ? "The closing" : "The mid-ad";
+  // The strip lands off its OWN arrival, not the section's. It sits ~1,230px below §05's top
+  // edge, so the eleven staggered shots used to have finished arriving ~700px of scroll
+  // before the first of them was on camera. ANDed with `active`, which still gates it.
+  const [ref, framed] = useReveal<HTMLDivElement>(ON_SCREEN);
+  const on = active && framed;
   return (
-    <div>
+    <div ref={ref}>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-ink-3">
         <span>
           <span className="text-ink">{diag.title}</span> · base score{" "}
           <span className="tabular-nums text-ink">{diag.base}</span>
         </span>
         <span className="ml-auto flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-sm bg-error/70" /> drags it down</span>
-          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-sm bg-ink" /> carries it</span>
+          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-error/70" /> drags it down</span>
+          <span className="inline-flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-ink" /> carries it</span>
         </span>
       </div>
 
@@ -56,12 +63,12 @@ export default function ShotDiagnosis({
               key={i}
               className="relative flex-1 min-w-[62px]"
               style={{
-                opacity: active ? 1 : 0,
-                transform: active ? "none" : "translateY(6px)",
+                opacity: on ? 1 : 0,
+                transform: on ? "none" : "translateY(6px)",
                 transition: `opacity .4s ${i * 55}ms, transform .4s ${i * 55}ms`,
               }}
             >
-              <div className={`overflow-hidden rounded-md border ${drag && s.delta >= 3 ? "border-error/50" : "border-line"}`}>
+              <div className={`overflow-hidden rounded-xl border ${drag && s.delta >= 3 ? "border-error/50" : "border-line"}`}>
                 {thumbs[i] ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={thumbs[i] as string} alt="" className="block h-[74px] w-full object-cover" />
@@ -72,7 +79,7 @@ export default function ShotDiagnosis({
                     reads as eleven shots along the runtime rather than a row of loose numbers. */}
                 <div
                   className={showThumbs ? "h-1" : "h-7"}
-                  style={{ background: drag ? `rgba(180,35,24,${0.25 + mag * 0.6})` : `rgba(10,10,10,${0.2 + mag * 0.6})` }}
+                  style={{ background: drag ? tokenAlpha("error", 0.25 + mag * 0.6) : tokenAlpha("ink", 0.2 + mag * 0.6) }}
                 />
               </div>
               <div className="mt-1.5 text-center text-[11px] tabular-nums text-ink-3">{fmtT(s.start)}</div>
@@ -89,9 +96,8 @@ export default function ShotDiagnosis({
           beat two sections early. The per-shot deltas above still carry the diagnosis. */}
       <p className="mt-3 max-w-[60ch] text-[13px] leading-[1.55] text-ink-2">
         {worstWhere}{" "}
-        <span className="text-ink">{fmtT(worst.start)}–{fmtT(worst.end)}</span> shot is the one dragging
-        the ad down: cut it and the score goes up. The other shots carry it: remove them and
-        the score falls.
+        <span className="text-ink">{fmtT(worst.start)}–{fmtT(worst.end)}</span> shot is dragging it
+        down. Cut it and the score goes up.
       </p>
     </div>
   );

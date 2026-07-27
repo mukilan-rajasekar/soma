@@ -14,7 +14,8 @@
 // is not — and the applied winner is deliberately a measured option, never that one.
 
 import ArcPlot from "./ArcPlot";
-import { useAnimeClock, useReveal } from "./useReveal";
+import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
+import { tokenAlpha } from "./tokens";
 import { fmtT, type Ad, type Report } from "./types";
 import {
   EDIT_APPLIED, EDIT_COMMAND, EDIT_OPTIONS, MORE_COMMANDS, STATIC_COMMAND, STATIC_FRAME,
@@ -43,7 +44,12 @@ export default function EditStudio({ report, active }: { report: Report; active:
   // Section fires at 25% of the SECTION — i.e. when the heading enters — and this section
   // is taller than the viewport, so on a continuous scroll the whole beat would play out
   // above the fold and be over by the time the panel is on camera.
-  const [ref, seen] = useReveal<HTMLDivElement>({ threshold: 0.22 });
+  //
+  // ON_SCREEN rather than the `threshold: 0.22` this used to pass: a threshold is a fraction
+  // of the TARGET's area, so the trigger point moved with the panel's own height, which is
+  // the same trap Section.tsx:26-31 documents for sections. The bottom root margin fires
+  // every gated element at one screen position whatever it is.
+  const [ref, seen] = useReveal<HTMLDivElement>(ON_SCREEN);
   const p = useAnimeClock(active && seen, 5400);
 
   const diag = report.campaign.shots;
@@ -106,11 +112,11 @@ export default function EditStudio({ report, active }: { report: Report; active:
               }}
             >
               <div className="flex items-center gap-2">
-                <span className="rounded-md border border-line bg-paper px-1.5 py-0.5 text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
+                <span className="rounded-full border border-line bg-paper px-1.5 py-0.5 text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
                   {KIND_LABEL[o.kind]}
                 </span>
                 {won ? (
-                  <span className="rounded-md bg-ink px-1.5 py-0.5 text-[10.5px] uppercase tracking-[0.08em] text-white">
+                  <span className="rounded-full bg-ink px-1.5 py-0.5 text-[10.5px] uppercase tracking-[0.08em] text-white">
                     Applied
                   </span>
                 ) : null}
@@ -175,7 +181,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
                   is gone and the shots either side close the gap.
                 </>
               ) : (
-                <>{diag.shots.length} shots, each already scored for what it costs or earns the ad.</>
+                <>{diag.shots.length} shots, each scored for what it costs or earns.</>
               )}
             </p>
           </div>
@@ -197,7 +203,6 @@ export default function EditStudio({ report, active }: { report: Report; active:
                 height={118}
                 ghost={applied ? { dorsal: source.lanes.dorsal, timestamps: source.timestamps } : null}
                 endMarker={applied ? after.duration : null}
-                labelDorsal="Attention"
               />
               <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
                 <span className="inline-flex items-center gap-1.5">
@@ -236,12 +241,12 @@ export default function EditStudio({ report, active }: { report: Report; active:
                   transition: "flex .6s cubic-bezier(.4,0,.2,1), margin-right .6s cubic-bezier(.4,0,.2,1), opacity .35s",
                 }}
               >
-                <div className={`overflow-hidden rounded-md border ${gone ? "border-error/60" : "border-line"}`}>
+                <div className={`overflow-hidden rounded-xl border ${gone ? "border-error/60" : "border-line"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={diag.thumbs?.[i] ?? ""} alt="" className="block h-[68px] w-full object-cover" />
                   <div
                     className="h-[3px]"
-                    style={{ background: drag ? "rgba(180,35,24,.55)" : "rgba(10,10,10,.35)" }}
+                    style={{ background: drag ? tokenAlpha("error", 0.55) : tokenAlpha("ink", 0.35) }}
                   />
                 </div>
                 <div className="mt-1 truncate text-center text-[10.5px] tabular-nums text-ink-3">{fmtT(s.start)}</div>
@@ -280,7 +285,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
       >
         <div className="flex gap-3 rounded-2xl border border-line bg-paper p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={STATIC_FRAME} alt="" className="block h-[70px] w-[57px] shrink-0 rounded-lg border border-line object-cover" />
+          <img src={STATIC_FRAME} alt="" className="block h-[70px] w-[57px] shrink-0 rounded-xl border border-line object-cover" />
           {/* "from this campaign" and not a filename or a 1080×1350 spec: the still is a
               frame lifted out of this campaign's footage, and implying a separately
               uploaded JPG is a claim a reader can disprove with one right-click. */}

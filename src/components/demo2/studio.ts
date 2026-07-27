@@ -180,19 +180,19 @@ export const EDIT_OPTIONS: EditOption[] = [
   {
     kind: "splice",
     label: "Splice out the 1.7–4.9s beat",
-    detail: "Drops the pan across the bench and lands on the helmet at 1.7s.",
+    detail: "Lands on the helmet at 1.7s.",
     shotIndex: 1,
   },
   {
     kind: "splice",
     label: "Splice out the 0.0–1.7s beat",
-    detail: "Removes the establishing shot; the ad opens on the bench.",
+    detail: "Opens on the bench, no establishing shot.",
     shotIndex: 0,
   },
   {
     kind: "reorder",
     label: "Move the product beat to the front",
-    detail: "Keeps every frame, reorders the first three shots so the helmet leads.",
+    detail: "Every frame kept; the helmet leads.",
     score: 64,
     delta: 2,
     predicted: true,
@@ -236,4 +236,4 @@ export const MORE_COMMANDS: Command[] = [
 // real frame lifted out of the same campaign, so nothing new has to be shot to show it.
 
 export const STATIC_FRAME = "/demo/posters/v03_30s_product_first.jpg";
-export const STATIC_COMMAND = "Same offer, static. Headline top-left, product clear of the type.";
+export const STATIC_COMMAND = "Same offer, static. Headline top-left.";

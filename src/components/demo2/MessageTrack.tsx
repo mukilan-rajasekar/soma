@@ -17,16 +17,21 @@
 // batch. tt_33 has no voiceover at all and carries its message entirely on screen, which
 // is exactly the kind of thing a language-load lane should be able to see.
 
+import { ON_SCREEN, useReveal } from "./useReveal";
 import { fmtT, type Ad } from "./types";
 
 export default function MessageTrack({ ad, active }: { ad: Ad; active: boolean }) {
+  // Own arrival, not the section's. The transcript's 70ms-per-line stagger and the coverage
+  // bar both ran off the section flag, which fires several hundred pixels above this block.
+  const [ref, framed] = useReveal<HTMLDivElement>(ON_SCREEN);
+  const on = active && framed;
   const dur = ad.duration || 1;
   const lines = ad.transcript ?? [];
   const cov = ad.screenCoverage;
   const silent = lines.length === 0;
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_240px]">
+    <div ref={ref} className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_240px]">
       <div className="rounded-2xl border border-line bg-paper p-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">
           <span className="text-[12px] uppercase tracking-[0.08em] text-ink-3">
@@ -52,8 +57,8 @@ export default function MessageTrack({ ad, active }: { ad: Ad; active: boolean }
                 <li
                   key={`${l.t}-${i}`}
                   style={{
-                    opacity: active ? 1 : 0,
-                    transform: active ? "none" : "translateY(4px)",
+                    opacity: on ? 1 : 0,
+                    transform: on ? "none" : "translateY(4px)",
                     transition: `opacity .45s ${i * 70}ms, transform .45s ${i * 70}ms`,
                   }}
                 >
@@ -95,7 +100,7 @@ export default function MessageTrack({ ad, active }: { ad: Ad; active: boolean }
               <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-line">
                 <div
                   className="h-full rounded-full bg-accent-2"
-                  style={{ transform: `scaleX(${active ? cov : 0})`, transformOrigin: "left", transition: "transform .8s" }}
+                  style={{ transform: `scaleX(${on ? cov : 0})`, transformOrigin: "left", transition: "transform .8s" }}
                 />
               </div>
               <p className="mt-2.5 text-[12px] leading-[1.5] text-ink-3">

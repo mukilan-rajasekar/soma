@@ -7,17 +7,22 @@
 // load arc behind them, and the comprehension number that results. Real detections from
 // tools/demo/media_text.py (macOS Vision OCR + faster-whisper).
 
-import { useAnimeClock } from "./useReveal";
+import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
 import { fmtT, type Ad } from "./types";
 
 export default function ComprehensionPanel({ ad, active }: { ad: Ad; active: boolean }) {
-  const p = useAnimeClock(active, 1200);
+  // Own arrival, not the section's: this sits ~330px below §03's top edge, far enough that
+  // the count-up and the pin stagger both finished before the panel was framed. ANDed with
+  // `active` so it still cannot precede the section.
+  const [ref, framed] = useReveal<HTMLDivElement>(ON_SCREEN);
+  const on = active && framed;
+  const p = useAnimeClock(on, 1200);
   const dur = ad.duration;
   const spoken = ad.brandMentions.filter((m) => m.source === "speech");
   const screen = ad.brandMentions.filter((m) => m.source === "screen");
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_260px]">
+    <div ref={ref} className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_260px]">
       <div>
         {/* two-channel timeline. Pins are inset from the track edges and each label is
             edge-aware (left-anchored near the start, right-anchored near the end) so the
@@ -31,7 +36,7 @@ export default function ComprehensionPanel({ ad, active }: { ad: Ad; active: boo
               <div className="mb-2.5 text-[12px] uppercase tracking-[0.08em] text-ink-3">
                 {row.label}
               </div>
-              <div className="relative h-8 rounded-lg bg-fill">
+              <div className="relative h-8 rounded-xl bg-fill">
                 <div className="absolute bottom-0 left-4 top-0 border-l border-line" />
                 <div className="absolute inset-x-4 inset-y-0">
                   {row.items.map((m, i) => {
@@ -41,7 +46,7 @@ export default function ComprehensionPanel({ ad, active }: { ad: Ad; active: boo
                       <div
                         key={i}
                         className="absolute top-1/2 h-0"
-                        style={{ left: `${pct}%`, opacity: active ? 1 : 0, transition: `opacity .4s ${i * 120}ms` }}
+                        style={{ left: `${pct}%`, opacity: on ? 1 : 0, transition: `opacity .4s ${i * 120}ms` }}
                       >
                         <span className={`absolute top-0 block h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${row.ring ? "border-2 border-accent bg-paper" : "bg-ink"}`} />
                         <span

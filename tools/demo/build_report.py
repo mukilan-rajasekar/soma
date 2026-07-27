@@ -455,11 +455,10 @@ def reads(scores, lanes, weak, brand, duration, fps=1.0):
         hook_read = ("Almost no surprise response in the first three seconds. The ad opens "
                      "on something the brain has seen before.")
 
-    hold_read = (f"Attention stays in the upper half of its range for {scores['holdPct']}% "
-                 f"of the runtime.")
+    hold_read = f"Attention holds for {scores['holdPct']}% of the runtime."
     if weak:
         w = weak[0]
-        hold_read += f" It drops away from {fmt_t(w['start'])} to {fmt_t(w['end'])}."
+        hold_read += f" It drops from {fmt_t(w['start'])} to {fmt_t(w['end'])}."
 
     if brand:
         first = min(m["t"] for m in brand)

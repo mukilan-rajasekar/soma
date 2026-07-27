@@ -12,7 +12,7 @@
 // the page is being screen-recorded. A single clock at the top and plain arithmetic per cell
 // gives byte-identical motion for one loop and one render.
 
-import { useAnimeClock } from "./useReveal";
+import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
 import type { Ad } from "./types";
 
 const RACE_MS = 700; // how long any single bar takes
@@ -35,10 +35,23 @@ function MiniBar({ p, value, tone }: { p: number; value: number; tone: "ink" | "
 
 export default function RankBoard({ ads, active }: { ads: Ad[]; active: boolean }) {
   const total = RACE_MS + Math.max(0, ads.length - 1) * STAGGER_MS;
-  const p = useAnimeClock(active, total);
+  // The board races off its OWN arrival, not the section's. Section reveals on the section's
+  // top edge, ~540px above this card, so the entire 1.24s race used to be over 0.05s BEFORE
+  // the board's first pixel crossed the bottom of the frame: on camera the bars were simply
+  // already full and the one beat that shows the ranking being computed never existed.
+  // ANDed with `active`, so the board still cannot run ahead of the section it belongs to.
+  const [ref, framed] = useReveal<HTMLDivElement>(ON_SCREEN);
+  const on = active && framed;
+  const p = useAnimeClock(on, total);
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-paper">
-      <div className="grid grid-cols-[28px_1fr_46px] items-center gap-3 border-b border-line bg-fill px-4 py-3 text-[11.5px] uppercase tracking-[0.08em] text-ink-3 sm:grid-cols-[28px_1.4fr_2.4fr_50px]">
+    <div ref={ref} className="overflow-hidden rounded-2xl border border-line bg-paper">
+      {/* The header carries the same 3px left border as every row, transparent — without it
+          the rows' polarity edge would push their content 3px right of these labels and the
+          #/Ad/Score columns would no longer line up with what they title. */}
+      <div
+        className="grid grid-cols-[28px_1fr_46px] items-center gap-3 border-b border-line bg-fill px-4 py-3 text-[11.5px] uppercase tracking-[0.08em] text-ink-3 sm:grid-cols-[28px_1.4fr_2.4fr_50px]"
+        style={{ borderLeftWidth: 3, borderLeftColor: "transparent" }}
+      >
         <span>#</span>
         <span>Ad</span>
         <span className="hidden sm:block">Hook · Hold · Comprehension</span>
@@ -46,6 +59,7 @@ export default function RankBoard({ ads, active }: { ads: Ad[]; active: boolean 
       </div>
       {ads.map((a, i) => {
         const winner = i === 0;
+        const loser = i === ads.length - 1;
         const rp = rowP(p, total, i);
         // Rounded off the row's own progress, so the digits climb in step with the bar beside
         // them. Printing the final number over a bar still filling was the one thing on this
@@ -57,8 +71,20 @@ export default function RankBoard({ ads, active }: { ads: Ad[]; active: boolean 
             key={a.id}
             className={`grid grid-cols-[28px_1fr_46px] items-center gap-3 border-b border-line px-4 py-3 sm:grid-cols-[28px_1.4fr_2.4fr_50px] ${winner ? "bg-fill" : ""}`}
             style={{
-              opacity: active ? 1 : 0,
-              transform: active ? "none" : "translateY(6px)",
+              // Polarity lives on the row's LEFT EDGE — the same green-best / red-worst code
+              // the overlay in §04 draws, so the two sections read as one instrument. It is an
+              // edge and not a chip or a coloured numeral on purpose: a red 31 in a column of
+              // black scores reads as an error value, not as a rank, and the winner already
+              // carries size, weight and a row tint. Transparent on the eight rows between,
+              // which keeps the score column an unbroken run of black digits.
+              borderLeftWidth: 3,
+              borderLeftColor: winner
+                ? "var(--color-pos)"
+                : loser
+                  ? "var(--color-neg)"
+                  : "transparent",
+              opacity: on ? 1 : 0,
+              transform: on ? "none" : "translateY(6px)",
               transition: `opacity .5s ${i * STAGGER_MS}ms, transform .5s ${i * STAGGER_MS}ms`,
             }}
           >

@@ -47,12 +47,12 @@
 
 import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
-import { Fragment, useEffect, useRef } from "react";
-import { useAnimeClock, useReveal } from "./useReveal";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
+import AutoScroll from "./AutoScroll";
 import Section from "./Section";
-import TwoRegionBrain from "./TwoRegionBrain";
+import TwoRegionBrain3D from "./TwoRegionBrain3D";
 import ArcPlot from "./ArcPlot";
-import RankBoard from "./RankBoard";
 import VariantOverlay from "./VariantOverlay";
 import ShotDiagnosis from "./ShotDiagnosis";
 import ComprehensionPanel from "./ComprehensionPanel";
@@ -94,6 +94,10 @@ export default function DemoScrollPage({
 
   const hookAd = byId(variants, "v03_30s_product_first"); // clearest ventral spike + winner
   const heroAd = byId(variants, "v03_30s_product_first");
+  // The other half of §02's pair: the cut in the same set whose hook scores lowest. Found by
+  // score rather than named, so a rebuilt report can never leave the "worst" tile on a cut
+  // that isn't worst any more.
+  const worstHookAd = variants.reduce((a, b) => (b.scores.hook < a.scores.hook ? b : a), variants[0]);
   // the cut with the clearest mid-ad attention dip — the editing beat diagnoses it, then edits it
   const dipAd = byId(variants, report.campaign.dipId ?? variants[0].id);
   const compAd = byId(batch, "tt_307"); // named on screen AND out loud
@@ -113,6 +117,30 @@ export default function DemoScrollPage({
   })();
 
   const [heroRef, heroIn] = useReveal<HTMLDivElement>({ threshold: 0.2 });
+  // The hero build is replayed for the recording. useReveal latches `revealed` permanently —
+  // correct for a reader, wrong for a take, because the hero fires at hydration and a click a
+  // minute later would open the recording on an already-finished page. Rather than make the
+  // latch resettable (it is depended on by every other consumer), the hero gates on the latch
+  // AND a local arm flag that AutoScroll drops and raises around its lead-in: blank while the
+  // recorder is being started, then built on cue, so the take opens on the headline arriving.
+  const [heroArmed, setHeroArmed] = useState(true);
+  const heroOn = heroIn && heroArmed;
+  const heroCue = useCallback((cue: "blank" | "build") => {
+    setHeroArmed(cue === "build");
+  }, []);
+  // Transitions run in BOTH directions, so sharing one would fade the hero out over a second
+  // before rebuilding it — the recording would open on the page dissolving. Suppressed while
+  // blanked, so the reset is a cut and only the build is animated.
+  const heroT = (t: string) => (heroArmed ? t : "none");
+
+  // §01's body, gated on its own arrival rather than on the section's. The two region cards
+  // are timed against TwoRegionBrain's internal stages (880ms and 1260ms against the frames
+  // where the dorsal and ventral regions light), and the figure now waits to be framed
+  // before it builds, so the cards have to wait on the same signal or the pairing the whole
+  // section rests on comes apart. Anchored on the grid root, which at md+ is the same row as
+  // the figure (the two observers fire ~17px of scroll apart) and in one column is the
+  // cards' own top edge, so nothing here animates above the fold at either width.
+  const [scienceRef, scienceIn] = useReveal<HTMLDivElement>(ON_SCREEN);
 
   // globals.css puts `overflow: hidden` on html/body for the fixed hero, so the page
   // actually scrolls inside this element. A scrollable div is not keyboard-focusable by
@@ -137,7 +165,7 @@ export default function DemoScrollPage({
       anchor: "science",
       eyebrow: "The science",
       heading: <>Attention isn&rsquo;t one thing. Different regions do <span className="font-serif font-normal italic">different</span> jobs.</>,
-      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself, and two networks matter, each measured separately. This is the distinction the rest of the read-out is built on.",
+      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself — two networks, measured separately.",
       // The two cards are timed against the figure beside them, not against each other: the
       // dorsal card arrives as the dorsal region lights (TwoRegionBrain's STAGE.dorsal opens
       // at 0.42 of a 2100ms build ≈ 880ms) and the ventral card as the ventral one does
@@ -145,34 +173,31 @@ export default function DemoScrollPage({
       // having both; two cards sliding in on a generic 80ms stagger would have been motion
       // for its own sake.
       body: (revealed) => (
-        <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-[1fr_360px]">
+        <div ref={scienceRef} className="grid grid-cols-1 items-center gap-8 md:grid-cols-[1fr_360px]">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <RegionCard
               title="Dorsal attention"
               tag="IPS · FEF · superior parietal"
-              body="Where focus is steered. The top-down system that decides what the viewer looks at and holds on."
+              body="Decides what the viewer looks at, and holds on."
               tone="ink"
-              revealed={revealed}
+              revealed={revealed && scienceIn}
               delay={880}
             />
             <RegionCard
               title="Ventral · surprise"
               tag="anterior insula · ACC"
-              body="The salience network. It fires on the unexpected, which is what registers a hook: not attention in general, but the jolt of something the brain didn't see coming."
+              body="Fires on the unexpected. That jolt is what a hook actually is."
               tone="accent"
-              revealed={revealed}
+              revealed={revealed && scienceIn}
               delay={1260}
             />
-            <Rise on={revealed} delay={1800} className="sm:col-span-2">
-              <p className="text-[12.5px] leading-[1.6] text-ink-2">
-                Because the two are read from different cortex, Soma can tell a steady, focused ad
-                from a startling one, and score them on the axes that actually drive a hook. A
-                gaze heat-map can&rsquo;t make that call.
-              </p>
-            </Rise>
           </div>
           <div className="rounded-2xl border border-line bg-paper p-4">
-            <TwoRegionBrain animate={revealed} focus="both" />
+            {/* The real cortex, as a rotating point cloud, rather than the flat lateral
+                outline. It keeps its own reveal easing for the network colours and leaders,
+                and falls back to the 2D figure automatically where WebGL is unavailable —
+                so the staged-build version is still what ships to those viewers. */}
+            <TwoRegionBrain3D active={revealed && scienceIn} height={360} />
           </div>
         </div>
       ),
@@ -181,7 +206,7 @@ export default function DemoScrollPage({
       key: "hook",
       eyebrow: "Hook scoring",
       heading: <>The first three seconds are <span className="font-serif font-normal italic">everything</span>.</>,
-      lede: "Every ad's first 3 seconds are scored as its hook, separately from the full video, and worth ~45% of the total. The ventral surprise signal is what measures it: a hook works by being unexpected, and the salience network is what registers the unexpected.",
+      lede: "The first 3 seconds are scored separately — about 45% of the total. Surprise is what measures them.",
       // The science section already renders TwoRegionBrain (focus="both"). A second brain
       // stood here — focus="ventral" plus an "in the hook window, the ventral network leads"
       // caption — repeating the same visual and the same sentence the science body copy had
@@ -191,6 +216,11 @@ export default function DemoScrollPage({
           <ArcPlot
             dorsal={hookAd.lanes.dorsal}
             ventral={hookAd.lanes.ventral}
+            // The third lane, as beads. This beat's whole argument is that attention is not
+            // one thing, so showing two of the three networks and naming the third in prose
+            // was the figure contradicting its own heading.
+            comprehension={hookAd.lanes.language}
+            showComprehension
             timestamps={hookAd.timestamps}
             duration={hookAd.duration}
             hookSeconds={report.hookSeconds}
@@ -201,11 +231,10 @@ export default function DemoScrollPage({
             // a hardcoded 2s would have gone stale the first time the report was rebuilt.
             peakMark={{ t: hookPeakT, lane: "ventral", label: fmtT(hookPeakT) }}
             height={188}
-            labelDorsal="Attention"
-            labelVentral="Surprise"
           />
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <Stat big value={hookAd.scores.hook} suffix="/100" label="Hook score" sub="~45% of the total" tone="accent" active={revealed} />
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Stat big value={hookAd.scores.hook} suffix="/100" label={`Hook · ${hookAd.title}`} sub="~45% of the total" tone="pos" active={revealed} />
+            <Stat big value={worstHookAd.scores.hook} suffix="/100" label={`Hook · ${worstHookAd.title}`} sub="same product, same length, same 3 seconds" tone="neg" active={revealed} />
             {/* Lands after the arc has drawn and the ring has appeared: the sentence explains
                 a picture the reader has already watched being made. */}
             <Rise on={revealed} delay={1500} className="h-full">
@@ -241,58 +270,11 @@ export default function DemoScrollPage({
       body: (revealed) => <MessageTrack ad={silentAd} active={revealed} />,
     },
     {
-      key: "batch",
-      eyebrow: "Input → output",
-      heading: <>Ten ads for one product. One <span className="font-serif font-normal italic">ranking</span> out.</>,
-      lede: "This is one advertiser's creative for one SKU: ten cuts of the same product, competing for the same spend. Soma scores every clip and ranks them against each other, and every row breaks into its hook, hold and comprehension drivers, so you see not just which creative wins, but why, and what to fix on the ones that don't.",
-      body: (revealed) => (
-        <div>
-          {/* The one-product framing is what the section is FOR — a ranking only means
-              something if the ten things ranked are alternatives to each other — so it is
-              stated once here, in the board's own header, rather than by repeating the
-              account name down all ten rows (which is what RankBoard used to do, and what
-              got cut for redundancy).
-              The scores, arcs and drivers on this board are real per-video model output.
-              The grouping is not: build_report.py:501-506 documents in its own comment that
-              the underlying clips are unrelated Creative Center scrapes and that the TITLES
-              map is what presents them as one campaign. That is what the caveat line under
-              the board discloses, and it is why the header says "ten creatives" rather than
-              naming footage the repo can't stand behind. Do not delete that line without
-              replacing this footage with a real single-advertiser batch. */}
-          <Rise on={revealed} delay={60}>
-            <div className="mb-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-ink-3">
-              <span className="inline-flex h-2 w-2 rounded-full bg-ink" aria-hidden="true" />
-              <span className="text-[14px] font-medium text-ink">{batch[0]?.brand ?? BRAND.account}</span>
-              <span>one product · {batch.length} creatives · one spend decision</span>
-            </div>
-          </Rise>
-          <RankBoard ads={batch} active={revealed} />
-          {/* The board takes ~1.24s to finish counting (RankBoard: 700ms + 9 × 60ms), so the
-              observation about the bottom row waits for the bottom row to exist. Reading
-              "note the bottom row" while row ten is still at zero is worse than no motion. */}
-          <Rise on={revealed} delay={1350}>
-            <p className="mt-4 max-w-[68ch] text-[13.5px] leading-[1.6] text-ink-2">
-              Note the bottom row: it names its product five times and lights up language
-              cortex (top comprehension of the ten) yet ranks last, because almost nobody&rsquo;s
-              attention survives the open. A single grade would hide that. The breakdown makes
-              it a fixable diagnosis.
-            </p>
-          </Rise>
-          <Rise on={revealed} delay={1650}>
-            <p className="mt-3 max-w-[68ch] text-[12px] leading-[1.55] text-ink-3">
-              Product and creative names on this board are illustrative. Every score, arc and
-              driver is real model output over real footage.
-            </p>
-          </Rise>
-        </div>
-      ),
-    },
-    {
       key: "generate",
       anchor: "generate",
       eyebrow: "Generation",
       heading: <>Write a brief. Get back the cut that <span className="font-serif font-normal italic">wins</span>.</>,
-      lede: "Describe the ad in plain language. Soma generates against your brand kit, then scores every candidate and kills the losers before you see any of them.",
+      lede: "Describe the ad in plain language. Soma generates against your brand kit and kills the losers before you see them.",
       body: (revealed) => (
         <div className="space-y-9">
           <GenerateStudio report={report} active={revealed} />
@@ -316,7 +298,7 @@ export default function DemoScrollPage({
       anchor: "edit",
       eyebrow: "AI ad editing",
       heading: <>Change it in a sentence. It re-scores <span className="font-serif font-normal italic">itself</span>.</>,
-      lede: "Edited in plain language. Every candidate edit goes through the model and the best-performing cut comes back. No pixel-level regeneration: the frames you shot stay the frames you shot.",
+      lede: "Edited in plain language. Every candidate edit is scored and the best cut comes back — your frames, never regenerated.",
       body: (revealed) => (
         <div className="space-y-9">
           {/* Diagnosis first, then the edit that acts on it — on both routes. This is the
@@ -337,7 +319,6 @@ export default function DemoScrollPage({
               height={170}
               showVentral={false}
               showHook={false}
-              labelDorsal="Attention"
             />
             <p className="mt-3 max-w-[62ch] text-[13px] leading-[1.55] text-ink-2">{dipAd.reads.hold}</p>
             <div className="mt-6">
@@ -384,7 +365,7 @@ export default function DemoScrollPage({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Stat big value={1500} suffix="+" label="Ads in the database" sub="from people · the biggest database in the category" active={revealed} />
           <Stat big value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
-          <Stat big value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
+          <Stat big value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" tone="pos" baseline={75} active={revealed} />
         </div>
       ),
     },
@@ -427,6 +408,14 @@ export default function DemoScrollPage({
     >
       <SiteHeader />
 
+      {/* One click runs the page as a STEPPED take: a lead-in long enough to start a screen
+          recorder, then travel to a beat, hold while it plays, travel to the next. Both the
+          stops and the hold lengths are derived from the live DOM — from the data-reveal
+          gates useReveal stamps — so editing a section or cutting copy retimes the take and
+          relabels the button automatically, on both routes, with no per-route constant. The
+          control hides itself while playing and any input cancels it. */}
+      <AutoScroll scrollRef={scrollRef} onHeroCue={heroCue} />
+
       {/* ── 0 · the problem ─────────────────────────────────────────── */}
       <section
         ref={heroRef}
@@ -436,13 +425,13 @@ export default function DemoScrollPage({
           <div>
             <div
               className="mb-4 text-[12px] uppercase tracking-[0.12em] text-ink-3"
-              style={{ opacity: heroIn ? 1 : 0, transition: "opacity .6s" }}
+              style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity .6s") }}
             >
               Soma · a brain read-out for ads
             </div>
             <h1
               className="max-w-[16ch] text-balance text-hero text-ink"
-              style={{ opacity: heroIn ? 1 : 0, transform: heroIn ? "none" : "translateY(10px)", transition: "opacity .7s .05s, transform .7s .05s" }}
+              style={{ opacity: heroOn ? 1 : 0, transform: heroOn ? "none" : "translateY(10px)", transition: heroT("opacity .7s .05s, transform .7s .05s") }}
             >
               Anyone can make a hundred ads. Nobody knows which one{" "}
               <span className="font-serif font-normal italic">wins</span>.
@@ -456,15 +445,14 @@ export default function DemoScrollPage({
                 original, and the two clauses that carry the thesis are the first and third. */}
             <p
               className="mt-5 max-w-[48ch] text-body text-pretty text-ink-2"
-              style={{ opacity: heroIn ? 1 : 0, transition: "opacity .7s .2s" }}
+              style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity .7s .2s") }}
             >
-              Generating creative is solved. Knowing which one performs is not. Soma reads how
-              a brain watches each cut, then builds and edits against that read, scored
-              before you spend a dollar.
+              Soma reads how a brain watches each cut, then builds and edits against that
+              read. Scored before you spend a dollar.
             </p>
             <div
               className="mt-7 flex flex-wrap items-center gap-3"
-              style={{ opacity: heroIn ? 1 : 0, transition: "opacity .7s .3s" }}
+              style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity .7s .3s") }}
             >
               <a href="#science" className="rounded-xl bg-ink px-5 py-[12px] text-ui font-medium text-white transition-colors hover:bg-ink/85">
                 See how it works
@@ -475,7 +463,7 @@ export default function DemoScrollPage({
             </div>
           </div>
 
-          <div style={{ opacity: heroIn ? 1 : 0, transition: "opacity 1s .2s" }}>
+          <div style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity 1s .2s") }}>
             <div className="rounded-2xl border border-line bg-fill p-4">
               <div className="mb-2 flex items-center justify-between text-[12px] uppercase tracking-[0.08em] text-ink-3">
                 {/* The account name, not the internal campaign slug. §04 introduces this
@@ -491,10 +479,14 @@ export default function DemoScrollPage({
                 duration={heroAd.duration}
                 hookSeconds={report.hookSeconds}
                 weakSpots={heroAd.weakSpots}
-                animate={heroIn}
+                animate={heroOn}
+                // The one plot on the page that does NOT wait to be framed. Every other
+                // ArcPlot gates itself on its own arrival so it cannot draw off camera;
+                // this one is the frame the recording opens on, and at some viewport
+                // widths its top sits just below the 55% line at scrollTop 0, which would
+                // leave the hero holding an empty chart until the take started moving.
+                eager
                 height={172}
-                labelDorsal="Attention"
-                labelVentral="Surprise"
               />
             </div>
           </div>
@@ -753,17 +745,22 @@ function RegionCard({
 }
 
 function Stat({
-  value, suffix, label, sub, tone, active, big,
+  value, suffix, label, sub, tone, active, big, baseline,
 }: {
-  value: number; suffix: string; label: string; sub: string; tone?: "ink" | "accent"; active: boolean; big?: boolean;
+  value: number; suffix: string; label: string; sub: string; tone?: "ink" | "accent" | "pos" | "neg"; active: boolean; big?: boolean; baseline?: number;
 }) {
   // Counts up rather than fading in at full value, which is what every other number on the
   // page does (MetricRow, RankBoard, the studios) — these three were the only headline
   // figures that just appeared, and next to a self-drawing arc that read as a static image
   // dropped into a moving page. Rounded off the eased clock, so the last digit settles.
-  const p = useAnimeClock(active, big ? 1200 : 900);
+  // Off its own arrival, not the section's: the hook tile sits ~720px below §02's top edge
+  // and the moat tiles ~450px below §09's, so both count-ups used to reach their final
+  // figure before the tile was on camera and the number arrived pre-counted.
+  const [ref, framed] = useReveal<HTMLDivElement>(ON_SCREEN);
+  const on = active && framed;
+  const p = useAnimeClock(on, big ? 1200 : 900);
   return (
-    <div className="rounded-2xl border border-line bg-fill p-5">
+    <div ref={ref} className="rounded-2xl border border-line bg-fill p-5">
       <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
       <div className="mt-2 flex items-baseline gap-1">
         <span
@@ -773,13 +770,23 @@ function Stat({
         </span>
         <span className="text-[16px] text-ink-3">{suffix}</span>
       </div>
-      <div className={`mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-line ${big && tone ? "" : "hidden"}`}>
+      <div className={`relative mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-line ${big && tone ? "" : "hidden"}`}>
         {/* grow via transform: scaleX (compositor-only) rather than animating width, which
             would trigger layout on every frame. transform-origin left so it fills L→R. */}
         <div
-          className={tone === "accent" ? "h-full w-full rounded-full bg-accent-2" : "h-full w-full rounded-full bg-ink"}
-          style={{ transform: active ? `scaleX(${Math.min(100, value) / 100})` : "scaleX(0)", transformOrigin: "left", transition: "transform .9s" }}
+          className={`h-full w-full rounded-full ${
+            tone === "accent" ? "bg-accent-2"
+            : tone === "pos" ? "bg-pos"
+            : tone === "neg" ? "bg-neg"
+            : "bg-ink"
+          }`}
+          style={{ transform: on ? `scaleX(${Math.min(100, value) / 100})` : "scaleX(0)", transformOrigin: "left", transition: "transform .9s" }}
         />
+        {/* Where the figure started, so a lone bar reads as a move rather than an absolute.
+            Drawn in paper over the fill so it reads as a notch cut out of the bar. */}
+        {baseline == null ? null : (
+          <span aria-hidden className="absolute top-0 h-full w-px bg-paper/80" style={{ left: `${Math.min(100, baseline)}%` }} />
+        )}
       </div>
       <div className="mt-2 text-[12.5px] text-ink-3">{sub}</div>
     </div>

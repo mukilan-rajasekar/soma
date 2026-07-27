@@ -21,7 +21,8 @@
 // highlight yourself. Reduced motion resolves the clock to 1 on the first frame, so the
 // finished figure renders with no intermediate state.
 
-import { useAnimeClock } from "./useReveal";
+import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
+import { useVizTokens } from "./tokens";
 
 type Props = {
   t?: number; // 0..1 progress, when the caller wants to own it
@@ -31,10 +32,6 @@ type Props = {
   labels?: boolean;
   height?: number;
 };
-
-const INK = "#0a0a0a";
-const ACCENT2 = "#5f8b99";
-const INK3 = "#727272";
 
 // The cortex art is authored in its own 360×300 space and then placed inside a taller
 // 380×340 frame by BRAIN_PLACE, which reserves a gutter above it and a gutter below-left
@@ -88,7 +85,22 @@ export default function TwoRegionBrain({
   labels = true,
   height = 300,
 }: Props) {
-  const clock = useAnimeClock(animate === true, buildMs, "linear");
+  // The palette was three literal hexes at module scope here — a third copy of what
+  // globals.css already declares. This is SVG, not a canvas, so there is no draw effect to
+  // resolve them in; the hook does it once on mount off the same CSS custom properties, and
+  // hands back the site font for the callout type, which was hardcoded to system-ui.
+  const TOK = useVizTokens();
+  const INK = TOK.ink;
+  const ACCENT2 = TOK.accent2;
+  const INK3 = TOK.ink3;
+  // The figure builds off its OWN arrival, not its section's. §01 reveals on the section's
+  // top edge and the cortex sits below the fold from there at every width, so the 2.1s
+  // staged build used to be finished ~1.5s before the outline had a pixel on camera: the
+  // sequence that carries the section's argument only ever existed off screen. `t` still
+  // wins when the caller owns progress (/preflight's fallback pins it), and `animate` still
+  // gates it, so this can only delay a build, never start one early.
+  const [hostRef, framed] = useReveal<SVGSVGElement>(ON_SCREEN);
+  const clock = useAnimeClock(animate === true && framed, buildMs, "linear");
   // `t` wins when supplied; otherwise the internal clock runs. Both collapse to 1 when the
   // caller wants the finished figure and to 0 before the section is reached.
   const p = t ?? (animate == null ? 1 : clock);
@@ -119,6 +131,7 @@ export default function TwoRegionBrain({
 
   return (
     <svg
+      ref={hostRef}
       viewBox="0 0 380 340"
       role="img"
       aria-label="Lateral cortex with the dorsal attention network and the ventral salience network marked"
@@ -141,7 +154,7 @@ export default function TwoRegionBrain({
 
       <g transform={BRAIN_PLACE}>
         {/* cortex body: fill fades, edge draws */}
-        <path d={CORTEX} fill="#fafafa" fillOpacity={outline} stroke="none" />
+        <path d={CORTEX} fill={TOK.fill} fillOpacity={outline} stroke="none" />
         <path
           d={CORTEX}
           pathLength="1"
@@ -213,7 +226,7 @@ export default function TwoRegionBrain({
           Each leader extends from the label toward the region — the direction a reader's eye
           travels — and the type only appears once its leader has arrived. */}
       {labels && (
-        <g fontFamily="system-ui, sans-serif">
+        <g style={{ fontFamily: TOK.fontFamily }}>
           {/* dorsal — top gutter, leader down into the region's upper edge */}
           <line
             x1={fx(238)} y1="72" x2={fx(238)} y2={72 + 29 * dL}
