@@ -21,7 +21,7 @@ passes and agree with its taste.
       `.venv/**`, `**/__pycache__/**` alongside the existing entries. Verify
       with `npx eslint .` — it should be quiet — and confirm `npx eslint src`
       still passes.
-- [ ] Set `metadataBase` in the root metadata export. `next build` warns that
+- [x] Set `metadataBase` in the root metadata export. `next build` warns that
       open-graph and twitter images resolve against `http://localhost:3000`,
       which means link previews for /demo and /demo-short are wrong wherever
       they are shared. Use the production origin (usesoma.work).

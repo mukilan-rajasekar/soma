@@ -65,3 +65,22 @@ note: the concurrent session struck again — src/components/demo2/DemoScrollPag
 (pb clamp on the closing stat grid) appeared in the tree mid-iteration and is not
 mine. Left alone; loop.sh's `git add -A` will sweep it into this commit. It is a
 coherent demo-short composition fix and the gate passed with it present.
+
+## 2026-07-27 — Set metadataBase in the root metadata export
+changed: src/app/layout.tsx
+why: `next build` emitted "metadataBase property in metadata export is not set …
+using http://localhost:3000". /demo and /demo-short each set their own copy, so the
+warning was coming from the routes that do NOT — every relative URL they emit
+(canonical, og:url) was resolving against a dead host. Set it once at the root with
+the same origin the two demo routes already use, https://www.usesoma.work, so the
+value is inherited everywhere instead of restated per route. Rebuilt: the warning is
+gone. Full gate green, all 4 smoke routes ok.
+surprised: two things. (1) I expected the warning to name the offending route; Next
+prints it once with no route attached, so the only way to confirm a fix is a
+before/after build diff. (2) The remaining "Turbopack build encountered 1 warnings"
+(next.config.ts pulled into the NFT trace via src/components/preflight/report.ts)
+predates this change and is untouched — worth a backlog item, since it means the
+whole project gets traced for /preflight.
+note: two new untracked root scratch files (_sq.mjs, _text2.mjs) appeared mid-iteration
+from the concurrent session — not mine, left alone; loop.sh's `git add -A` will sweep
+them in. The existing backlog item about root scratch scripts now covers four files.

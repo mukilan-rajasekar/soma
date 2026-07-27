@@ -8,3 +8,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - `next build` locks `.next/lock`; a concurrent build in this checkout fails, not queues.
 - Any `globalIgnores([...])` entry replaces eslint's defaults; restate `node_modules` yourself.
+- Canonical production origin is `https://www.usesoma.work` — with the `www`.

@@ -11,7 +11,13 @@ const geist = Geist({
   display: "swap",
 });
 
+// metadataBase belongs here rather than per-route: it is what turns every relative URL in a
+// metadata export (og:url, twitter:image, canonical, the generated opengraph-image routes)
+// into an absolute one. Without it `next build` falls back to http://localhost:3000, so a
+// link to any route previews against a dead host wherever it is pasted. /demo and
+// /demo-short each set their own copy; every other route had none.
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.usesoma.work"),
   title: "soma — videos that earn attention",
   description:
     "Soma scores your footage, generates new cuts from a prompt, and edits with AI — all tuned to how your audience actually watches.",
