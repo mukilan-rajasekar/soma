@@ -1,1 +1,1 @@
-Fix requirements.txt's numpy pin — it excludes the numpy the gate actually passes under: move the <2.1 C-ABI ceiling into GROUP A prose (it constrains the GPU box, not this file) and give GROUP B a pin that describes this venv
+Declare the Node floor: add an "engines" field to package.json and an .nvmrc, so an unsupported Node is a declared constraint at install time rather than a confusing Next runtime error later

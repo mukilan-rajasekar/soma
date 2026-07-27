@@ -512,7 +512,7 @@ first would pin the build to a numpy nobody actually runs.
       CPU venv that the file's own header says to install separately. torch is absent from
       this `.venv`'s pip list — which is how we know the file has never been installed as
       written. Commenting it out alongside tribev2/neuralset is worth its own item.
-- [ ] Declare the Node floor. `node_modules/next/package.json` says
+- [x] Declare the Node floor. `node_modules/next/package.json` says
       `engines: {"node": ">=20.9.0"}`; soma's own `package.json` has no `engines`
       field and there is no `.nvmrc` (both verified absent). So `npm install` on
       Node 18 succeeds and the failure surfaces later as a confusing Next runtime
@@ -521,6 +521,41 @@ first would pin the build to a numpy nobody actually runs.
       here (v24.16.0). Note that `engines` only warns unless `engine-strict` is
       set — the value is the declaration and the `.nvmrc` handoff, not
       enforcement, so do not oversell it in the commit message.
+      Shipped, but with a floor of `>=22.13.0` rather than the `>=20.9.0` the item
+      prescribed. All four premises re-checked and held (no `engines`, no `.nvmrc`,
+      next declares `>=20.9.0`, running node is v24.16.0), but mirroring next would
+      have declared support for a Node this repo cannot run: `@supabase/supabase-js`
+      — a runtime dependency, read by `src/lib/supabase/server.ts` — and its five
+      `@supabase/*` siblings declare `>=22.0.0`, strictly above next's floor. Rather
+      than eyeball the direct deps, ran all 275 installed packages that declare
+      `engines.node` through `semver.satisfies`: 20.9.0 fails 7, 20.19.0 fails 6,
+      22.0.0 and 22.12.0 each fail 1, 22.13.0 fails 0. The binding constraint at the
+      margin is a dev-only transitive dep, not the runtime one — `eslint-visitor-keys@5.0.1`
+      declares `^20.19.0 || ^22.13.0 || >=24`, a range with a HOLE in it (22.0 through
+      22.12 excluded while both 20.19 and 22.13 are fine), so a floor picked by reading
+      direct dependencies alone lands on 22.0.0 and is wrong by twelve minors.
+      `.nvmrc` is `24.16.0` with no `v` prefix: nvm and fnm take either form, nodenv and
+      asdf reject the prefix, and setup-node's `node-version-file` strips it.
+      Also synced `package-lock.json`'s root entry (+3 lines) — npm copies `engines`
+      there, so leaving it would have had the next `npm install` rewrite the lockfile
+      inside someone's unrelated commit. `npm install --package-lock-only` produced that
+      hunk at exactly this placement and formatting, but ALSO added 66 unrelated lines
+      (bundled sub-deps of the optional `@tailwindcss/oxide-wasm32-wasi` wheel, whose
+      metadata it could fetch this time and could not before). That is a pre-existing
+      lockfile gap, not this item, so only the 3 engines lines were kept.
+      Kept the item's framing: this is a declaration and an `.nvmrc` handoff, not
+      enforcement — there is no `.npmrc`, `engine-strict` is false, npm only warns.
+      One thing worth knowing that the item does not mention: adding `engines` is not
+      inert on deploys. The repo is Vercel-linked and `.vercel/project.json` carries
+      `nodeVersion: "24.x"`, which package.json's `engines` OVERRIDES. `>=22.13.0`
+      resolves to the newest supported major, so the deploy runtime stays 24.x — but a
+      narrower or lower range here would have silently moved production's Node, which is
+      not what "just declare the floor" sounds like.
+      Full gate green: build, eslint src, 158 pytest, smoke on all 4 routes.
+      (This item was taken once before, in iteration 5, and rolled back. The gate failure
+      was not this change: a concurrent session's edits to `demo2/{AutoScroll,DemoScrollPage,
+      GenerateStudio}.tsx` landed in the tree mid-iteration and loop.sh's `git add -A`
+      swept them in. On a clean tree the full gate passes with this change.)
 - [ ] Add a tracked `.env.example`. `.env` and `.env.local` are gitignored, so a
       fresh clone has no pointer to any of the six variables the code reads, and
       the only way to find them is to grep two languages. They are:

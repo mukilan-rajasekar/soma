@@ -29,3 +29,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - A loop commit can name a backlog item without doing it — check the diff.
 - verify.sh's pytest step falls back to system python3 when `.venv` is absent.
 - requirements.txt's active `torch` line pulls a CUDA wheel into the CPU venv.
+- package.json `engines` overrides `.vercel/project.json`'s nodeVersion on deploys.

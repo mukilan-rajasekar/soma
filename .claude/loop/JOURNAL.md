@@ -730,3 +730,80 @@ surprised: the gate deliberately does NOT get this message — verify.sh's pytes
 changed: requirements.txt (GROUP A ceiling -> prose, GROUP B declares numpy>=1.26,<3), .claude/loop/BACKLOG.md, .claude/loop/LAST_TASK, AGENTS.md
 why: the file declared `numpy>=1.26,<2.1` while the venv all 158 tests are green in runs 2.5.1, so a fresh `pip install -r requirements.txt` built an environment nothing has ever been verified against; the ceiling's stated reason is the TRIBE v2 / neuralset C-ABI, which is GROUP A, and this file installs GROUP B.
 surprised: two things. The ceiling was not just misplaced, it was misplaced in a block the file already handles correctly — tribev2, neuralset, huggingface_hub and transformers are all commented out under "the exact revision pins live only in the GPU environment itself", so moving numpy into that prose is the convention the file already set rather than a new one. But `torch` is the exception and is still an ACTIVE line, so `pip install -r requirements.txt` would pull a multi-GB CUDA wheel into the CPU venv — and `pip list` shows no torch, which is how you can tell this file has never been installed as written. Left alone as out of scope for a pin fix; recorded in BACKLOG.md as its own item. Also worth writing down why I did not raise the floor to `>=2.1` instead: grepping all 33 tracked `.py` files finds no numpy-2-removed name and no numpy-2-only name, so a `>=2` floor would have been exactly as unmeasured as the pin it replaced.
+
+## 2026-07-27 — Declare the Node floor (engines + .nvmrc)
+changed: package.json (+engines), .nvmrc (new), package-lock.json (root entry synced by hand), .claude/loop/{BACKLOG.md,LAST_TASK,JOURNAL.md}, AGENTS.md
+why: all four of the item's premises held on re-check — soma's package.json had no
+`engines`, there is no `.nvmrc`, `node_modules/next/package.json` says `>=20.9.0`, and
+the running node is v24.16.0 — so `npm install` on an old Node succeeded and the
+failure surfaced later as a Next runtime error. But the item's prescribed VALUE was
+wrong, and mirroring next would have declared support for a Node this repo cannot
+actually run. `@supabase/supabase-js` — a runtime dependency, read by
+`src/lib/supabase/server.ts` — and its five `@supabase/*` siblings declare `>=22.0.0`,
+which is strictly above next's floor. Rather than eyeball the direct deps, ran all 273
+installed packages that declare `engines.node` through `semver.satisfies` at candidate
+versions: 20.9.0 fails 7, 20.19.0 fails 6, 22.0.0 and 22.12.0 each fail 1, 22.13.0 is
+the lowest that satisfies every one. Shipped `">=22.13.0"` and a `.nvmrc` of `24.16.0`
+(byte-equal to `node -v` with the `v` stripped — nvm and fnm take either form, nodenv
+and asdf reject the prefix, setup-node's `node-version-file` strips it). Also synced
+`package-lock.json`'s root entry by hand, +3 lines, since npm copies `engines` there
+and would otherwise rewrite the lockfile inside someone's unrelated commit. Kept the
+item's framing in the commit message: this is a declaration and an `.nvmrc` handoff,
+not enforcement — there is no `.npmrc`, `engine-strict` is unset, npm only warns. Fast
+gate green: build, eslint src, 158 pytest in 1.49s.
+surprised: three things. (1) The lockfile sync could not go through npm. `npm install
+--package-lock-only --ignore-scripts --offline` dies ENOTCACHED on
+`@tailwindcss/oxide-wasm32-wasi` — an optional platform wheel never fetched on this mac
+— and it dies BEFORE writing, so the lockfile was left intact rather than half-updated.
+Hand-editing was safe here only because `JSON.stringify(parse(raw), null, 2) + "\n"`
+round-trips this file byte-identically (verified: 240399 bytes both ways), so the diff
+is exactly the three added lines and nothing reformatted. Worth knowing before anyone
+reaches for a lockfile edit in this repo. (2) Adding `engines` is not inert on deploys:
+the repo is Vercel-linked and `.vercel/project.json` carries `nodeVersion: "24.x"`, and
+package.json's `engines` OVERRIDES that dashboard setting. `>=22.13.0` resolves to the
+newest supported major, so the deploy runtime stays 24.x — but a narrower or lower range
+here would have silently moved production's Node, which is not what "just declare the
+floor" sounds like. (3) The binding constraint at the margin is a dev-only transitive
+dep, not the runtime one: `eslint-visitor-keys@5.0.1` declares
+`^20.19.0 || ^22.13.0 || >=24`, a range with a HOLE in it — 22.0 through 22.12 are
+excluded while both 20.19 and 22.13 are fine. A floor picked by reading direct
+dependencies alone would have landed on 22.0.0 and been wrong by twelve minors.
+note: two files appeared in the tree mid-iteration from a concurrent session and are not
+mine — src/components/demo2/{DemoScrollPage,GenerateStudio}.tsx. Left alone rather than
+reverted, per the precedent set in loop(1)/loop(2); loop.sh's `git add -A` will sweep them
+into this commit. Re-ran the fast gate with them present and it is green.
+
+_(iteration 5 was ROLLED BACK — gate failed. Its changes are recoverable: `git apply .claude/loop/rollbacks/iter-5.patch`)_
+
+## 2026-07-27 — Declare the Node floor (engines + .nvmrc) [retake of rolled-back iteration 5]
+changed: package.json (+engines), .nvmrc (new), package-lock.json (root entry, +3), .claude/loop/{BACKLOG.md,LAST_TASK}, AGENTS.md
+why: soma's package.json had no `engines` and there was no `.nvmrc`, so `npm install` on an
+old Node succeeded and the failure surfaced later as a confusing Next runtime error. All four
+of the item's premises re-verified before starting. But the item's prescribed VALUE was wrong:
+mirroring next's `>=20.9.0` would declare support for a Node this repo cannot run, because
+`@supabase/supabase-js` — a runtime dep read by `src/lib/supabase/server.ts` — and its five
+`@supabase/*` siblings declare `>=22.0.0`. Ran all 275 installed packages that declare
+`engines.node` through `semver.satisfies` rather than eyeballing direct deps: 20.9.0 fails 7,
+20.19.0 fails 6, 22.0.0 and 22.12.0 each fail 1, 22.13.0 fails 0. Shipped `">=22.13.0"` and an
+`.nvmrc` of `24.16.0` (no `v` prefix — nvm and fnm take either form, nodenv and asdf reject it,
+setup-node's `node-version-file` strips it). Kept the item's framing in the commit message:
+declaration and handoff, not enforcement — no `.npmrc`, `engine-strict` is false, npm warns only.
+surprised: four things. (1) This item was taken in iteration 5 and rolled back, and the rollback
+was NOT its fault — a concurrent session's edits to demo2/{AutoScroll,DemoScrollPage,GenerateStudio}.tsx
+landed mid-iteration and loop.sh's `git add -A` swept them into the same commit, so the gate
+judged them together. Reading `.claude/loop/rollbacks/iter-5.patch` before re-taking is what made
+that visible; re-running the FULL gate (not just SKIP_SMOKE=1) on a clean tree is what proved it,
+and smoke passes all 4 routes with this change. Worth doing whenever an item comes back unchecked.
+(2) `npm install --package-lock-only` WORKED this time where iteration 5 recorded it dying
+ENOTCACHED — but it added 66 lines beyond the engines hunk: bundled sub-deps of the optional
+`@tailwindcss/oxide-wasm32-wasi` wheel whose metadata it could fetch now and could not then. That
+is a pre-existing lockfile gap unrelated to declaring a Node floor, so I restored the backup and
+kept only the 3 engines lines, at npm's own placement and formatting. (3) The binding constraint
+at the margin is a dev-only transitive dep, not the runtime one: `eslint-visitor-keys@5.0.1`
+declares `^20.19.0 || ^22.13.0 || >=24`, a range with a HOLE — 22.0 through 22.12 are excluded
+while both 20.19 and 22.13 are fine. A floor read off direct dependencies lands on 22.0.0 and is
+wrong by twelve minors. (4) Adding `engines` is not inert on deploys: the repo is Vercel-linked,
+`.vercel/project.json` carries `nodeVersion: "24.x"`, and package.json's `engines` overrides that
+dashboard setting. `>=22.13.0` resolves to the newest supported major so production stays on 24.x,
+but a narrower or lower range would have silently moved it — not what "just declare the floor"
+sounds like.

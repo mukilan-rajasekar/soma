@@ -1,0 +1,252 @@
+diff --git a/.claude/loop/BACKLOG.md b/.claude/loop/BACKLOG.md
+index e0609fc..27e3561 100644
+--- a/.claude/loop/BACKLOG.md
++++ b/.claude/loop/BACKLOG.md
+@@ -512,7 +512,7 @@ first would pin the build to a numpy nobody actually runs.
+       CPU venv that the file's own header says to install separately. torch is absent from
+       this `.venv`'s pip list — which is how we know the file has never been installed as
+       written. Commenting it out alongside tribev2/neuralset is worth its own item.
+-- [ ] Declare the Node floor. `node_modules/next/package.json` says
++- [x] Declare the Node floor. `node_modules/next/package.json` says
+       `engines: {"node": ">=20.9.0"}`; soma's own `package.json` has no `engines`
+       field and there is no `.nvmrc` (both verified absent). So `npm install` on
+       Node 18 succeeds and the failure surfaces later as a confusing Next runtime
+@@ -521,6 +521,26 @@ first would pin the build to a numpy nobody actually runs.
+       here (v24.16.0). Note that `engines` only warns unless `engine-strict` is
+       set — the value is the declaration and the `.nvmrc` handoff, not
+       enforcement, so do not oversell it in the commit message.
++      Shipped as `"engines": {"node": ">=22.13.0"}` plus a `.nvmrc` of `24.16.0`; the
++      root entry of `package-lock.json` was synced by hand (3 added lines) so the next
++      `npm install` does not rewrite it inside an unrelated commit.
++      Declared 22.13.0, not the item's 20.9.0: next's `>=20.9.0` is not the binding
++      constraint here. `@supabase/supabase-js` and its five `@supabase/*` siblings — a
++      runtime dependency, read by `src/lib/supabase/server.ts` — declare `>=22.0.0`, and
++      `eslint-visitor-keys@5.0.1` declares `^20.19.0 || ^22.13.0 || >=24`, which excludes
++      22.0 through 22.12. Settled it by running all 273 installed packages' `engines.node`
++      through `semver.satisfies`: Node 20.9.0 fails 7 of them (the six `@supabase/*` plus
++      eslint-visitor-keys), 22.0.0 and 22.12.0 each fail 1, and 22.13.0 is the lowest that
++      satisfies every one. `>=20.9.0` would have declared support for a Node the Supabase
++      client refuses to run under.
++      Two things checked before shipping. The repo is Vercel-linked and
++      `.vercel/project.json` sets `nodeVersion: "24.x"`; `engines` in package.json
++      overrides that dashboard setting, and `>=22.13.0` resolves to the newest supported
++      major — 24.x — so the deploy runtime does not move. And `.nvmrc` is written without
++      the `v` prefix (`24.16.0`, byte-equal to the running `node -v`): nvm and fnm accept
++      either form, nodenv and asdf reject the prefix, and setup-node's `node-version-file`
++      strips it. Per the item, this is the declaration and the handoff, not enforcement —
++      there is no `.npmrc` and `engine-strict` is unset, so npm warns rather than refuses.
+ - [ ] Add a tracked `.env.example`. `.env` and `.env.local` are gitignored, so a
+       fresh clone has no pointer to any of the six variables the code reads, and
+       the only way to find them is to grep two languages. They are:
+@@ -539,7 +559,9 @@ first would pin the build to a numpy nobody actually runs.
+       exactly one laptop — nothing checks a push or a PR. Run
+       `SKIP_SMOKE=1 ./scripts/verify.sh` rather than restating its steps, so the
+       workflow cannot drift from the single source of truth: checkout, setup-node
+-      20.9+ with `npm ci`, setup-python 3.13, `python -m venv .venv`,
++      with `node-version-file: .nvmrc` (added by the Node-floor item above — the
++      declared floor is now `>=22.13.0`, so 20.9 would install a Node six installed
++      packages refuse) then `npm ci`, setup-python 3.13, `python -m venv .venv`,
+       `./.venv/bin/pip install -r requirements.txt`, then the gate. Skip smoke in
+       CI for now — it needs `npx playwright install chromium` (~1 min of download
+       per run) and the full gate stays the local pre-push check. Do this AFTER
+diff --git a/.claude/loop/JOURNAL.md b/.claude/loop/JOURNAL.md
+index 49480e6..ff14595 100644
+--- a/.claude/loop/JOURNAL.md
++++ b/.claude/loop/JOURNAL.md
+@@ -730,3 +730,45 @@ surprised: the gate deliberately does NOT get this message — verify.sh's pytes
+ changed: requirements.txt (GROUP A ceiling -> prose, GROUP B declares numpy>=1.26,<3), .claude/loop/BACKLOG.md, .claude/loop/LAST_TASK, AGENTS.md
+ why: the file declared `numpy>=1.26,<2.1` while the venv all 158 tests are green in runs 2.5.1, so a fresh `pip install -r requirements.txt` built an environment nothing has ever been verified against; the ceiling's stated reason is the TRIBE v2 / neuralset C-ABI, which is GROUP A, and this file installs GROUP B.
+ surprised: two things. The ceiling was not just misplaced, it was misplaced in a block the file already handles correctly — tribev2, neuralset, huggingface_hub and transformers are all commented out under "the exact revision pins live only in the GPU environment itself", so moving numpy into that prose is the convention the file already set rather than a new one. But `torch` is the exception and is still an ACTIVE line, so `pip install -r requirements.txt` would pull a multi-GB CUDA wheel into the CPU venv — and `pip list` shows no torch, which is how you can tell this file has never been installed as written. Left alone as out of scope for a pin fix; recorded in BACKLOG.md as its own item. Also worth writing down why I did not raise the floor to `>=2.1` instead: grepping all 33 tracked `.py` files finds no numpy-2-removed name and no numpy-2-only name, so a `>=2` floor would have been exactly as unmeasured as the pin it replaced.
++
++## 2026-07-27 — Declare the Node floor (engines + .nvmrc)
++changed: package.json (+engines), .nvmrc (new), package-lock.json (root entry synced by hand), .claude/loop/{BACKLOG.md,LAST_TASK,JOURNAL.md}, AGENTS.md
++why: all four of the item's premises held on re-check — soma's package.json had no
++`engines`, there is no `.nvmrc`, `node_modules/next/package.json` says `>=20.9.0`, and
++the running node is v24.16.0 — so `npm install` on an old Node succeeded and the
++failure surfaced later as a Next runtime error. But the item's prescribed VALUE was
++wrong, and mirroring next would have declared support for a Node this repo cannot
++actually run. `@supabase/supabase-js` — a runtime dependency, read by
++`src/lib/supabase/server.ts` — and its five `@supabase/*` siblings declare `>=22.0.0`,
++which is strictly above next's floor. Rather than eyeball the direct deps, ran all 273
++installed packages that declare `engines.node` through `semver.satisfies` at candidate
++versions: 20.9.0 fails 7, 20.19.0 fails 6, 22.0.0 and 22.12.0 each fail 1, 22.13.0 is
++the lowest that satisfies every one. Shipped `">=22.13.0"` and a `.nvmrc` of `24.16.0`
++(byte-equal to `node -v` with the `v` stripped — nvm and fnm take either form, nodenv
++and asdf reject the prefix, setup-node's `node-version-file` strips it). Also synced
++`package-lock.json`'s root entry by hand, +3 lines, since npm copies `engines` there
++and would otherwise rewrite the lockfile inside someone's unrelated commit. Kept the
++item's framing in the commit message: this is a declaration and an `.nvmrc` handoff,
++not enforcement — there is no `.npmrc`, `engine-strict` is unset, npm only warns. Fast
++gate green: build, eslint src, 158 pytest in 1.49s.
++surprised: three things. (1) The lockfile sync could not go through npm. `npm install
++--package-lock-only --ignore-scripts --offline` dies ENOTCACHED on
++`@tailwindcss/oxide-wasm32-wasi` — an optional platform wheel never fetched on this mac
++— and it dies BEFORE writing, so the lockfile was left intact rather than half-updated.
++Hand-editing was safe here only because `JSON.stringify(parse(raw), null, 2) + "\n"`
++round-trips this file byte-identically (verified: 240399 bytes both ways), so the diff
++is exactly the three added lines and nothing reformatted. Worth knowing before anyone
++reaches for a lockfile edit in this repo. (2) Adding `engines` is not inert on deploys:
++the repo is Vercel-linked and `.vercel/project.json` carries `nodeVersion: "24.x"`, and
++package.json's `engines` OVERRIDES that dashboard setting. `>=22.13.0` resolves to the
++newest supported major, so the deploy runtime stays 24.x — but a narrower or lower range
++here would have silently moved production's Node, which is not what "just declare the
++floor" sounds like. (3) The binding constraint at the margin is a dev-only transitive
++dep, not the runtime one: `eslint-visitor-keys@5.0.1` declares
++`^20.19.0 || ^22.13.0 || >=24`, a range with a HOLE in it — 22.0 through 22.12 are
++excluded while both 20.19 and 22.13 are fine. A floor picked by reading direct
++dependencies alone would have landed on 22.0.0 and been wrong by twelve minors.
++note: two files appeared in the tree mid-iteration from a concurrent session and are not
++mine — src/components/demo2/{DemoScrollPage,GenerateStudio}.tsx. Left alone rather than
++reverted, per the precedent set in loop(1)/loop(2); loop.sh's `git add -A` will sweep them
++into this commit. Re-ran the fast gate with them present and it is green.
+diff --git a/.claude/loop/LAST_TASK b/.claude/loop/LAST_TASK
+index 11987ca..14a8768 100644
+--- a/.claude/loop/LAST_TASK
++++ b/.claude/loop/LAST_TASK
+@@ -1 +1 @@
+-Fix requirements.txt's numpy pin — it excludes the numpy the gate actually passes under: move the <2.1 C-ABI ceiling into GROUP A prose (it constrains the GPU box, not this file) and give GROUP B a pin that describes this venv
++loop(5): Declare the Node floor: add engines.node to package.json and a .nvmrc naming the version in use
+diff --git a/AGENTS.md b/AGENTS.md
+index 0c5bc65..fc75867 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -29,3 +29,4 @@ This version has breaking changes — APIs, conventions, and file structure may
+ - A loop commit can name a backlog item without doing it — check the diff.
+ - verify.sh's pytest step falls back to system python3 when `.venv` is absent.
+ - requirements.txt's active `torch` line pulls a CUDA wheel into the CPU venv.
++- `@supabase/*` needs node>=22; eslint-visitor-keys lifts the real floor to 22.13.
+diff --git a/package-lock.json b/package-lock.json
+index 51443b1..7d838b0 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -25,6 +25,9 @@
+         "playwright": "^1.61.1",
+         "tailwindcss": "^4",
+         "typescript": "^5"
++      },
++      "engines": {
++        "node": ">=22.13.0"
+       }
+     },
+     "node_modules/@alloc/quick-lru": {
+diff --git a/package.json b/package.json
+index 34f09cf..eecbce0 100644
+--- a/package.json
++++ b/package.json
+@@ -2,6 +2,9 @@
+   "name": "soma",
+   "version": "0.1.0",
+   "private": true,
++  "engines": {
++    "node": ">=22.13.0"
++  },
+   "scripts": {
+     "dev": "next dev",
+     "build": "next build",
+diff --git a/src/components/demo2/AutoScroll.tsx b/src/components/demo2/AutoScroll.tsx
+index 1862687..ece6129 100644
+--- a/src/components/demo2/AutoScroll.tsx
++++ b/src/components/demo2/AutoScroll.tsx
+@@ -233,6 +233,29 @@ function buildPlan(m: HTMLElement): Stop[] {
+       }
+     }
+     if (fix != null) s = fix;
++    // ── nothing ON CAMERA may still be below its own fire line ────────────────────────
++    // The gate floor above only considers figures INSIDE the frame, [f.top, f.bot). But a
++    // frame is a subject, not a viewport: the camera always shows `vh` pixels, and whatever
++    // sits between the frame's bottom edge and the bottom of the screen is on camera too.
++    // Those figures were never required to have fired, so they sat in shot in their zero
++    // state. That is what put "0 /100" under the hook arc on a settle frame, the same defect
++    // class as the survivor count, and it is also the main reason frames read as underfull:
++    // the planner was composing for a box smaller than the picture.
++    //
++    // Raising s pulls those figures up into the frame AND fires them, so this fills the frame
++    // and fixes the dead numeral with one move. Iterated, because moving up can bring a new
++    // figure into shot; three passes converges on this page and the loop is bounded anyway.
++    //
++    // Deliberately allowed to exceed `ceil`, on the same principle the gate floor already
++    // uses: an eyebrow tucked under the header is a much smaller defect than a live figure
++    // frozen at zero in the middle of the shot.
++    for (let pass = 0; pass < 3; pass++) {
++      const onCamera = figs.filter((g) => g.top >= s && g.top < s + vh && g.fireAt > s);
++      if (!onCamera.length) break;
++      const need = Math.max(...onCamera.map((g) => g.fireAt)) + GATE_MARGIN;
++      if (need <= s) break;
++      s = Math.min(need, maxScroll);
++    }
+     s = Math.min(maxScroll, Math.max(0, s));
+     return { s, sec: f.sec, top: f.top, bot: f.bot };
+   });
+diff --git a/src/components/demo2/DemoScrollPage.tsx b/src/components/demo2/DemoScrollPage.tsx
+index f46820f..4455da0 100644
+--- a/src/components/demo2/DemoScrollPage.tsx
++++ b/src/components/demo2/DemoScrollPage.tsx
+@@ -203,7 +203,7 @@ export default function DemoScrollPage({
+                 outline. It keeps its own reveal easing for the network colours and leaders,
+                 and falls back to the 2D figure automatically where WebGL is unavailable —
+                 so the staged-build version is still what ships to those viewers. */}
+-            <TwoRegionBrain3D active={revealed && scienceIn} height={360} />
++            <TwoRegionBrain3D active={revealed && scienceIn} height={412} />
+           </div>
+         </div>
+       ),
+@@ -236,7 +236,7 @@ export default function DemoScrollPage({
+             // the hook samples), so the ring, the sentence and the score cannot disagree —
+             // a hardcoded 2s would have gone stale the first time the report was rebuilt.
+             peakMark={{ t: hookPeakT, lane: "ventral", label: fmtT(hookPeakT) }}
+-            height={188}
++            height={244}
+           />
+           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+             <Stat big value={hookAd.scores.hook} suffix="/100" label={`Hook · ${hookAd.title}`} sub="~45% of the total" tone="pos" active={revealed} />
+@@ -322,7 +322,7 @@ export default function DemoScrollPage({
+               hookSeconds={report.hookSeconds}
+               weakSpots={dipAd.weakSpots}
+               animate={revealed}
+-              height={170}
++              height={210}
+               showVentral={false}
+               showHook={false}
+             />
+@@ -570,16 +570,16 @@ export default function DemoScrollPage({
+       <section className="flex min-h-screen flex-col justify-center border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(56px,12vh,128px)]">
+         <div className="mx-auto w-full max-w-[980px] text-center">
+           <span className="text-wordmark text-ink">soma</span>
+-          <h2 className="mx-auto mt-8 max-w-[19ch] text-balance text-section text-ink">
++          <h2 className="mx-auto mt-10 max-w-[15ch] text-balance text-hero text-ink">
+             Stop guessing which ad <span className="font-serif font-normal italic">wins</span>.
+           </h2>
+           {/* Was "Ten clips, ranked and diagnosed. Send us your batch and see where your
+               attention goes." — a measurement-only promise, which contradicted the 23
+               seconds of generate-and-edit that immediately precede it. */}
+-          <p className="mx-auto mt-4 max-w-[52ch] text-body text-ink-2">
++          <p className="mx-auto mt-6 max-w-[46ch] text-body text-ink-2">
+             Send us your batch. We rank it, diagnose it, and give you back the cut that wins.
+           </p>
+-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
++          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+             <Link href="/" className="rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85">
+               Request access
+             </Link>
+@@ -589,7 +589,7 @@ export default function DemoScrollPage({
+           </div>
+           {/* A closing frame with no address is a closing frame a viewer cannot act on. This is
+               the one line in the take that tells them where to go. */}
+-          <div className="mt-9 text-[13px] tracking-[0.02em] text-ink-3">usesoma.work</div>
++          <div className="mt-12 text-[13px] tracking-[0.02em] text-ink-3">usesoma.work</div>
+         </div>
+       </section>
+     </main>
+diff --git a/src/components/demo2/GenerateStudio.tsx b/src/components/demo2/GenerateStudio.tsx
+index 22b21bf..d2152ec 100644
+--- a/src/components/demo2/GenerateStudio.tsx
++++ b/src/components/demo2/GenerateStudio.tsx
+@@ -37,7 +37,7 @@ const T_BOARD = 0.84;
+ // the panel. And at the 640px the recording is actually watched at, a 118px plot of 24 columns
+ // downscales to 52px: the five survivors crossing the bar were a few pixels of difference. The
+ // cull is one of the three things this beat has to say, so it gets the height to say it.
+-const PLOT_H = 172;
++const PLOT_H = 206;
+ const PASS_MARK = 50;
+ 
+ // useAnimeClock is easeOutCubic, which is right for a bar settling into place and wrong
