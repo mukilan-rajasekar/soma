@@ -1,1 +1,1 @@
-Add test_honest_corr.py for the shared stats/alignment core in honest_corr_timeseries.py - the module all four pipeline modules import and none of them tested
+Add test_incremental_validity.py: pin the partial-correlation collapse, _residualize orthogonality, and _align across mismatched timebases

@@ -175,7 +175,7 @@ Three constraints that apply to all of them:
       real number for the smallest legitimate input, so the NaN guards are not
       over-eager. Also asserted `spearman` against `scipy.stats.spearmanr`
       directly, not only `_rankdata` against `rankdata`.
-- [ ] Add `test_incremental_validity.py`. This module answers "why not just use
+- [x] Add `test_incremental_validity.py`. This module answers "why not just use
       ffmpeg?", and its central claim — that the partial correlation collapses when
       the brain arc is only re-deriving the edit — has never been executed by a
       test. Three verified properties. (1) Construct `z` (the baseline) and make
@@ -191,6 +191,29 @@ Three constraints that apply to all of them:
       `(19,), (19,), (19, 2)` instead of raising. Also assert the both-endpoints-
       valid contiguity rule: punch a NaN into an interior bin and check the two
       shots either side of it never produce a diff.
+      Shipped as 12 tests; all three properties held. Two of the item's numbers were
+      realisation-dependent rather than wrong: with the fixture built inline the raw r
+      is 0.9988 and the partial is -0.0003, not 1.000/0.14 — so the assertions are the
+      thresholds the item specified (raw > 0.9, |partial| < 0.3), not the point values.
+      `_residualize`'s orthogonality is 1.9e-14 here, and it is orthogonal to the
+      INTERCEPT as well as to each covariate column, so both are asserted. `_align`
+      returned exactly `(19,), (19,), (19, 2)`, and the contiguity punch-out drops to 17
+      diffs with no bridged 2. Added four the item did not name: partialling against a
+      zero-column Z degenerates to plain `spearman` (the path a baseline CSV missing all
+      four feature columns takes); `_residualize` with no covariates is mean-centring;
+      the "signal SURVIVES partialling" case is a separate named test rather than a
+      second half of the collapse test, because a module that always said "no lift" would
+      pass the collapse assertion while being useless; and `partial_shift_p`'s shift
+      policy, which its docstring claims mirrors `circular_shift_p` exactly — verified
+      enumerate-branch floor 1/16 at n=20, seed-invariance there, denominator n_perm+1 in
+      the sampling branch, and NaN for n<8 and for min_shift too large to leave a shift.
+      One finding did NOT become a test, because pinning it would enshrine a bug: a FLAT
+      brain arc does not make `partial_spearman` return NaN. `pearson`'s guard is
+      `x.std() == 0`, an exact comparison, but residualising a constant against a
+      covariate leaves ~1e-15 of float noise rather than exact zeros — so the guard
+      misses and `partial_spearman(ones(20), arange(20.), arange(20.))` returns 0.90, and
+      `partial_shift_p` then reports p=0.0625 on it. A degenerate arc can score
+      "adds signal". Worth its own item; not fixable inside a test-only change.
 - [ ] Add `test_train_head.py` for the leakage-safety of the fit machinery.
       `train_head.py` is what `affect_head.py` reuses wholesale, so a leak here is
       a leak in both. Three verified properties. (1) `_standardize` is per-video

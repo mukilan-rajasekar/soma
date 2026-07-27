@@ -415,3 +415,37 @@ is -1, and had the function indexed (out[idx]) rather than masked (idx == b), Py
 negative indexing would have dumped that sample into the LAST bin. It masks, so it is
 correct today — but correct by construction rather than by intent, which is worth a test.
 Pinned it.
+
+## 2026-07-27 — Add test_incremental_validity.py
+changed: test_incremental_validity.py (new, 12 tests), BACKLOG.md
+why: incremental_validity.py is the answer to "why not just use ffmpeg?" — killer #2 —
+and its entire verdict rests on a partial correlation collapsing when the brain arc is
+only re-deriving the edit. That claim had never been executed. All three properties the
+item measured held: a brain arc and a human arc that are both the baseline plus 1% noise
+give raw r 0.9988 and partial -0.0003 (asserted as the item's thresholds, raw > 0.9 and
+|partial| < 0.3, since the point values are noise-realisation-dependent); _residualize is
+orthogonal to 1.9e-14; and _align returns exactly (19,), (19,), (19, 2) for a 39-sample
+baseline against a 42-sample arc over 20 human shots — the mismatch its docstring says
+used to crash. The contiguity punch-out drops 19 diffs to 17 with no bridged value of 2.
+Added four the item did not name. The most important is the MIRROR of the headline test:
+a shared signal orthogonal to the baseline must SURVIVE partialling (it does, 0.99). A
+module that reported "no lift over baseline" unconditionally would pass the collapse
+assertion and look conservative while being broken, so the collapse test is only
+meaningful with its mirror next to it. The other three: a zero-column Z degenerates to
+plain spearman (the path a baseline CSV missing all four feature columns takes),
+_residualize with no covariates is mean-centring, and partial_shift_p's shift policy —
+enumerate floor 1/16 at n=20, seed-invariant there, denominator n_perm+1 when forced into
+the sampling branch, NaN for n<8 and for min_shift too large to leave a shift. Fixtures
+inline, per the constraint that a fresh clone has no tests/. Fast gate green: 35 pytest
+in 0.57s.
+surprised: one thing, and it is a real defect rather than a quirk. partial_spearman does
+NOT return NaN for a flat brain arc. pearson's guard is `x.std() == 0`, an exact float
+comparison, and that is sound for a raw constant series — but partial_spearman never
+hands it one. It hands it a RESIDUAL, and residualising a constant against a covariate
+leaves ~1e-15 of lstsq noise instead of exact zeros, so the guard misses and
+partial_spearman(ones(20), arange(20.), arange(20.)) returns 0.90 — a correlation between
+two vectors of pure float noise. partial_shift_p then runs its null over that and reports
+p=0.0625, so a degenerate arc can print "adds signal". I did not write a test for it:
+asserting 0.90 would enshrine the bug and asserting NaN would ship a red gate, and this
+run's item is test-only. Recorded under the item in BACKLOG.md so the next critique pass
+can promote it to a fix.

@@ -19,3 +19,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - No `pytest` on PATH and system python3 lacks numpy: always `.venv/bin/python -m pytest`.
 - nilearn is installed, but its `fetch_atlas_*` download: monkeypatch them in tests.
 - Write/Edit under `.claude/` is refused as sensitive; go through Bash `tee`/`perl` instead.
+- `pearson`'s zero-variance guard is exact `std()==0`; residualized constants slip through.
