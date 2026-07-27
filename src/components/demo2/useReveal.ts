@@ -24,13 +24,26 @@ export function prefersReducedMotion(): boolean {
 // threshold is a fraction of the TARGET's area, so `threshold: 0.22` fires when a tall
 // element is still a sliver at the bottom edge and the trigger point moves with the
 // element's height (0.22 of an 806px panel is 177px of it showing, 0.22 of a 240px chart is
-// 53px). Zero threshold plus a -45% bottom root margin fires when the element's TOP crosses
-// 55% of the viewport, at the same screen position whatever the element's height.
+// 53px). Zero threshold plus a negative bottom root margin fires when the element's TOP
+// crosses a fixed line, at the same screen position whatever the element's height.
 //
-// One caveat before reusing it: an element that can never scroll above the 55% line, i.e.
-// one sitting inside the last 45% of a viewport at the document's maximum scroll, never
-// fires at all. Check the geometry before gating anything at the very bottom of a page.
-export const ON_SCREEN = { threshold: 0, rootMargin: "0px 0px -45% 0px" } as const;
+// One caveat before reusing it: an element that can never scroll above that line, i.e. one
+// sitting inside the last 40% of a viewport at the document's maximum scroll, never fires at
+// all. Check the geometry before gating anything at the very bottom of a page.
+//
+// WHY 40 AND NOT 45. This margin has a second job nobody designed it for: AutoScroll refuses to
+// stop above a figure's fire line, so the number is also the FLOOR on where the camera may come
+// to rest. At -45% it was the binding constraint on two of the nine stops rather than
+// composition being it. On §02 the stat tiles' fire line stopped the camera 48px above the
+// section's own top edge, which tucked the eyebrow under the header and left 255px of empty
+// paper below the tiles. 60% still has the element's top well inside the frame when it starts
+// animating, which is all the gate was ever protecting.
+//
+// It does not go further. -32% was tried and cost three of the nine stops: a lower floor also
+// satisfies the planner's frame-merge test more often, so units that should be separate beats
+// fused and the take jumped 1,437px in one leg, skipping the ranked board entirely. 40 is the
+// point that buys placement freedom without collapsing the beat structure.
+export const ON_SCREEN = { threshold: 0, rootMargin: "0px 0px -40% 0px" } as const;
 
 // Returns [ref, revealed]. `revealed` flips true once and stays true. The element type is
 // only constrained to Element so an <svg> can be observed directly (TwoRegionBrain), which
@@ -65,7 +78,7 @@ export function useReveal<T extends Element = HTMLDivElement>(
     // work out the scroll position at which each figure starts animating, and therefore
     // where it is allowed to stop; a hand-maintained list would drift from this observer
     // silently, and the failure mode is a recording that halts on a blank chart.
-    // data-reveal is the bottom root-margin as a positive percentage: 45 here, 25 for Section.
+    // data-reveal is the bottom root-margin as a positive percentage: 40 here, 25 for Section.
     const pct = /(-?\d+(?:\.\d+)?)%\s*0px\s*$/.exec(rootMargin);
     if (el instanceof HTMLElement || el instanceof SVGElement) {
       el.dataset.reveal = String(pct ? -parseFloat(pct[1]) : 0);
