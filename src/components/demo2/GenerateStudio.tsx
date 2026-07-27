@@ -15,6 +15,7 @@ import { useState } from "react";
 import ArcPlot from "./ArcPlot";
 import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
 import { tokenVar } from "./tokens";
+import { englishBatch } from "./corpus";
 import { BRAND, BRIEF, GENERATED, LATTICE, SURVIVORS, rankedDirections } from "./studio";
 import type { Direction } from "./studio";
 import type { Ad, Report } from "./types";
@@ -69,15 +70,18 @@ export default function GenerateStudio({ report, active }: { report: Report; act
   // Count-up that lands exactly on GENERATED as the lattice finishes filling.
   const counted = Math.round(Math.min(1, p / T_SCORE) * GENERATED);
 
-  // The best of the ten REAL ads in report.batch, which the database beat puts on screen as a
-  // wall of frames with their scores under them. It is here because a score out of 100 with
-  // nothing to compare it against is not a reading: a reader has no way to know whether 73 is
-  // good. The two sets are directly comparable and it matters that the page says so out loud —
-  // build_report.py's score_ad() is the one place the weights live, and every ad on this page,
-  // generated or scraped, goes through it. So the same reader who notices that the generated
-  // spread sits above the real one is noticing the actual claim, not an inconsistency, and the
-  // page is better off making that claim than leaving it to be found.
-  const bestReal = report.batch.reduce((m, a) => Math.max(m, a.scores.soma), 0);
+  // The best of the REAL ads the database beat puts on screen as a wall of frames with their
+  // scores under them. It is here because a score out of 100 with nothing to compare it against
+  // is not a reading: a reader has no way to know whether 73 is good. The two sets are directly
+  // comparable and it matters that the page says so out loud — build_report.py's score_ad() is
+  // the one place the weights live, and every ad on this page, generated or scraped, goes
+  // through it. So the same reader who notices that the generated spread sits above the real one
+  // is noticing the actual claim, not an inconsistency, and the page is better off making that
+  // claim than leaving it to be found.
+  // Filtered the same way the wall is (corpus.ts), or this sentence would quote a number off an
+  // ad that is not on the page — and the top of the unfiltered batch is an English clip anyway,
+  // so today the two agree. Deriving it means they cannot stop agreeing.
+  const bestReal = englishBatch(report.batch).reduce((m, a) => Math.max(m, a.scores.soma), 0);
   const winner = ranked[sel] ?? ranked[0];
   const hookLead = winner
     ? leadsHookWindow(winner.ad, ranked.map((r) => r.ad), report.hookSeconds)
@@ -208,7 +212,7 @@ export default function GenerateStudio({ report, active }: { report: Report; act
             <span className="tabular-nums text-ink">{ranked[ranked.length - 1]?.ad.scores.soma}</span> to{" "}
             <span className="tabular-nums text-ink">{ranked[0]?.ad.scores.soma}</span> is the difference
             between an ad that works and one that burns the budget, decided before a dollar is spent.
-            Same 0-100, same model, as the real ads further down this page: the best of those ten
+            Same 0-100, same model, as the real ads further down this page: the best of those
             reads <span className="tabular-nums text-ink">{bestReal}</span>.
           </p>
         </div>

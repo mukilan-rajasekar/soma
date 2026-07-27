@@ -69,6 +69,8 @@ import GenerateStudio from "./GenerateStudio";
 import CorpusWall from "./CorpusWall";
 import BatchOverlay from "./BatchOverlay";
 import LaneSplit, { type SplitMoment } from "./LaneSplit";
+import HeroReadout from "./HeroReadout";
+import { englishBatch } from "./corpus";
 import EditStudio from "./EditStudio";
 import { BRAND } from "./studio";
 import { fmtT, type Ad, type Report } from "./types";
@@ -132,7 +134,11 @@ export default function DemoScrollPage({
   preflight?: PreflightReport | null;
   variant?: DemoVariant;
 }) {
-  const batch = report.batch;
+  // The English half of the batch. Five of the ten scraped clips are Arabic, Portuguese or
+  // Spanish-captioned, and this page shows them as evidence: a wall of stills on the database
+  // beat and a transcript in the comprehension panel. See corpus.ts for the per-ad call and
+  // for why filtering was the only lever (the other arcs on disk cannot be scored this way).
+  const batch = englishBatch(report.batch);
   const variants = report.campaign.variants;
   const byId = (list: Ad[], id: string) => list.find((a) => a.id === id) ?? list[0];
 
@@ -144,7 +150,13 @@ export default function DemoScrollPage({
   const worstHookAd = variants.reduce((a, b) => (b.scores.hook < a.scores.hook ? b : a), variants[0]);
   // the cut with the clearest mid-ad attention dip — the editing beat diagnoses it, then edits it
   const dipAd = byId(variants, report.campaign.dipId ?? variants[0].id);
-  const compAd = byId(batch, "tt_307"); // named on screen AND out loud
+  // Named on screen AND out loud, which is what the comprehension panel is a picture of. This
+  // was tt_307, whose brand is named five times and which therefore made the better figure —
+  // but tt_307 is a Portuguese clip, and a panel captioned "language cortex confirms the words
+  // register" over a transcript nobody in the room reads is worse than a smaller mention count.
+  // tt_313 is the only English ad in the batch with brand mentions at all, and it has one of
+  // each: "hat" spoken at 0:00 and "Cap" on screen at 0:27. Its own read line already says so.
+  const compAd = byId(batch, "tt_313");
   // The one ad in the batch with zero speech segments. Picked by the data rather than
   // hardcoded, so a rebuild that changes which clip is silent still lands on a real one.
   const silentAd = batch.find((a) => (a.transcript ?? []).length === 0) ?? compAd;
@@ -702,28 +714,19 @@ export default function DemoScrollPage({
                 <span>{heroAd.brand ?? BRAND.account}</span>
                 <span className="tabular-nums text-ink">Soma {heroAd.scores.soma}</span>
               </div>
-              <ArcPlot
-                dorsal={heroAd.lanes.dorsal}
-                ventral={heroAd.lanes.ventral}
-                timestamps={heroAd.timestamps}
-                duration={heroAd.duration}
+              {/* The clip and its arc, with the video as the only clock. Was a bare ArcPlot
+                  animating on a timer: a chart of footage the viewer could not see, at the top
+                  of a page whose most convincing object (real frames with the read-out moving
+                  against them) did not arrive until §06, four fifths of the way down.
+                  It takes `heroPhase` rather than `heroOn` because it needs all three states,
+                  not the two-way flag the text fades use: "rest" has to be a FINISHED card, and
+                  a boolean cannot tell "nothing has started yet" from "this was reset for a
+                  retake". See HeroReadout for what each state does. */}
+              <HeroReadout
+                ad={heroAd}
                 hookSeconds={report.hookSeconds}
-                weakSpots={heroAd.weakSpots}
-                animate={heroOn}
-                // The one plot on the page that does NOT wait to be framed. Every other
-                // ArcPlot gates itself on its own arrival so it cannot draw off camera;
-                // this one is the frame the recording opens on, and at some viewport
-                // widths its top sits just below the 55% line at scrollTop 0, which would
-                // leave the hero holding an empty chart until the take started moving.
-                eager
-                // No legend on the hero card. The lanes get named properly one screen later,
-                // in §01, which is the section that exists to name them, and then explained
-                // under §02's arc where all three are drawn; printing the same six lines here
-                // first made the hero card a figure with a key attached and pushed the score
-                // out of the opening frame. A viewer meets the curves here and learns what
-                // they are immediately after, which is the right order.
-                showLegend={false}
-                height={172}
+                phase={heroPhase}
+                poster={stillFor(heroAd, 0)}
               />
             </div>
           </div>
