@@ -807,3 +807,52 @@ wrong by twelve minors. (4) Adding `engines` is not inert on deploys: the repo i
 dashboard setting. `>=22.13.0` resolves to the newest supported major so production stays on 24.x,
 but a narrower or lower range would have silently moved it — not what "just declare the floor"
 sounds like.
+
+## 2026-07-27 — Add a tracked .env.example
+changed: .env.example (new), .gitignore (+!.env.example), README.md (one paragraph),
+.claude/loop/{BACKLOG.md,LAST_TASK}, AGENTS.md
+why: a fresh clone had no pointer to any environment variable the repo reads — `.env`
+and `.env.local` are gitignored and README said nothing about env at all, so the only
+way to find them was to grep two languages. Now named in one file at the root, each
+with what reads it and what you give up by leaving it blank. Eight names, not the
+item's six: the item's list is right but counts the Supabase pair once per language,
+and SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are distinct names that
+publish_to_supabase.py PREFERS when both are set (URL_VARS/KEY_VARS), so a file that
+only listed the Next names would misdescribe the pipeline. Values are left EMPTY
+rather than filled with placeholders, deliberately: an empty string is falsy in both
+runtimes (`!url` in the Route Handlers, `.strip()` in env_any), so a copied file
+behaves identically to no file — whereas a literal PASTE_ME reads as CONFIGURED to
+Next and would send a real request to a bogus host. Python's own load_dotenv skips
+values containing PASTE or ending in "...", Next does not, so the safe form is the one
+that works for both. Verified the "all optional" claim against a running server rather
+than asserting it from source: with the site's two vars unset, GET /api/arcs is 200 []
+(and /demo plays the bundled public/arcs/*.json), POST /api/waitlist is 500 "Waitlist
+is not configured." and POST /api/uploads/sign is 500 "Uploads are not configured." So
+the file says optional-for-boot-build-and-render and then names the two POST routes
+that do refuse, instead of a blanket "optional" that a reader would find false the
+first time they submit the waitlist form. Full gate green: build, eslint src, 158
+pytest, smoke all 4 routes.
+surprised: three things. (1) The item was not shippable as written. `.gitignore` line
+34 is `.env*`, which swallows `.env.example` — so "add a tracked .env.example" needed a
+`!.env.example` negation before the word "tracked" could be true. `git add -A` (which
+is what loop.sh runs) would NOT have picked the file up, so the iteration could have
+finished green with the file present on disk and absent from the commit. (2) The two
+halves of the repo do not read the same files, which is the real trap and the item does
+not mention it: Next loads .env.local then .env (local wins — confirmed against
+node_modules/next/dist/docs, not from memory), while publish_to_supabase.load_dotenv
+and ad_fetch_bb.load_env read .env ONLY. So a value put in .env.local — the file Next's
+own docs steer you toward — is invisible to the entire Python pipeline. Wrote that into
+the header. (3) The local .env carries two names no tracked code reads
+(SUPABASE_ANON_KEY, hugging_face_access_token) and .env.local carries one that is
+machine-generated (VERCEL_OIDC_TOKEN, from `vercel env pull`). Left all three out — the
+template describes what the code reads, and copying a developer's incidental keys into
+it would make it stale on day one.
+note: the concurrent session was editing src/components/demo2/ throughout this iteration
+and its files are not mine. AutoScroll.tsx (+9/-1) was modified when the FULL gate ran
+(green: build, eslint, 158 pytest, smoke all 4 routes); by the time I finished writing up,
+that edit was gone and DemoScrollPage.tsx (+3/-3) and Section.tsx (+1/-1) had appeared
+instead. Re-ran the fast gate against that state — also green. Left all of it alone per the
+precedent in loop(1)/loop(2)/loop(6); loop.sh's `git add -A` sweeps it into this commit
+regardless. Worth knowing: with a concurrent session live, "I ran the full gate" is a claim
+about a tree state that no longer exists by the time the commit is made — which is exactly
+how iteration 5 was rolled back for a change that was not at fault.

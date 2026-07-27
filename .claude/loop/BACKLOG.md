@@ -556,7 +556,7 @@ first would pin the build to a numpy nobody actually runs.
       was not this change: a concurrent session's edits to `demo2/{AutoScroll,DemoScrollPage,
       GenerateStudio}.tsx` landed in the tree mid-iteration and loop.sh's `git add -A`
       swept them in. On a clean tree the full gate passes with this change.)
-- [ ] Add a tracked `.env.example`. `.env` and `.env.local` are gitignored, so a
+- [x] Add a tracked `.env.example`. `.env` and `.env.local` are gitignored, so a
       fresh clone has no pointer to any of the six variables the code reads, and
       the only way to find them is to grep two languages. They are:
       `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` (site, read via
@@ -569,6 +569,24 @@ first would pin the build to a numpy nobody actually runs.
       than a 500 when Supabase is unconfigured and `/demo` falls back to the
       bundled `public/arcs/*.json`, which is deliberate and worth documenting
       rather than leaving a reader to assume the app needs credentials to boot.
+      Shipped as a root `.env.example` plus a `!.env.example` negation in `.gitignore` — the
+      existing `.env*` rule swallowed it, so "tracked" needed that line to be true at all.
+      Eight names, not six: the item's list is right but counts the Supabase pair once per
+      language, and `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` are separate names that
+      `publish_to_supabase.py` prefers when both are set. Values are left EMPTY rather than
+      filled with placeholders, on purpose: an empty string is falsy in both runtimes, whereas
+      a literal `PASTE_ME` reads as configured to Next and would send a real request to a bogus
+      host (Python's `load_dotenv` skips PASTE/`...` values, Next does not).
+      Verified the degradation claims against a running server rather than asserting them from
+      the source: with the site's two vars unset, `GET /api/arcs` is `200 []`, `POST
+      /api/waitlist` is `500 {"error":"Waitlist is not configured."}` and `POST
+      /api/uploads/sign` is `500 {"error":"Uploads are not configured."}`. So "all optional" is
+      true for booting, building and rendering — but the two POST routes do refuse, which the
+      file says plainly rather than leaving under a blanket "optional". Also recorded the split
+      the item does not mention and which is the actual trap here: Next reads `.env.local` then
+      `.env`, while the Python half reads `.env` ONLY — so a shared value belongs in `.env`.
+      Added one README paragraph next to the existing `npm run dev` block, since README said
+      nothing about environment variables at all.
 - [ ] Add `.github/workflows/verify.yml`. There is a real remote
       (`github.com/mukilan-rajasekar/soma`) and a real gate, and the gate runs on
       exactly one laptop — nothing checks a push or a PR. Run

@@ -37,7 +37,7 @@ const T_BOARD = 0.84;
 // the panel. And at the 640px the recording is actually watched at, a 118px plot of 24 columns
 // downscales to 52px: the five survivors crossing the bar were a few pixels of difference. The
 // cull is one of the three things this beat has to say, so it gets the height to say it.
-const PLOT_H = 206;
+const PLOT_H = 296;
 const PASS_MARK = 50;
 
 // useAnimeClock is easeOutCubic, which is right for a bar settling into place and wrong

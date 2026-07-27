@@ -244,7 +244,7 @@ export default function DemoScrollPage({
             {/* Lands after the arc has drawn and the ring has appeared: the sentence explains
                 a picture the reader has already watched being made. */}
             <Rise on={revealed} delay={1500} className="h-full">
-              <div className="h-full rounded-2xl border border-line bg-paper p-4 text-[12.5px] leading-[1.55] text-ink-2">
+              <div className="flex h-full min-h-[178px] items-center rounded-2xl border border-line bg-paper p-5 text-[13px] leading-[1.6] text-ink-2">
                 {hookAd.reads.hook}
               </div>
             </Rise>
@@ -570,26 +570,26 @@ export default function DemoScrollPage({
       <section className="flex min-h-screen flex-col justify-center border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(56px,12vh,128px)]">
         <div className="mx-auto w-full max-w-[980px] text-center">
           <span className="text-wordmark text-ink">soma</span>
-          <h2 className="mx-auto mt-8 max-w-[19ch] text-balance text-section text-ink">
+          <h2 className="mx-auto mt-10 max-w-[14ch] text-balance text-hero text-ink">
             Stop guessing which ad <span className="font-serif font-normal italic">wins</span>.
           </h2>
           {/* Was "Ten clips, ranked and diagnosed. Send us your batch and see where your
               attention goes." — a measurement-only promise, which contradicted the 23
               seconds of generate-and-edit that immediately precede it. */}
-          <p className="mx-auto mt-4 max-w-[52ch] text-body text-ink-2">
+          <p className="mx-auto mt-6 max-w-[44ch] text-body text-ink-2">
             Send us your batch. We rank it, diagnose it, and give you back the cut that wins.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/" className="rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/" className="rounded-xl bg-ink px-6 py-[15px] text-ui font-medium text-white transition-colors hover:bg-ink/85">
               Request access
             </Link>
-            <Link href="/console" className="rounded-xl border border-line-2 px-5 py-[13px] text-ui font-medium text-ink-2 transition-colors hover:border-ink hover:text-ink">
+            <Link href="/console" className="rounded-xl border border-line-2 px-6 py-[15px] text-ui font-medium text-ink-2 transition-colors hover:border-ink hover:text-ink">
               Explore the live console
             </Link>
           </div>
           {/* A closing frame with no address is a closing frame a viewer cannot act on. This is
               the one line in the take that tells them where to go. */}
-          <div className="mt-9 text-[13px] tracking-[0.02em] text-ink-3">usesoma.work</div>
+          <div className="mt-12 text-[13px] tracking-[0.02em] text-ink-3">usesoma.work</div>
         </div>
       </section>
     </main>
@@ -808,7 +808,7 @@ function Stat({
   const on = active && framed;
   const p = useAnimeClock(on, big ? 1200 : 900);
   return (
-    <div ref={ref} className={`rounded-2xl border border-line bg-fill ${lg ? "px-6 py-8" : "p-5"}`}>
+    <div ref={ref} className={`flex flex-col rounded-2xl border border-line bg-fill ${lg ? "px-6 py-8" : big ? "min-h-[178px] px-5 py-6" : "p-5"}`}>
       <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
       <div className={`flex items-baseline gap-1 ${lg ? "mt-5" : "mt-2"}`}>
         <span
@@ -836,7 +836,7 @@ function Stat({
           <span aria-hidden className="absolute top-0 h-full w-px bg-paper/80" style={{ left: `${Math.min(100, baseline)}%` }} />
         )}
       </div>
-      <div className={`text-ink-3 ${lg ? "mt-4 text-[13.5px]" : "mt-2 text-[12.5px]"}`}>{sub}</div>
+      <div className={`text-ink-3 ${lg ? "mt-4 text-[13.5px]" : big ? "mt-auto pt-3 text-[12.5px]" : "mt-2 text-[12.5px]"}`}>{sub}</div>
     </div>
   );
 }

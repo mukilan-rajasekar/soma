@@ -1,1 +1,1 @@
-Declare the Node floor: add an "engines" field to package.json and an .nvmrc, so an unsupported Node is a declared constraint at install time rather than a confusing Next runtime error later
+Add a tracked .env.example: name the six env vars the code reads (Supabase site + Python, SMOKE_URL, Browserbase/Stagehand, META_ACCESS_TOKEN) and say plainly that all of them are optional for the site

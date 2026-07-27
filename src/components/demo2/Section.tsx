@@ -40,7 +40,7 @@ export default function Section({ n, eyebrow, heading, lede, children, tint }: P
     // which reads as calmer rather than faster.
     <section
       ref={ref}
-      className={`scroll-mt-16 border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(40px,6.5vh,76px)] ${tint ? "bg-fill" : "bg-paper"}`}
+      className={`scroll-mt-16 border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(36px,5vh,64px)] ${tint ? "bg-fill" : "bg-paper"}`}
     >
       <div className="mx-auto max-w-[1180px]">
         {n || eyebrow ? (

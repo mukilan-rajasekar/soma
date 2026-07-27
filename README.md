@@ -25,6 +25,11 @@ npm install
 npm run dev      # http://localhost:3000
 ```
 
+No configuration is needed for that: every environment variable in the repo is optional, and
+the site builds and renders with none of them set. `.env.example` names all eight — what reads
+each one, and what you give up by leaving it blank — and `cp .env.example .env` is the starting
+point when you do want live arcs or the ad-ingestion scripts.
+
 > Note: this is Next.js 16, which has breaking changes vs. earlier majors. See `AGENTS.md`.
 
 ## The pipeline

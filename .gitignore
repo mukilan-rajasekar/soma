@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the template, which carries names and comments only, never a value.
+# Without this negation `.env*` above swallows it and a fresh clone gets no pointer
+# to any of the eight variables the code reads.
+!.env.example
 
 # vercel
 .vercel
