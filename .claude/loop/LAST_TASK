@@ -1,1 +1,1 @@
-critique pass: /devex-review
+Document the Python bootstrap in README.md and make the gate reachable by name (npm run verify)
