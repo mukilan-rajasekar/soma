@@ -203,7 +203,7 @@ export default function DemoScrollPage({
                 outline. It keeps its own reveal easing for the network colours and leaders,
                 and falls back to the 2D figure automatically where WebGL is unavailable —
                 so the staged-build version is still what ships to those viewers. */}
-            <TwoRegionBrain3D active={revealed && scienceIn} height={360} />
+            <TwoRegionBrain3D active={revealed && scienceIn} height={412} />
           </div>
         </div>
       ),
@@ -236,7 +236,7 @@ export default function DemoScrollPage({
             // the hook samples), so the ring, the sentence and the score cannot disagree —
             // a hardcoded 2s would have gone stale the first time the report was rebuilt.
             peakMark={{ t: hookPeakT, lane: "ventral", label: fmtT(hookPeakT) }}
-            height={188}
+            height={206}
           />
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Stat big value={hookAd.scores.hook} suffix="/100" label={`Hook · ${hookAd.title}`} sub="~45% of the total" tone="pos" active={revealed} />
@@ -322,7 +322,7 @@ export default function DemoScrollPage({
               hookSeconds={report.hookSeconds}
               weakSpots={dipAd.weakSpots}
               animate={revealed}
-              height={170}
+              height={210}
               showVentral={false}
               showHook={false}
             />

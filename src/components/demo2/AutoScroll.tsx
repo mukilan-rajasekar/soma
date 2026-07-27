@@ -233,6 +233,30 @@ function buildPlan(m: HTMLElement): Stop[] {
       }
     }
     if (fix != null) s = fix;
+    // ── nothing ON CAMERA may still be below its own fire line ────────────────────────
+    // The gate floor above only considers figures INSIDE the frame, [f.top, f.bot). But a frame
+    // is a subject, not a viewport: the camera always shows `vh` pixels, and whatever sits
+    // between the frame's bottom edge and the bottom of the screen is on camera too. Those
+    // figures were never required to have fired, so they sat in shot in their zero state. That
+    // is what put "0 /100" under the hook arc on a settle frame, the same defect class as the
+    // survivor count, and it is also the main reason frames read as underfull: the planner was
+    // composing for a box smaller than the picture.
+    //
+    // Raising s pulls those figures up into the frame AND fires them, so this fills the frame
+    // and kills the dead numeral in one move. Iterated, because moving up can bring a new figure
+    // into shot; three passes converge on this page and the loop is bounded regardless.
+    //
+    // Deliberately allowed to exceed `ceil`, on the same principle the gate floor already uses:
+    // an eyebrow tucked under the header is a far smaller defect than a live figure frozen at
+    // zero in the middle of the shot. Where both can be satisfied, the section is sized so they
+    // are (see the hook arc's height).
+    for (let pass = 0; pass < 3; pass++) {
+      const onCamera = figs.filter((g) => g.top >= s && g.top < s + vh && g.fireAt > s);
+      if (!onCamera.length) break;
+      const need = Math.max(...onCamera.map((g) => g.fireAt)) + GATE_MARGIN;
+      if (need <= s) break;
+      s = Math.min(need, maxScroll);
+    }
     s = Math.min(maxScroll, Math.max(0, s));
     return { s, sec: f.sec, top: f.top, bot: f.bot };
   });
