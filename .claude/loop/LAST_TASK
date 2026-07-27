@@ -1,1 +1,1 @@
-Add test_affect_head.py: pin _proxy_arc as the signed/absolute valence-arousal baseline in affect_head.py
+Add test_head_apply.py: pin the arc_<id>.json contract in apply_one — baseline demotion, length-mismatch SystemExit, worst-status rollup, and NaN-free JSON

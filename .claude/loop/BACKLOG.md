@@ -364,7 +364,7 @@ Three constraints that apply to all of them:
       valence always `|.|`, arousal always signed, None -> zeros, mask lookup by position
       instead of by name, bool cast dropped, dim order flipped, last-hit-wins, key filter
       dropped) each turn the file red; the source was restored clean afterwards.
-- [ ] Add `test_head_apply.py` for the `arc_<id>.json` contract in `apply_one`.
+- [x] Add `test_head_apply.py` for the `arc_<id>.json` contract in `apply_one`.
       Bigger than the others (it needs a head fixture, which `head_io.save_head`
       can build in-test) but it is the only writer of the file the demo renders.
       Four behaviours, all already implemented and all unverified: an existing
@@ -376,6 +376,40 @@ Three constraints that apply to all of them:
       `learned-hypothesis` arousal head yields `smoke`; and the emitted JSON parses
       with `json.loads(..., parse_constant=<raise>)`, proving `allow_nan=False`
       held and no bare `NaN` token reached the browser.
+      Shipped as 33 tests; all four behaviours the item named held. Added beyond the item,
+      in rough order of how much they close. The sharpest is the demotion guard's
+      IDEMPOTENCY: `"baseline" not in arc` is what stops a SECOND apply from demoting the
+      FIRST apply's head arc into a slot still labelled "untrained arithmetic arc" — every
+      length, type and key stays valid and the file just starts lying about its own null.
+      Then: the rollup's alphabetical trap (`min(["learned-hypothesis", "smoke"])` is
+      "learned-hypothesis", so dropping the STATUS_RANK key reports the BEST dim rather than
+      the worst), asserted at all four rungs and in both head orders; the valence lane must
+      actually STRADDLE ZERO, because the declared bound [-1,1] contains [0,1] and routing
+      valence through to_unit keeps every length, type and bound while deleting the
+      direction — that was the one mutation the first draft did not catch; and an existing
+      arc carrying a bare `NaN` token (json.load ACCEPTS it, so any upstream writer at the
+      json default produces one) makes apply_one raise rather than copy it into the demoted
+      baseline, which is what makes `allow_nan=False` load-bearing rather than decorative.
+      Also covered `_baseline_series`' arc-csv branch, which test_affect_head.py left
+      untouched (it exercised only 'proxy' and the None): a missing csv and a global_mag
+      column fed to a roi_mag-fitted head both refuse, and the branch composes end-to-end
+      through apply_one. Plus the frame — timestamps kept at a non-1 Hz grid and regenerated
+      when the length disagrees, the `or 1.0` zero-fps divide guard, lane merging across
+      applies, 4-dp rounding, and --out-dir leaving the source arc untouched.
+      One behaviour is DOCUMENTED rather than asserted, because pinning it would enshrine a
+      defect: `affect["status"]` is rolled up from the dims applied in THIS call only, so
+      applying arousal (smoke) and then valence (validated) in two separate runs leaves the
+      block reading "learned-hypothesis" while the smoke arousal lane is still in the file
+      and still rendered. Within one invocation — which is what main() always does — the
+      worst-dim claim holds; across invocations it does not. Worth its own item.
+      Verified the suite bites: 17 hand-applied mutations to head_apply.py (demotion
+      deleted, idempotency guard dropped, length guard deleted and inverted, min without the
+      rank key, max for min, truncated headline, rounding dropped, both display mappings
+      swapped, lanes replaced not merged, timestamps always regenerated, zero-fps guard
+      dropped, both csv refusals dropped, lane provenance changed, allow_nan relaxed) each
+      turn the file red. The single survivor renames a LANE_DISPLAY key that
+      `.get(kind, "unit")` defaults straight back, so it is behaviourally inert. Source
+      restored clean.
 
 ## Done
 

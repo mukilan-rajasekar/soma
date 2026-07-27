@@ -24,3 +24,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Pipeline guards raise SystemExit; head_io raises ValueError — check before `pytest.raises`.
 - numpy 2.5 in `.venv`: `arr.ptp()` is gone, only `np.ptp(arr)` works.
 - `_proxy_arc` signs only `valence`; every other dim silently takes the `|.|` branch.
+- resample_to_grid pools with nanmean: only an all-NaN shot reaches the lane as NaN.

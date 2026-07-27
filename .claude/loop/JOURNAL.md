@@ -611,3 +611,43 @@ under ridge (that is what the penalty is for) but it means "beats the proxy" is 
 the head to beat one of its own inputs — a stronger and more honest framing than the
 report's wording suggests, and one that would break silently if either convention
 drifted, since nothing but this test now compares the two.
+
+## 2026-07-27 — Add test_head_apply.py: pin the arc_<id>.json contract in apply_one
+changed: test_head_apply.py (new, 33 tests), .claude/loop/{BACKLOG.md,LAST_TASK}, AGENTS.md
+why: apply_one is the ONLY writer of the file the demo renders, and every one of its
+behaviours is an honesty claim rather than an arithmetic one — which is exactly why a
+regression there shows up as nothing. All four properties the item named held. The
+demotion keeps the untrained arithmetic arc under its own label instead of letting the
+head arc quietly occupy the slot; an affect-only apply onto a 15s arc with 12s of preds
+raises rather than rendering a headline and a valence lane on different timebases; the
+block affect status is the worst applied dim (LH+smoke -> smoke, LH+poisoned -> poisoned,
+LH+LH -> learned-hypothesis); and the emitted JSON parses with parse_constant raising.
+Added beyond the item, sharpest first. (1) The demotion guard's IDEMPOTENCY — `"baseline"
+not in arc` is what stops a SECOND apply from demoting the FIRST apply's head arc into a
+slot still labelled "untrained arithmetic arc". Nothing about the file's shape changes;
+it just starts lying about its own null. (2) The rollup's alphabetical trap:
+min(["learned-hypothesis", "smoke"]) is "learned-hypothesis", so a rollup that forgot the
+STATUS_RANK key would report the BEST dim, the exact inversion of intent. (3) The valence
+lane must STRADDLE ZERO, not merely sit inside [-1,1] — [0,1] fits inside it, so routing
+valence through to_unit preserves length, type and bound while deleting direction. (4) An
+existing arc carrying a bare NaN token is refused rather than copied into the baseline,
+which is the input that makes allow_nan=False load-bearing. Also took _baseline_series'
+arc-csv branch, which test_affect_head.py left untouched: a missing csv and a global_mag
+column fed to a roi_mag-fitted head both refuse, and the branch composes end-to-end. Then
+checked the suite bites rather than trusting green: 17 hand mutations to head_apply.py
+each turn it red, the sole survivor being a LANE_DISPLAY rename that .get(kind, "unit")
+defaults straight back — behaviourally inert. Source restored clean. Fast gate green: 158
+pytest in 1.26s.
+surprised: two things. (1) One finding did NOT become a test, because pinning it would
+enshrine a defect. arc["affect"]["status"] is rolled up from the dims applied in THIS
+call only, so applying arousal (smoke) and then valence (validated) in two separate runs
+leaves the block reading "learned-hypothesis" while the smoke arousal lane is still in
+the file and still rendered — the one composition where the code's own "never a hardcoded
+learned-hypothesis" comment stops being true. main() always passes every usable head in
+one call, so the CLI path is safe; a caller that batches by dim is not. Recorded under
+the item for a future critique pass to promote. (2) My first NaN fixture did nothing.
+resample_to_grid pools with np.nanmean, so a single NaN second is silently averaged away
+by its shot-mates — only an ENTIRE shot of NaN survives to the lane. That is good for
+robustness and bad for anyone writing a degenerate-input fixture, and it means the
+display's treatment of a dropped shot (to_unit and to_signed both send it to 0.0, a
+legitimate value in either lane) is reachable far less often than I assumed.
