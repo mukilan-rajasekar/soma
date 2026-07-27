@@ -1,1 +1,1 @@
-Add test_train_head.py: pin _standardize leakage-safety, pool_features column contract, and paired_sign_perm exactness
+Add test_build_roi_mask.py: offline, monkeypatched-atlas coverage for the mask-shaping logic in build_roi_mask.py

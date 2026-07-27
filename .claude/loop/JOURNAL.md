@@ -489,3 +489,51 @@ honest_corr_timeseries.pearson that the previous iteration found leaking. Same
 repo, same concern, two thresholds — the tolerant one is in the fit path and the
 exact one is in the scoring path, which is the wrong way round if either should be
 strict.
+
+## 2026-07-27 — Add test_build_roi_mask.py
+changed: test_build_roi_mask.py (new, 17 tests), BACKLOG.md
+why: build_roi_mask.py is where a PRE-REGISTERED list of anatomical region names
+becomes the boolean vector every downstream feature is pooled over. If that vector
+is built wrong — wrong hemisphere order, a substring that quietly matches nothing,
+a parcel list off by one — every arc the pipeline reports is computed over the
+wrong cortex and nothing downstream can tell, because a wrong mask of the right
+length saves, loads and pools without error. None of it was executed. The item's
+premise held exactly: both builders do `from nilearn import datasets` at CALL
+time, so `monkeypatch.setattr(datasets, "fetch_atlas_*", fake)` intercepts the
+download; the whole file runs offline in 0.9s. Every property the item named
+passed — [lh; rh] order, case-insensitive substring, SystemExit naming 20484 on a
+wrong total length, SystemExit rather than an all-False mask on no match, an
+8-label Schaefer fake, build_mask(n_units=999) naming both valid spaces, and
+detect_n_units reading the last dim by mmap. Added six it did not name. The three
+that close real holes: the mask selects by LABEL INDEX (`map_arr == i` over
+`enumerate(labels)`), so the fixture puts decoy labels either side of the match —
+an off-by-one there pools the wrong anatomy rather than nothing, which is the
+worse failure; the substring direction is `region in atlas_label`, so a longer
+atlas label matches and a shorter one does not, and reversing it would make short
+atlas names match many ROIs at once; and the Schaefer n_rois count guard is what
+stops a leading `Background` label from shifting every parcel by one and silently
+misaligning the whole 1000-dim vector. Plus: NETWORKS and YEO7_FOR_NETWORK must
+carry the same keys (main() builds --network's choices from NETWORKS alone, so a
+network in one dict and not the other dies on a raw KeyError at --n-units 1000
+instead of any of this file's guided SystemExits), and the length guard fires
+before the empty guard. Asserted the hemisphere order POSITIONALLY with unequal
+per-hemisphere counts, not just by total — a [rh; lh] swap preserves both shape
+and sum. Fixtures inline, per the constraint that a fresh clone has no tests/.
+Then checked the suite actually bites rather than trusting green: seven
+hand-applied mutations to build_roi_mask.py (hemisphere swap, case-sensitive
+match, reversed substring, deleted empty guard, deleted parcel-count guard, plain
+np.load, label-index off-by-one) each turn it red, and the source was restored
+clean. Fast gate green: 71 pytest in 0.88s.
+surprised: two things. (1) The "reads the header by mmap without loading it" claim
+has no purely behavioural assertion available — detect_n_units returns an int, and
+that int is identical whether or not the gigabyte array was materialized. The only
+honest test is a spy on np.load asserting mmap_mode="r" was requested, paired with
+a check that the mode really does yield an np.memmap. That is testing the call
+rather than the effect, and I wrote it that way deliberately with the reason in the
+docstring, so a later reader does not mistake it for a memory measurement. (2) The
+module I expected to be the hardest of the seven — the only one with a heavy
+external dependency — turned out to be the easiest, and it is the one whose guards
+are most load-bearing. Every failure mode in this file is silent by construction:
+there is no shape error, no exception, no wrong-looking number downstream, just a
+mask over the wrong cortex. That is exactly the shape of bug a gate catches and a
+human review does not.

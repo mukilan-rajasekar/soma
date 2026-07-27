@@ -245,7 +245,7 @@ Three constraints that apply to all of them:
       rather than shipping stale labels, and that the magnitude column of an
       all-negative ROI is positive while its signed column is negative — the swap that
       would silently invert every direction feature.
-- [ ] Add `test_build_roi_mask.py` — offline, via a monkeypatched atlas. The
+- [x] Add `test_build_roi_mask.py` — offline, via a monkeypatched atlas. The
       mask-shaping logic is pure and currently unexecuted; only the fetch is
       heavy. Monkeypatch `nilearn.datasets.fetch_atlas_surf_destrieux` (the
       function does `from nilearn import datasets` at CALL time, so patching the
@@ -259,6 +259,30 @@ Three constraints that apply to all of them:
       Also cover the two pure helpers: `build_mask(n_units=999)` raises `SystemExit`
       naming both valid spaces, and `detect_n_units` reads 20484 off a
       `(3, 20484)` `.npy` header by mmap without loading it.
+      Shipped as 17 tests; every property the item named held. The monkeypatch lands
+      exactly as predicted — both builders do `from nilearn import datasets` at CALL
+      time, so `monkeypatch.setattr(datasets, "fetch_atlas_*", fake)` intercepts the
+      download and nothing here touches the network (0.9s for the file). Added six the
+      item did not name. Three close real holes: the mask selects by LABEL INDEX
+      (`map_arr == i` over `enumerate(labels)`), so a fixture with decoy labels either
+      side of the match catches an off-by-one that would pool the wrong anatomy rather
+      than nothing; the substring test is `region.lower() in atlas_label.lower()`, in
+      THAT direction, so a longer atlas label matches and a shorter one does not —
+      reversing it would make short atlas names match many ROIs at once; and the
+      Schaefer `n_rois` count guard is what stops a leading `Background` label (nilearn
+      has varied on this) from shifting every parcel by one and silently misaligning the
+      whole 1000-dim vector. Two more: `NETWORKS` and `YEO7_FOR_NETWORK` must carry the
+      same keys, since `main()` builds `--network`'s choices from `NETWORKS` alone and a
+      network in one dict but not the other dies on a raw `KeyError` at `--n-units 1000`
+      instead of any of this file's guided `SystemExit`s; and the length guard fires
+      BEFORE the empty guard, so a wrong-sized atlas reports its size rather than
+      "matched 0 vertices". Also asserted the `[lh; rh]` order positionally, not just by
+      count, with the two hemispheres given different vertex counts — a `[rh; lh]` swap
+      keeps both shape and sum identical and would silently mirror every ROI.
+      Verified the suite bites: seven hand-applied mutations to `build_roi_mask.py`
+      (hemisphere swap, case-sensitive match, reversed substring direction, deleted empty
+      guard, deleted parcel-count guard, plain `np.load`, label-index off-by-one) each
+      turn the file red; the source was restored clean afterwards.
 - [ ] Add `test_head_badge.py` for `head_io.badge_text` + the display mappings —
       the half of `head_io.py` that `test_head_io.py` does NOT cover (it stops at
       save/load/pack). `badge_text` is the gate `head_apply` refuses on, and it is
