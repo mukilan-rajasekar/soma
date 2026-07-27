@@ -372,9 +372,9 @@ export default function DemoScrollPage({
       // tiles keep theirs, where 0-100 is real and the green/red pair IS the argument.
       body: (revealed) => (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Stat big value={1500} suffix="+" label="Ads in the database" sub="the biggest in the category" active={revealed} />
-          <Stat big value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
-          <Stat big value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
+          <Stat big lg value={1500} suffix="+" label="Ads in the database" sub="the biggest in the category" active={revealed} />
+          <Stat big lg value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
+          <Stat big lg value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
         </div>
       ),
     },
@@ -774,9 +774,14 @@ function RegionCard({
 }
 
 function Stat({
-  value, suffix, label, sub, tone, active, big, baseline,
+  value, suffix, label, sub, tone, active, big, baseline, lg,
 }: {
   value: number; suffix: string; label: string; sub: string; tone?: "ink" | "accent" | "pos" | "neg"; active: boolean; big?: boolean; baseline?: number;
+  /** The moat beat's three tiles. That section is a heading and one row of numbers, and at the
+   *  recording's framing it measured the emptiest frame in the whole take (2.4% ink, a 347px
+   *  void below the row). The claim is the largest one on the page and it was also the
+   *  quietest thing on screen. `lg` gives the row the weight the argument has. */
+  lg?: boolean;
 }) {
   // Counts up rather than fading in at full value, which is what every other number on the
   // page does (MetricRow, RankBoard, the studios) — these three were the only headline
@@ -789,15 +794,15 @@ function Stat({
   const on = active && framed;
   const p = useAnimeClock(on, big ? 1200 : 900);
   return (
-    <div ref={ref} className="rounded-2xl border border-line bg-fill p-5">
+    <div ref={ref} className={`rounded-2xl border border-line bg-fill ${lg ? "px-6 py-8" : "p-5"}`}>
       <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
-      <div className="mt-2 flex items-baseline gap-1">
+      <div className={`flex items-baseline gap-1 ${lg ? "mt-5" : "mt-2"}`}>
         <span
-          className={`font-medium tabular-nums leading-none text-ink ${big ? "text-[44px]" : "text-[28px]"}`}
+          className={`font-medium tabular-nums leading-none text-ink ${lg ? "text-[62px] tracking-[-0.03em]" : big ? "text-[44px]" : "text-[28px]"}`}
         >
           {Math.round(value * p).toLocaleString()}
         </span>
-        <span className="text-[16px] text-ink-3">{suffix}</span>
+        <span className={`text-ink-3 ${lg ? "text-[22px]" : "text-[16px]"}`}>{suffix}</span>
       </div>
       <div className={`relative mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-line ${big && tone ? "" : "hidden"}`}>
         {/* grow via transform: scaleX (compositor-only) rather than animating width, which
@@ -817,7 +822,7 @@ function Stat({
           <span aria-hidden className="absolute top-0 h-full w-px bg-paper/80" style={{ left: `${Math.min(100, baseline)}%` }} />
         )}
       </div>
-      <div className="mt-2 text-[12.5px] text-ink-3">{sub}</div>
+      <div className={`text-ink-3 ${lg ? "mt-4 text-[13.5px]" : "mt-2 text-[12.5px]"}`}>{sub}</div>
     </div>
   );
 }

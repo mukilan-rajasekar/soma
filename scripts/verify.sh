@@ -32,9 +32,22 @@ trap cleanup EXIT
 step "next build"
 BUILD_OK=1
 if ! npm run build > /tmp/soma-verify-build.log 2>&1; then
-  tail -40 /tmp/soma-verify-build.log
-  fail "next build"
-  BUILD_OK=0
+  # `next build` takes an exclusive .next/lock and fails rather than queues.
+  # Another agent or a stray build in this checkout is an environment problem,
+  # not a regression in the change under test — wait it out once before judging.
+  if grep -q "Another next build process is already running" /tmp/soma-verify-build.log; then
+    echo "build lock held by another process — waiting 45s and retrying once"
+    sleep 45
+    if ! npm run build > /tmp/soma-verify-build.log 2>&1; then
+      tail -40 /tmp/soma-verify-build.log
+      fail "next build (after lock retry)"
+      BUILD_OK=0
+    fi
+  else
+    tail -40 /tmp/soma-verify-build.log
+    fail "next build"
+    BUILD_OK=0
+  fi
 fi
 
 # ---- 2. lint ----------------------------------------------------------------

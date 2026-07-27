@@ -30,9 +30,15 @@ const isBenignFailure = (url, err) => MEDIA.test(url) && /ERR_ABORTED/.test(err 
 
 const failures = [];
 
-const browser = await chromium.launch();
+let browser = await chromium.launch();
 
-for (const route of ROUTES) {
+// A browser that dies mid-run (resource contention, an OOM, a concurrent build
+// eating the machine) is an environment failure, not a defect in the site.
+// Retrying once on a fresh browser keeps the loop from rolling back good work
+// for a reason that has nothing to do with the change under test.
+const TRANSIENT = /has been closed|Target closed|browserContext|Protocol error|crashed/i;
+
+async function checkRoute(route) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
 
@@ -84,6 +90,32 @@ for (const route of ROUTES) {
   if (consoleErrors.length) problems.push(`${consoleErrors.length} console error(s): ${consoleErrors[0]}`);
   if (badRequests.length) problems.push(`${badRequests.length} failed request(s): ${badRequests[0]}`);
 
+  // Never let teardown throw — a dead browser here used to crash node with an
+  // uncaught exception before the summary printed, taking the remaining routes
+  // with it and surfacing a stack trace instead of a verdict.
+  try {
+    await ctx.close();
+  } catch {
+    /* browser already gone; the problems list already records why */
+  }
+
+  return { problems, info };
+}
+
+for (const route of ROUTES) {
+  let { problems, info } = await checkRoute(route);
+
+  if (problems.length && problems.some((p) => TRANSIENT.test(p))) {
+    console.log(`retry ${route.path} (transient: ${problems.find((p) => TRANSIENT.test(p))?.slice(0, 80)})`);
+    try {
+      await browser.close();
+    } catch {
+      /* already dead */
+    }
+    browser = await chromium.launch();
+    ({ problems, info } = await checkRoute(route));
+  }
+
   if (problems.length) {
     failures.push({ route: route.path, problems });
     console.log(`FAIL ${route.path}`);
@@ -93,11 +125,13 @@ for (const route of ROUTES) {
       `ok   ${route.path.padEnd(13)} text=${info.textLen} canvas=${info.canvases} scroll=${info.scrollH}`,
     );
   }
-
-  await ctx.close();
 }
 
-await browser.close();
+try {
+  await browser.close();
+} catch {
+  /* nothing to clean up */
+}
 
 if (failures.length) {
   console.log(`\nsmoke: ${failures.length}/${ROUTES.length} route(s) failed`);

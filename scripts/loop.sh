@@ -60,6 +60,17 @@ for i in $(seq 1 "$MAX"); do
     break
   fi
 
+  # Foreign changes appearing between iterations mean another process is
+  # writing to this checkout (another agent, a stray editor). `git add -A`
+  # would sweep them into a loop commit and a rollback would delete them, so
+  # stop rather than gamble with work that isn't this loop's to touch.
+  if [[ -n "$(git status --porcelain --untracked-files=all | grep -v '\.claude/loop/')" ]]; then
+    warn "tree is dirty at the start of iteration $i — another process is writing to this checkout:"
+    git status --short | grep -v '\.claude/loop/' | head -10
+    warn "stopping. Nothing was swept into a commit and nothing was deleted."
+    break
+  fi
+
   say "──── iteration $i / $MAX ────"
   : > "$LOOP_DIR/LAST_TASK"
 
@@ -91,10 +102,27 @@ for i in $(seq 1 "$MAX"); do
     fi
   else
     warn "gate failed — rolling back iteration $i"
-    # Safe because we required a clean tree at start: the only untracked files
-    # are this iteration's. -e keeps the loop's own journal/backlog alive.
+    # Nothing is ever destroyed silently. Everything this iteration touched is
+    # saved as a patch first, so any rollback is recoverable with:
+    #   git apply .claude/loop/rollbacks/iter-N.patch
+    mkdir -p "$LOOP_DIR/rollbacks"
+    git diff HEAD > "$LOOP_DIR/rollbacks/iter-$i.patch" 2>/dev/null
+    git status --porcelain --untracked-files=all | grep '^??' \
+      > "$LOOP_DIR/rollbacks/iter-$i.untracked" 2>/dev/null
+
+    # The journal survives the rollback — losing the record of WHY an iteration
+    # failed would throw away the only thing a failed iteration produced.
+    JOURNAL_SAVE="$(mktemp)"
+    cp "$LOOP_DIR/JOURNAL.md" "$JOURNAL_SAVE" 2>/dev/null
+
     git reset --hard HEAD > /dev/null
     git clean -fd -e "$LOOP_DIR" > /dev/null
+
+    cp "$JOURNAL_SAVE" "$LOOP_DIR/JOURNAL.md" 2>/dev/null
+    rm -f "$JOURNAL_SAVE"
+    printf '\n_(iteration %s was ROLLED BACK — gate failed. Its changes are recoverable: `git apply %s/rollbacks/iter-%s.patch`)_\n' \
+      "$i" "$LOOP_DIR" "$i" >> "$LOOP_DIR/JOURNAL.md"
+
     rolled_back=$((rolled_back + 1))
   fi
 done

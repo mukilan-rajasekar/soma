@@ -1,0 +1,1 @@
+Declare playwright as a devDependency so npm ci keeps the smoke gate working

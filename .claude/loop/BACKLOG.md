@@ -11,7 +11,7 @@ passes and agree with its taste.
 
 ## Now
 
-- [ ] Declare playwright as a devDependency (`npm i -D playwright@1.61.1`). It
+- [x] Declare playwright as a devDependency (`npm i -D playwright@1.61.1`). It
       is `extraneous` today — installed in node_modules but absent from
       package.json — so any `npm ci` deletes it and the smoke gate breaks.
 - [ ] Restore eslint's default ignores in `eslint.config.mjs`. The

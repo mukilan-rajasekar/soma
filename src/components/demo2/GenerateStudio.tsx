@@ -32,7 +32,12 @@ const T_BOARD = 0.84;
 // candidate's score: above the best rejected candidate (48) and below the weakest
 // survivor (51), so the line is what separates them rather than a decoration drawn near
 // them. Change LATTICE and this has to move with it.
-const PLOT_H = 118;
+// 118 originally. Two reasons it grew. The frame this panel owns measured 485px of subject in
+// an 832px camera band, the thinnest composition in the take, and the empty space was all below
+// the panel. And at the 640px the recording is actually watched at, a 118px plot of 24 columns
+// downscales to 52px: the five survivors crossing the bar were a few pixels of difference. The
+// cull is one of the three things this beat has to say, so it gets the height to say it.
+const PLOT_H = 172;
 const PASS_MARK = 50;
 
 // useAnimeClock is easeOutCubic, which is right for a bar settling into place and wrong
