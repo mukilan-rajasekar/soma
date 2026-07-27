@@ -255,6 +255,7 @@ export default function DemoScrollPage({
       // Set in Section's own classes, not new ones. If Section's heading or lede styling
       // changes, this has to change with it — the alternative was a `headingInBody` flag on
       // every section for the sake of one, which is more machinery than the duplication costs.
+      //
       // WHY THE CARDS ARRIVE THIS FAST NOW. The delays used to be 880ms and 1260ms, timed
       // against TwoRegionBrain's staged build (STAGE.dorsal at 0.42 of 2100ms, STAGE.ventral
       // at 0.60) so each card landed as the region it names lit up. That figure is the 2D
@@ -266,10 +267,14 @@ export default function DemoScrollPage({
       // ventral order, which is the reading order of the sentence above them, against the
       // reveal that is actually running.
       body: (revealed) => (
-        // items-start, not items-center. Centring the columns against each other pushed the
-        // shorter one down the section by half the difference, which read as a layout fault
-        // rather than as breathing room. Top-aligned, the heading and the figure begin on the
-        // same line and the ragged edge falls at the bottom, where a two-column layout is
+        // items-start, and NOT the items-stretch this beat carried on main. Both were aimed at
+        // the same 109px of empty paper above the first card, and the difference is which
+        // column is taller. Stretching assumed the FIGURE was, so it grew the text column to
+        // match and split the slack between two cards. Once the heading and the lede moved
+        // into this column it is the taller of the two, so stretching would grow the FIGURE
+        // box instead and centre the cortex in it, which is the void this beat started with,
+        // moved to the other side of the row. Top-aligned, the heading and the figure begin on
+        // the same line and the ragged edge falls at the bottom, where a two-column layout is
         // expected to have one.
         <div ref={scienceRef} className="grid grid-cols-1 items-start gap-8 md:grid-cols-[1fr_360px]">
           <div>
@@ -311,21 +316,30 @@ export default function DemoScrollPage({
               />
             </div>
           </div>
+          {/* No `flex items-center` here, which is what this box carried on main. It centred
+              the cortex in a box that items-stretch had grown to the row height; nothing
+              stretches it now, so the box hugs the figure and centring has nothing to centre. */}
           <div className="rounded-2xl border border-line bg-paper p-4">
             {/* The real cortex, as a rotating point cloud, rather than the flat lateral
                 outline. It keeps its own reveal easing for the network colours and leaders,
                 and falls back to the 2D figure automatically where WebGL is unavailable —
                 so the staged-build version is still what ships to those viewers.
 
-                296, down from 412, and the figure does not get smaller for it. The camera
-                frames half-extents of 0.98 wide by 0.87 tall (FIT_V / FIT_H in
-                TwoRegionBrain3D), so it wants a canvas about 1.13:1. This column is 360px
-                wide, 328px inside the padding, which at 412 tall made the box 0.8:1 — a
-                portrait frame around a landscape object, so the camera pulled back to fit the
-                WIDTH and left ~120px of dead canvas split above and below the cortex. The
-                brain was floating in the middle of its own box. At 296 the box is ~1.11:1, the
-                cortex fills it, and the section loses that 120px of nothing. */}
-            <TwoRegionBrain3D active={revealed && scienceIn} height={296} />
+                290, DOWN FROM 412, AND THE CORTEX DOES NOT GET SMALLER. The camera fits on
+                max(FIT_V, FIT_H / aspect): in a box this narrow the HORIZONTAL term binds, so
+                it is pulled back far enough to clear the width while it turns, and everything
+                that buys vertically is empty paper. Measured down the range at 1512x860, the
+                painted cloud is 236px tall at 412, at 360, at 330, at 310 and at 290, and only
+                starts shrinking at 270 (218px) and 250 (201px). So 290 is the knee: 122px of
+                dead air removed, the figure itself untouched. Dead space inside the box goes
+                from 99px above and 76px below the cloud to 35px and 19px.
+
+                Do not raise this to "give the brain room". It has the room; it cannot use it.
+
+                The measurement still holds after the heading and the lede moved into the
+                column beside this one: that changed the row's HEIGHT, not this column's width,
+                and width is the term the camera is binding on. */}
+            <TwoRegionBrain3D active={revealed && scienceIn} height={290} />
           </div>
         </div>
       ),
@@ -613,13 +627,13 @@ export default function DemoScrollPage({
       // attributions, 38 of them with footage — so the label was wrong about its own number
       // and is removed rather than relabelled.
       // The remaining three are founder-attested (docs/strategy/PRODUCT.md), which is why they
-      // are typed literals rather than read from report.json. Two notes for whoever edits this
-      // next: "from people" describes provenance this repo cannot corroborate — ad_fetch_bb.py
-      // populates the corpus by scraping TikTok Creative Center and report.corpus.ads is 700 —
-      // and "biggest database in the category" is a comparative claim with no benchmark behind
-      // it. Both are here because they were asked for directly.
+      // are typed literals rather than read from report.json. One note for whoever edits this
+      // next: "from our design partners" describes provenance this repo cannot corroborate —
+      // ad_fetch_bb.py populates the corpus by scraping TikTok Creative Center, and
+      // report.corpus.ads is 700, which is a different 700 from the 500 claimed here. It is
+      // here because it was asked for directly.
       // Three tiles, one anatomy. They used to have three: bars render only when a tile has a
-      // `tone`, so 1,500+ and 200+ had none and 92% had one, which left the three sub-labels
+      // `tone`, so the two counts had none and 92% had one, which left the three sub-labels
       // sitting at different heights across the row and made a deliberate grid look like a
       // rendering accident. The 75% baseline notch made it worse: an unlabelled hairline drawn
       // in paper over the fill, which at the 640px this is watched at reads as a seam in the
@@ -636,8 +650,8 @@ export default function DemoScrollPage({
       body: (revealed) => (
         <div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Stat big lg value={1500} suffix="+" label="Ads in the database" sub="the biggest in the category" active={revealed} />
-            <Stat big lg value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
+            <Stat big lg value={500} suffix="" label="Ads in the live database" sub="from our design partners" active={revealed} />
+            <Stat big lg value={100} suffix="+" label="Founders and companies" sub="on the waitlist" active={revealed} />
             <Stat big lg value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
           </div>
           <CorpusWall batch={batch} active={revealed} />
@@ -1025,7 +1039,10 @@ function RegionCard({
 }) {
   return (
     <Rise on={revealed} delay={delay} className="h-full">
-      <div className="h-full rounded-2xl border border-line bg-paper p-4">
+      {/* Content centred rather than top-aligned. The column is stretched to the figure's
+          height beside it, so a card is now taller than the three lines inside it; parked at
+          the top, those lines read as a card that failed to finish loading. */}
+      <div className="flex h-full flex-col justify-center rounded-2xl border border-line bg-paper p-4">
         <div className="flex items-center gap-2">
           {/* The dot rings out once as the card lands, the same way the region it names
               scales up in the figure beside it. Both are the same gesture at two scales,

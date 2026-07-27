@@ -209,25 +209,54 @@ body {
    circular arc of the same nominal radius, so keeping 16px would read as a *sharpening*. These
    values were picked by eye at the 640px the demo is actually watched at, not at 1:1.
 
-   Exponent 2.6 rather than Apple's ~4-5: at the small radii this design system uses (12-16px,
-   not a 60px app icon) a high exponent flattens into something almost rectangular. 2.6 is the
-   point where the corner still reads as soft at 12px but the discontinuity is gone. */
+   THE CSS ARGUMENT IS NOT THE EXPONENT. This is the one thing to know before touching the
+   number below, and getting it wrong is why this file used to say "2.6 rather than Apple's
+   ~4-5" while actually drawing a corner SQUARER than Apple's. `superellipse(k)` draws
+   |x|^(2^k) + |y|^(2^k) = 1 — the argument is the base-2 log of the exponent. Measured by
+   rasterising a 400px full superellipse in Chromium 151 and least-squares fitting the family
+   to the painted rows:
+
+       superellipse(1)      -> n = 2.00    a circle, and the spec's `round` keyword
+       superellipse(2)      -> n = 4.02    the classic squircle, and the `squircle` keyword
+       superellipse(2.3219) -> n = 4.98    a QUINTIC superellipse
+       superellipse(2.6)    -> n = 6.05    what this file shipped before
+       superellipse(3)      -> n = 8.01
+
+   So the value here is log2(5) = 2.3219, and it is the quintic superellipse exactly: no abrupt
+   change in tangent OR in curvature anywhere around the corner. Note which direction that moved
+   things — 6.05 was squarer than a quintic, so this is very slightly SOFTER than what shipped,
+   not flatter, and the old worry about a high exponent flattening small radii into rectangles
+   was a worry about a number that never meant what it was read as. */
 @supports (corner-shape: superellipse(2)) {
   .rounded-xl {
     border-radius: 14px;
-    corner-shape: superellipse(2.6);
+    corner-shape: superellipse(2.3219);
   }
   .rounded-2xl {
     border-radius: 20px;
-    corner-shape: superellipse(2.6);
+    corner-shape: superellipse(2.3219);
   }
   /* Small badges and chips: same shape, radius scaled to the box so a 32px badge and a 36px
      badge are the same corner rather than two accidents. */
   .rounded-badge {
     border-radius: 32%;
-    corner-shape: superellipse(2.6);
+    corner-shape: superellipse(2.3219);
+  }
+  /* The 2px hairline bars in the per-shot delta strip. Included for completeness rather than
+     for effect: at a 2px radius a quintic and a circular arc differ by a fraction of a pixel.
+     It costs one rule and it means there is no corner on the page drawn to a different law. */
+  .rounded-\[2px\] {
+    corner-shape: superellipse(2.3219);
   }
 }
+
+/* NOT rounded-full, and this is a decision rather than an oversight. A superellipse exists to
+   remove the curvature jump where a circular arc meets a straight edge, and a full circle has
+   no straight edge to meet — it is already continuous everywhere, so there is nothing here to
+   fix. Applying it anyway would be destructive rather than neutral: on this page `rounded-full`
+   is 52 elements, and most of them are 6x3 dots and 4px-tall progress bars where forcing a
+   superellipse turns a dot into a rounded square. The one genuine pill it also covers is the
+   intro control, which fades out before the recording starts. */
 /* The badge radius has to resolve with or without corner-shape, so it is declared outside the
    @supports too. 32% of the box, which is what keeps the 32px and 36px badges identical in
    shape — the two used to be 9px and 10px, set independently. */
