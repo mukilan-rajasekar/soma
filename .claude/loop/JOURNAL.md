@@ -651,3 +651,48 @@ by its shot-mates — only an ENTIRE shot of NaN survives to the lane. That is g
 robustness and bad for anyone writing a degenerate-input fixture, and it means the
 display's treatment of a dropped shot (to_unit and to_signed both send it to 0.0, a
 legitimate value in either lane) is reachable far less often than I assumed.
+
+## 2026-07-27 — critique pass: /devex-review
+changed: .claude/loop/{BACKLOG.md,LAST_TASK,JOURNAL.md}, AGENTS.md (no source touched)
+why: every item was checked, so this is the third critique pass. /health and test
+coverage have each had a turn; three lenses were tied at zero (/design-review,
+/qa-only, /devex-review) and I took the one PROMPT.md frames as "the build and dev
+loop itself" — also the only one of the three that yields items from measurement
+rather than from visual judgment, which is the right bias with nobody watching.
+Ran the lens's substance against this repo rather than its script: it is written for
+a developer-facing product with docs and a signup flow, and soma is a site plus a
+Python pipeline, so the testable dimensions are Getting Started, CLI ergonomics,
+Error Messages and Dev Environment. Measured, did not guess. What is already good and
+should not be "improved": all five pipeline CLIs (head_apply, train_head,
+build_roi_mask, incremental_validity, affect_head) exit 0 on --help with a prose
+rationale and a pointer to the pre-registration, not just a flag list — that is the
+strongest surface in the repo; requirements.txt annotates every dependency with a WHY
+and a removal runway; next dev is ready in 219ms and serves / in 623ms; the fast gate
+is 9.7s; `npm run lint` is clean at 83 files. All seven findings are at the edges —
+bootstrap, declaration, enforcement. Seven items written, ordered so the numpy pin
+lands before CI. Fixed nothing, per the lens's hard gate. Fast gate green: 158 pytest,
+build and eslint clean.
+surprised: three things. (1) requirements.txt declares `numpy>=1.26,<2.1` and the
+.venv the gate actually passes in has numpy 2.5.1 — verified against the specifier, not
+satisfied. So the declared environment is not the tested one, and line 37's "numpy
+already declared above and is compatible with this group" is false for the venv in use.
+The ceiling's stated reason is the TRIBE v2 C-ABI, which is GROUP A — a group the
+file's own header says to install in a SEPARATE environment and whose revisions "live
+only in the GPU environment itself". So a pin for an environment this file does not
+install is constraining the one it does. Same shape as the playwright-extraneous and
+pytest-undeclared bugs this loop opened with; third time a declared dependency set has
+disagreed with the working one. (2) The single biggest hole is not a missing feature,
+it is a missing sentence. README documents the site's bootstrap (`npm install`,
+`npm run dev`) and says of the Python half only "Python deps are in requirements.txt" —
+grep finds zero occurrences of venv, pip install or python3 -m venv in it — while
+requirements.txt's install line presupposes a .venv nothing tells you to create. Half
+the repo, including step 3 of the gate, is unbootstrappable from the docs, and
+`npm test` on a fresh clone exits 127 with `sh: .venv/bin/python: No such file or
+directory`. Reproduced it in an empty directory rather than reasoning about it.
+(3) `npm run lint` and the gate are not the same check. Bare `eslint` inspects 83 files;
+`eslint src` inspects 78. The five outside are eslint.config.mjs, next.config.ts,
+postcss.config.mjs, scripts/smoke.mjs and tools/demo/shoot.mjs — so two files the loop
+actually touches are linted by the npm script and invisible to the gate. Did not write
+it as an item: closing it means widening verify.sh, which the loop is forbidden from
+editing, and narrowing `npm run lint` to match would lose real coverage. Recorded in
+AGENTS.md instead so nobody reads a green `npm run lint` as a green gate, or vice versa.

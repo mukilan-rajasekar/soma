@@ -414,3 +414,109 @@ Three constraints that apply to all of them:
 ## Done
 
 <!-- completed items get moved down here with their commit sha -->
+
+## Developer experience — the build and dev loop (critique pass, 2026-07-27)
+
+Seven items from dogfooding the loop itself. Every number below was measured in
+this checkout, not estimated. Context on what is already good, so nobody
+"improves" it: the pipeline CLIs are the strongest surface in the repo — all five
+of `head_apply/train_head/build_roi_mask/incremental_validity/affect_head --help`
+exit 0 with a prose rationale, not just a flag list; `requirements.txt` is
+annotated per-dependency with WHY and a removal runway; `next dev` is ready in
+219 ms and serves `/` in 623 ms; the fast gate is 9.7 s. The gaps are all at the
+edges: bootstrap, declaration, and enforcement.
+
+Take item 3 BEFORE item 6 — CI installs from `requirements.txt`, so wiring CI
+first would pin the build to a numpy nobody actually runs.
+
+- [ ] Document the Python bootstrap in `README.md`, and make the gate reachable
+      by name. This is the biggest onboarding hole in the repo: `README.md` says
+      exactly one thing about Python — "Python deps are in `requirements.txt`"
+      (line 72) — and `grep -n "venv\|pip install\|python3 -m venv" README.md`
+      returns nothing. `requirements.txt` line 9 shows
+      `./.venv/bin/pip install -r requirements.txt`, which presupposes a `.venv`
+      that nothing tells you to create. So half the repo (15 tracked `.py` files,
+      8 `test_*.py`, and step 3 of the gate) is unbootstrappable from the docs.
+      Add a "Run the pipeline locally" block next to the existing site block:
+      `python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt`,
+      then `npm test`. Record that 3.13.13 is the interpreter in use. In the same
+      edit add `"verify": "./scripts/verify.sh"` to `package.json` scripts and one
+      README line naming it as the pre-push check — `scripts/verify.sh` is the
+      only command that says whether a change is shippable and it appears in
+      neither `README.md` nor `npm run`. (Adding a wrapper script is not editing
+      `verify.sh`; do not touch the file itself.)
+- [ ] Make `npm test` fail with the fix instead of a raw shell error. With no
+      `.venv` — i.e. every fresh clone — `.venv/bin/python -m pytest -q` exits
+      **127** with `sh: .venv/bin/python: No such file or directory` and no
+      further output. Verified by running it in an empty directory. That is the
+      bottom tier of the error-message model: it names the missing path but not
+      the cause, not the fix, and not the fact that a venv is expected at all.
+      Guard the script so it prints the create-and-install command and exits 1:
+      `[ -x .venv/bin/python ] || { echo "no .venv — run: python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt"; exit 1; }`
+      before the pytest call. Keep the `.venv/bin/python -m pytest -q` body
+      byte-identical to the branch `verify.sh` takes.
+- [ ] Fix `requirements.txt`'s numpy pin — it excludes the numpy the gate
+      actually passes under. Declared: `numpy>=1.26,<2.1` (line 26). Installed in
+      `.venv`: **2.5.1**. Verified against the specifier: not satisfied. So a
+      fresh `pip install -r requirements.txt` builds an environment two minor
+      versions off the one all 158 tests are green in, and numpy 2.x has already
+      bitten this loop once (`ndarray.ptp()` was removed in 2.5 — it is in
+      AGENTS.md). Line 37's claim, "numpy already declared above (>=1.26,<2.1)
+      and is compatible with this group", is false for the venv in use. The pin's
+      stated reason is the TRIBE v2 / neuralset C-ABI, which is GROUP A — and the
+      file's own header says to install the groups in separate environments and
+      that the GPU revisions "live only in the GPU environment itself". So the
+      ceiling belongs to a group this file does not install. Move it: leave the
+      `<2.1` note in the GROUP A block as prose about the GPU box, and give
+      GROUP B a pin that describes this venv. Do not just delete the ceiling —
+      keep the WHY comment intact, it is the reason the constraint exists at all.
+      Re-run `npm test` after; the suite is the check.
+- [ ] Declare the Node floor. `node_modules/next/package.json` says
+      `engines: {"node": ">=20.9.0"}`; soma's own `package.json` has no `engines`
+      field and there is no `.nvmrc` (both verified absent). So `npm install` on
+      Node 18 succeeds and the failure surfaces later as a confusing Next runtime
+      error rather than an install-time one. Add `"engines": {"node": ">=20.9.0"}`
+      mirroring next's own requirement, and an `.nvmrc` naming the version in use
+      here (v24.16.0). Note that `engines` only warns unless `engine-strict` is
+      set — the value is the declaration and the `.nvmrc` handoff, not
+      enforcement, so do not oversell it in the commit message.
+- [ ] Add a tracked `.env.example`. `.env` and `.env.local` are gitignored, so a
+      fresh clone has no pointer to any of the six variables the code reads, and
+      the only way to find them is to grep two languages. They are:
+      `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` (site, read via
+      `src/lib/supabase/server.ts`), `SMOKE_URL` (`scripts/smoke.mjs`), and on the
+      Python side `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`
+      (`publish_to_supabase.py:46-47` — it accepts either naming),
+      `BROWSERBASE_API_KEY` and `SOMA_STAGEHAND_MODEL` (`ad_fetch_bb.py`), plus
+      `META_ACCESS_TOKEN`. Say plainly in the file that **all of them are
+      optional for the site**: `src/app/api/arcs/route.ts` returns `[]` rather
+      than a 500 when Supabase is unconfigured and `/demo` falls back to the
+      bundled `public/arcs/*.json`, which is deliberate and worth documenting
+      rather than leaving a reader to assume the app needs credentials to boot.
+- [ ] Add `.github/workflows/verify.yml`. There is a real remote
+      (`github.com/mukilan-rajasekar/soma`) and a real gate, and the gate runs on
+      exactly one laptop — nothing checks a push or a PR. Run
+      `SKIP_SMOKE=1 ./scripts/verify.sh` rather than restating its steps, so the
+      workflow cannot drift from the single source of truth: checkout, setup-node
+      20.9+ with `npm ci`, setup-python 3.13, `python -m venv .venv`,
+      `./.venv/bin/pip install -r requirements.txt`, then the gate. Skip smoke in
+      CI for now — it needs `npx playwright install chromium` (~1 min of download
+      per run) and the full gate stays the local pre-push check. Do this AFTER
+      the numpy item above, or CI will be green against a numpy that no developer
+      and no test run has ever used.
+- [ ] Silence the standing Turbopack build warning, which currently fires on
+      every single build including the gate's. Verbatim: "Encountered unexpected
+      file in NFT list — A file was traced that indicates that the whole project
+      was traced unintentionally", tracing `./next.config.ts` through
+      `src/components/preflight/report.ts` into `src/app/preflight/page.tsx`. The
+      cause is `report.ts:255`, `path.join(process.cwd(), ...REPORT_PATH)` — the
+      spread of a module-level array defeats Turbopack's static analysis, so the
+      whole project is pulled into the `/preflight` function's trace. loop(9)
+      measured the concrete cost of this: every file in `public/preflight/` ships
+      inside the serverless function whether or not it is read. Next's own message
+      names two fixes; prefer the static one, `path.join(process.cwd(), "public",
+      "preflight", "batch_report.json")`, over a `/*turbopackIgnore: true*/`
+      comment, and keep `REPORT_PATH` for the `warn()` message at line 21 if it is
+      still wanted. Verify by diffing
+      `.next/server/app/preflight/page.js.nft.json` before and after and by
+      confirming the build log says 0 warnings; /preflight must still render.
