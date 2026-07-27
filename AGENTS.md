@@ -26,3 +26,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - `_proxy_arc` signs only `valence`; every other dim silently takes the `|.|` branch.
 - resample_to_grid pools with nanmean: only an all-NaN shot reaches the lane as NaN.
 - `npm run lint` is bare eslint (83 files); the gate lints only src/.
+- A loop commit can name a backlog item without doing it — check the diff.

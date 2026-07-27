@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": ".venv/bin/python -m pytest -q"
+    "test": ".venv/bin/python -m pytest -q",
+    "verify": "./scripts/verify.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

@@ -696,3 +696,27 @@ actually touches are linted by the npm script and invisible to the gate. Did not
 it as an item: closing it means widening verify.sh, which the loop is forbidden from
 editing, and narrowing `npm run lint` to match would lose real coverage. Recorded in
 AGENTS.md instead so nobody reads a green `npm run lint` as a green gate, or vice versa.
+
+## 2026-07-27 — Document the Python bootstrap in README.md and make the gate reachable by name (npm run verify)
+changed: README.md, package.json, .claude/loop/{BACKLOG.md,LAST_TASK,JOURNAL.md}
+why: top unchecked item, and loop(1) had left it open — its commit wrote the item text to
+LAST_TASK and touched nothing else, so the message named the work but the work was not
+done. README said exactly one thing about the Python half ("Python deps are in
+requirements.txt") while requirements.txt's own install line presupposes a `.venv` nothing
+told you to create, so half the repo — 15 tracked .py files, 8 test_*.py, and step 3 of the
+gate — was unbootstrappable from the docs. Replaced that sentence with a "Run the pipeline
+locally" block (python3 -m venv .venv, ./.venv/bin/pip install -r requirements.txt,
+npm test, interpreter named as 3.13.13) and pointed at requirements.txt's own annotated
+header, including the warning that the GPU group installs into a separate environment.
+Added a "Checks" section naming `npm run verify`, `SKIP_SMOKE=1 npm run verify` and
+`npm run typecheck`, and added `"verify": "./scripts/verify.sh"` to package.json — the gate
+was previously the only command that says whether a change is shippable while appearing in
+neither README nor `npm run`. scripts/verify.sh itself untouched. Verified end to end:
+`SKIP_SMOKE=1 npm run verify` is green (build, eslint src, 158 pytest in 1.57s).
+surprised: two small things, both in my favour. The system `python3` on this machine is
+already 3.13.13, the same interpreter as the .venv, so the documented venv line reproduces
+the environment the 158 tests are green in without any version-manager step — worth saying
+in the README rather than leaving a reader to wonder. And `SKIP_SMOKE=1 npm run verify`
+works unchanged: npm forwards the env to the script, so the fast path is one command and
+did not need a second package.json entry (`verify:fast`) that would have had to be kept in
+sync with the gate's own variable name.

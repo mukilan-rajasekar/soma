@@ -429,7 +429,7 @@ edges: bootstrap, declaration, and enforcement.
 Take item 3 BEFORE item 6 — CI installs from `requirements.txt`, so wiring CI
 first would pin the build to a numpy nobody actually runs.
 
-- [ ] Document the Python bootstrap in `README.md`, and make the gate reachable
+- [x] Document the Python bootstrap in `README.md`, and make the gate reachable
       by name. This is the biggest onboarding hole in the repo: `README.md` says
       exactly one thing about Python — "Python deps are in `requirements.txt`"
       (line 72) — and `grep -n "venv\|pip install\|python3 -m venv" README.md`
@@ -445,6 +445,18 @@ first would pin the build to a numpy nobody actually runs.
       only command that says whether a change is shippable and it appears in
       neither `README.md` nor `npm run`. (Adding a wrapper script is not editing
       `verify.sh`; do not touch the file itself.)
+      Shipped. README gained a "Run the pipeline locally" block (venv create,
+      `./.venv/bin/pip install -r requirements.txt`, `npm test`, 3.13.13 named) in place of
+      the one-line "Python deps are in requirements.txt", plus a "Checks" section naming
+      `npm run verify` / `SKIP_SMOKE=1 npm run verify` / `npm run typecheck`;
+      `"verify": "./scripts/verify.sh"` added to package.json. `verify.sh` untouched.
+      Two things worth knowing. The system `python3` here is already 3.13.13, so the
+      documented `python3 -m venv .venv` reproduces the interpreter the 158 tests pass
+      under — no version-manager step needed. And `SKIP_SMOKE=1 npm run verify` works:
+      npm passes the env through to the script, so the fast path stays one command and
+      does not need a second npm entry. Note loop(1) committed this item's text to
+      LAST_TASK and nothing else — the commit named the item but touched no source, so
+      the item was still open.
 - [ ] Make `npm test` fail with the fix instead of a raw shell error. With no
       `.venv` — i.e. every fresh clone — `.venv/bin/python -m pytest -q` exits
       **127** with `sh: .venv/bin/python: No such file or directory` and no

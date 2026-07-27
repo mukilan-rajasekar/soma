@@ -69,7 +69,30 @@ encoder is frozen and Meta's; the read-out weights are ours. The tracked scripts
 - `tools/export_brain.py` — build-time only: dumps the fsaverage cortical surface to
   `public/brain/*.bin` for the site's 3D hero. Decoration, never a real prediction.
 
-Python deps are in `requirements.txt`.
+Run the pipeline locally:
+
+```bash
+python3 -m venv .venv                        # 3.13.13 is the interpreter in use here
+./.venv/bin/pip install -r requirements.txt
+npm test                                     # the Python suite (.venv/bin/python -m pytest -q)
+```
+
+Nothing here is installed system-wide: every script, and step 3 of the gate below, expects
+`./.venv/bin/python`. Deps are in `requirements.txt`, annotated with why each one is pinned —
+read its header before adding to it, since the GPU (TRIBE v2) group installs into a *separate*
+environment from the one above.
+
+## Checks
+
+```bash
+npm run verify                 # the gate: build + eslint src + pytest + a Playwright smoke pass
+SKIP_SMOKE=1 npm run verify    # same without the smoke pass (~40s)
+npm run typecheck              # tsc --noEmit, the fast subset while iterating
+```
+
+`scripts/verify.sh` is the only command that says whether a change is shippable — run it before
+you push. It is also what the unattended improvement loop (`scripts/loop.sh`) judges each
+iteration by, so treat it as the contract rather than as a convenience script.
 
 ## How the two connect
 
