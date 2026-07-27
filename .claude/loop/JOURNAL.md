@@ -136,3 +136,36 @@ untracked state go stale fast under this loop. (2) The fix is one-directional: i
 stops NEW scratch files from being swept in, but only because they all happen to
 start with an underscore. The next agent that drops check_thing.mjs at the root
 gets it committed just the same.
+
+## 2026-07-27 — critique pass: /health
+changed: .claude/loop/{BACKLOG.md,LAST_TASK,JOURNAL.md}, AGENTS.md (no source touched)
+why: every seeded item was checked, so this is the first critique pass; /health had
+never had a turn and is the only lens that runs without a browser. Ran the skill's
+substance, not its prompts (no human here to answer AskUserQuestion), and honoured its
+hard gate: found things, fixed nothing. Tools that exist: tsc --noEmit (exit 0, 1s),
+npx eslint . (exit 0, 3s, 87 files), pytest (8 passed, 0.2s). knip and shellcheck are
+not installed, so the dead-code and shell-lint dimensions have no tool and the 10.0
+composite covers only 68% of the rubric's weight — worth saying plainly rather than
+reporting a clean board. src/ hygiene is genuinely good: 0 TODO/FIXME, one `any`, four
+console.warn that all report real failures, no @ts-ignore. So the dead-weight half of
+the lens is where the six items came from, all verified by hand rather than by a tool:
+two demo2 components nobody imports (229 lines), a 680-line fork of a 693-line 3D
+component whose entire diff is five tuning knobs, five byte-identical mp4s tracked under
+two names (6.4 MB), one orphan JSON, no typecheck/test script in package.json, and
+tests/ hidden by an uncommitted .git/info/exclude.
+surprised: three things. (1) tests/ does not exist in git at all. It is 26 MB on this
+disk, hidden by .git/info/exclude — a file that ships with no clone — alongside /data/,
+/cloud/, /demo/ and the colab notebooks. Its __pycache__ still holds .pyc for eleven
+test modules (test_ad_backtest, test_cognimuse, test_datasets, test_mat_readers,
+test_message_extract, test_retention_head, test_temporal_readout, test_build_events,
+test_compare_cuts, plus check_formats and dry_run) whose .py files are gone. That is a
+standing constraint on the loop's favourite kind of item: a test that reads
+tests/synth/ is green here and red in every other checkout, so new Python tests must
+build their own fixtures the way test_head_io.py does. (2) The two video directories are
+not a stale copy — both are live, /demo through /campaign/ URLs baked into a generated
+report.json and /preflight through a VIDEO_URL_PREFIX default, and each prefix is
+mirrored in a different Python file. Deleting one directory without touching its
+generator just means the duplicate returns on the next run. (3) next build does run
+TypeScript ("Running TypeScript ... Finished TypeScript in 2.0s" in the build log), so
+typecheck is already gated even though verify.sh never calls tsc. The npm-script item is
+about discoverability, not coverage — I nearly wrote it up as a hole in the gate.

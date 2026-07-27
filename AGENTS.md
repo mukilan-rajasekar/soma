@@ -11,3 +11,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Canonical production origin is `https://www.usesoma.work` — with the `www`.
 - Bare `pytest` also collects `*_test.py`: `head_null_test.py` must stay importable.
 - `scripts/loop.sh` runs `git add -A`: any untracked file lands in the iteration commit.
+- Uncommitted `.git/info/exclude` hides `tests/`, `data/`, `cloud/`; fresh clones lack them.
