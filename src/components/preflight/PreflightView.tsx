@@ -23,7 +23,7 @@ import Section from "../demo2/Section";
 import SiteHeader from "../site/SiteHeader";
 import RegionCard from "../demo2/RegionCard";
 import Stat from "../demo2/Stat";
-import TwoRegionBrain3D from "./TwoRegionBrain3D";
+import TwoRegionBrain3D from "../demo2/TwoRegionBrain3D";
 import { useReveal } from "../demo2/useReveal";
 import { HOOK_SECONDS } from "./lanes";
 import type { PreflightReport } from "./types";
@@ -151,7 +151,18 @@ export default function PreflightView({ report, corpus }: Props) {
               </p>
             </div>
             <div className="rounded-2xl border border-line bg-fill p-4">
-              <TwoRegionBrain3D active={revealed} />
+              {/* The figure is shared with /demo; these five numbers are the whole of what
+                  this page wants differently. It is read at 1:1 by someone who dwells on it,
+                  not at ~640px in a 50-second take, so it turns faster, draws the ventral
+                  patches smaller, and sits on a denser cloud. */}
+              <TwoRegionBrain3D
+                active={revealed}
+                spinRate={0.19}
+                insulaReach={0.21}
+                operculumReach={0.24}
+                cloudGrey={0.52}
+                cloudAlpha={0.48}
+              />
             </div>
           </div>
         )}

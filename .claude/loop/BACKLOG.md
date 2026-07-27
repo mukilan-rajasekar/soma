@@ -51,7 +51,7 @@ passes and agree with its taste.
       `Stat.tsx:41`) that cite RankBoard as a past reveal-timing example. Both
       files are still typechecked and linted on every build. Delete them and
       reword those three comments so they stop naming a file that is gone.
-- [ ] De-fork `src/components/preflight/TwoRegionBrain3D.tsx` (680 lines) from
+- [x] De-fork `src/components/preflight/TwoRegionBrain3D.tsx` (680 lines) from
       `src/components/demo2/TwoRegionBrain3D.tsx` (693 lines). `diff` between
       the two is 35 lines and only five real knobs: the `TwoRegionBrain` import
       path, `reach` on two insula seed points (0.27/0.30 vs 0.21/0.24),

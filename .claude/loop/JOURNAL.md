@@ -196,3 +196,35 @@ comments". True for tracked source, but a repo-wide grep also hits
 .impeccable/hook.cache.json — an untracked per-session edit-count cache that names both
 files under an old /Users/mukilan/Projects/Brain Project/ path. Worth knowing that
 repo-wide greps in this checkout carry that file's history of every component ever edited.
+
+## 2026-07-27 — De-fork preflight/TwoRegionBrain3D.tsx from demo2/TwoRegionBrain3D.tsx
+changed: git rm src/components/preflight/TwoRegionBrain3D.tsx; demo2/TwoRegionBrain3D.tsx
+(five props + defaults); preflight/PreflightView.tsx (import + the five values)
+why: 680 lines that were a copy of 693, differing in 35. The item's five knobs held up on
+re-check: the import path, two ventral reaches (0.27/0.30 vs 0.21/0.24), SPIN_RATE
+(0.06 vs 0.19), the uGrey lerp (0.7 vs 0.52) and uBaseAlpha (0.44 vs 0.48). Made the four
+behavioural ones props — spinRate, insulaReach, operculumReach, cloudGrey, cloudAlpha —
+defaulted to the demo2 values, and had PreflightView pass its own; the import-path knob
+dissolves on deletion because the preflight copy already reached across to
+../demo2/TwoRegionBrain for its no-WebGL fallback, so both call sites now share one module.
+NODES became nodesFor(insulaReach, operculumReach) so the two tunable nodes are named rather
+than indexed. Kept the props as five scalars rather than one array/object on purpose: they
+go in the effect's dependency array, and an array literal at the call site would be a new
+reference every render and rebuild the whole WebGL scene each time. As scalars both call
+sites pass literals, so the effect still runs exactly once — and exhaustive-deps stays
+satisfied without a suppression (`npx eslint src --max-warnings 0` is clean). Rewrote the
+two long comments that justified demo2's values by contrast with /preflight so they read as
+"this is the default, /preflight overrides to X" instead of naming a file that is gone.
+Full gate green: build, eslint, 8 pytest, all 4 smoke routes ok (/preflight canvas=4).
+surprised: two things. (1) The item's diff-based premise had a hole `diff` could not see.
+Both files' line 7 is the identical text `import { readVizTokens } from "./tokens";` — so
+diff calls it unchanged — but it resolves to two DIFFERENT modules, demo2/tokens.ts and
+preflight/tokens.ts, which are ~50 lines apart (demo2's adds useVizTokens, tokenVar,
+tokenAlpha and an `error` token). Checked before merging: for the four tokens this component
+actually reads (ink, ink3, line2, accent2) both modules read the same :root custom properties
+off document.documentElement with identical fallback hexes, and nothing under /preflight
+scopes an override, so the merge is pixel-identical. A textually-clean diff between two
+directories is not evidence that the imports are the same. (2) The demo2 comment said the
+old alpha was 0.55, but /preflight's is 0.48 — /preflight moved after that comment was
+written. Wrote the new comment against the value /preflight actually passes today rather
+than repeating the stale number.

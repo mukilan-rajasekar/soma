@@ -1,1 +1,1 @@
-Delete the unused demo2 components RankBoard.tsx and RegionTable.tsx and reword the three comments that name them
+De-fork src/components/preflight/TwoRegionBrain3D.tsx from src/components/demo2/TwoRegionBrain3D.tsx by making the five diverging tuning knobs props

@@ -34,6 +34,12 @@ import { readVizTokens } from "./tokens";
  * for the two networks placed on the surface — not the per-vertex Destrieux mask
  * build_roi_mask.py extracts from, and never a prediction value. It says "here is where
  * these two systems live", which is exactly the claim the section makes.
+ *
+ * SHARED by /demo and /preflight. The two pages want the same figure at two sizes and two
+ * dwell times, and the whole of what differs is five numbers — the spin rate, the two
+ * ventral patch reaches, and the base cloud's grey and alpha. Those are props here,
+ * defaulted to the /demo values; PreflightView passes its own. Everything else, including
+ * the shaders, is one copy.
  */
 
 type Props = {
@@ -41,6 +47,16 @@ type Props = {
   active?: boolean;
   /** Canvas height in CSS px. */
   height?: number;
+  /** Rotation about the superior axis, rad/sec — see SPIN_RATE. */
+  spinRate?: number;
+  /** Patch reach of the anterior insula node, in model units — see INSULA_REACH. */
+  insulaReach?: number;
+  /** Patch reach of the frontal operculum node, in model units. */
+  operculumReach?: number;
+  /** How far the base cloud's grey is lifted from ink-3 toward the hairline — see CLOUD_GREY. */
+  cloudGrey?: number;
+  /** Alpha of an unlit cloud dot. */
+  cloudAlpha?: number;
 };
 
 // ── MODEL FRAME ───────────────────────────────────────────────────────────────────────
@@ -70,26 +86,33 @@ type Node = {
   reach: number;
 };
 
+// The two ventral reaches are the only anatomy that differs per page: /preflight draws the
+// same two patches smaller (0.21 / 0.24), because there they do not have to carry across a
+// recording. Every other node below is the same on both pages.
+const INSULA_REACH = 0.27;
+const OPERCULUM_REACH = 0.3;
+
 // The nodes each network is marked by. Same two systems as build_roi_mask.py's
 // DORSAL_ATTN_REGIONS (IPS · precentral/FEF · superior parietal) and AROUSAL_REGIONS
 // (anterior insula · ACC). The ACC node is left off on purpose: it sits on the medial
 // wall, invisible from every angle a turning lateral view offers, so drawing it would
 // only fog the midline. The RegionCard beside this figure names it.
-const NODES: readonly Node[] = [
+const nodesFor = (insulaReach: number, operculumReach: number): readonly Node[] => [
   { net: 0, mm: [30, -58, 48], reach: 0.23 }, // intraparietal sulcus
   { net: 0, mm: [22, -66, 56], reach: 0.19 }, // superior parietal lobule
   { net: 0, mm: [28, -6, 54], reach: 0.19 }, //  frontal eye fields (superior precentral)
-  { net: 1, mm: [38, 18, 2], reach: 0.27 }, //   anterior insula
-  { net: 1, mm: [46, 14, -4], reach: 0.30 }, //  frontal operculum, the insula's lateral face
+  { net: 1, mm: [38, 18, 2], reach: insulaReach }, // anterior insula
+  { net: 1, mm: [46, 14, -4], reach: operculumReach }, // frontal operculum, the insula's lateral face
 ];
 
 // ── MOTION ────────────────────────────────────────────────────────────────────────────
-// Slower here than on /preflight (0.19 rad/s, ~33 s per turn). That rate is right for a page
-// a reader dwells on, but this figure gets ~7 s of a 50-second scroll take, and 0.19 turns it
-// 76° in that window — far enough to swing the ventral patch onto the far side, leaving its
-// pinned VENTRAL chip pointing a leader line into empty space on the one beat whose entire
-// claim is "two networks". At 0.06 the same window turns ~24°: enough parallax to read as a
-// solid object rather than a picture, while both networks stay square-on for the whole take.
+// The default is the /demo rate, which is the slower of the two. /preflight's 0.19 rad/s
+// (~33 s per turn) is right for a page a reader dwells on, but this figure gets ~7 s of a
+// 50-second scroll take, and 0.19 turns it 76° in that window — far enough to swing the
+// ventral patch onto the far side, leaving its pinned VENTRAL chip pointing a leader line
+// into empty space on the one beat whose entire claim is "two networks". At 0.06 the same
+// window turns ~24°: enough parallax to read as a solid object rather than a picture, while
+// both networks stay square-on for the whole take.
 const SPIN_RATE = 0.06; //   rad/sec about the superior axis (~105 s per full turn)
 const BASE_TILT = -0.2; //   resting pitch: a slight look-down, so the superior surface
 //                           (where the dorsal network lives) is never edge-on
@@ -121,6 +144,16 @@ const KEEP = 0.22;
 // so when it swings to the far side it stays visible as a ghost rather than vanishing.
 const FAR_FADE = 0.2;
 const FAR_FADE_LIT = 0.5;
+// The base cloud's weight: how far ink-3 is lifted toward the hairline grey, and the alpha
+// of an unlit dot. Paler and fainter by default than the values /preflight passes back in
+// (0.52 / 0.48). At 1:1 the denser cloud is fine, but this figure is watched at ~640px in
+// the recording, and there the two lit patches were a slightly darker smudge inside a grey
+// mass: the beat whose entire claim is "two networks, measured separately" could not show
+// two networks. Nothing about the regions themselves changes with these — their size is
+// anatomy, not a design decision. Only the field they sit in gets quieter, so the same
+// patches read as figure instead of as texture. Verified at 640px, not at 1:1.
+const CLOUD_GREY = 0.7;
+const CLOUD_ALPHA = 0.44;
 const LEADER_GAP = 4; //   px the leader stops short of the chip and of the patch
 
 const VERT = /* glsl */ `
@@ -217,7 +250,15 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-export default function TwoRegionBrain3D({ active = true, height = 320 }: Props) {
+export default function TwoRegionBrain3D({
+  active = true,
+  height = 320,
+  spinRate = SPIN_RATE,
+  insulaReach = INSULA_REACH,
+  operculumReach = OPERCULUM_REACH,
+  cloudGrey = CLOUD_GREY,
+  cloudAlpha = CLOUD_ALPHA,
+}: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -281,17 +322,10 @@ export default function TwoRegionBrain3D({ active = true, height = 320 }: Props)
       uBreathV: { value: 1 },
       // A pale cloud: ink-3 lifted most of the way to the hairline grey. Lighter than the
       // hero's cortex on purpose — here the dots are background, not the subject.
-      // Pushed paler and fainter than it was (0.52 / 0.55). At 1:1 the old cloud was fine, but
-      // this figure is watched at ~640px in the recording, and there the two lit patches were
-      // a slightly darker smudge inside a grey mass: the beat whose entire claim is "two
-      // networks, measured separately" could not show two networks. Nothing about the regions
-      // themselves changed, which matters — their size is anatomy, not a design decision. Only
-      // the field they sit in got quieter, so the same patches read as figure instead of as
-      // texture. Verified at 640px, not at 1:1.
-      uGrey: { value: literalColor(tokens.ink3).lerp(literalColor(tokens.line2), 0.7) },
+      uGrey: { value: literalColor(tokens.ink3).lerp(literalColor(tokens.line2), cloudGrey) },
       uDorsal: { value: literalColor(tokens.ink) },
       uVentral: { value: literalColor(tokens.accent2) },
-      uBaseAlpha: { value: 0.44 },
+      uBaseAlpha: { value: cloudAlpha },
       uLitAlpha: { value: 1.0 },
       uFarFade: { value: FAR_FADE },
       uFarFadeLit: { value: FAR_FADE_LIT },
@@ -380,7 +414,7 @@ export default function TwoRegionBrain3D({ active = true, height = 320 }: Props)
       // Snap every node to its nearest actual surface vertex, against the FULL cloud, so a
       // textbook coordinate that sits a centimetre under the pial surface still lands on
       // it. Both hemispheres are snapped independently — the surface isn't symmetric.
-      const nodes = NODES.flatMap((node) => [
+      const nodes = nodesFor(insulaReach, operculumReach).flatMap((node) => [
         { ...node, side: 0, at: toModel(node.mm) },
         { ...node, side: 1, at: toModel([-node.mm[0], node.mm[1], node.mm[2]]) },
       ]);
@@ -503,7 +537,7 @@ export default function TwoRegionBrain3D({ active = true, height = 320 }: Props)
       if (!onScreen) return; // scrolled away: hold the pose, spend nothing
       t += dt;
 
-      yaw += SPIN_RATE * dt;
+      yaw += spinRate * dt;
       rotator.rotation.set(BASE_TILT, 0, yaw);
 
       reveal += ((activeRef.current ? 1 : 0) - reveal) * (1 - Math.exp(-dt * REVEAL_RATE));
@@ -618,7 +652,10 @@ export default function TwoRegionBrain3D({ active = true, height = 320 }: Props)
       mat?.dispose();
       renderer.dispose();
     };
-  }, []);
+    // Construction parameters, not reactive state: the scene reads them once as it is
+    // built, so a change has to rebuild it. Both call sites pass literals, so in practice
+    // this effect still runs exactly once.
+  }, [spinRate, insulaReach, operculumReach, cloudGrey, cloudAlpha]);
 
   if (failed) {
     // No WebGL, or the surface didn't load: fall back to the flat figure, which makes the
