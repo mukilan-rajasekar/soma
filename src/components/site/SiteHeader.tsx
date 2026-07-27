@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// Deliberately one entry. /console, /science and /compare are all still built and still
+// reachable by URL — nothing about them was deleted — they are just not advertised in the
+// bar any more. Re-adding one is a line here and nothing else.
 const LINKS = [
   { href: "/demo", label: "Demo" },
-  { href: "/console", label: "Console" },
-  { href: "/science", label: "Science" },
-  { href: "/compare", label: "Compare" },
 ] as const;
 
 // Shared top bar for the scrolling content routes. Sticky within the (site) scroll
@@ -15,6 +15,9 @@ const LINKS = [
 // Minimal system: wordmark · restrained inter-page text links · one primary CTA.
 export default function SiteHeader() {
   const pathname = usePathname();
+  // /demo-short is the recording surface, and a link labelled "Demo" on it points at a second
+  // copy of the page you are already reading. The bar there is wordmark plus the one ask.
+  const links = pathname === "/demo-short" ? [] : LINKS;
   // bg-paper/85 let 34px section headlines smear through the bar as grey ghosts as they
   // scrolled under it — very visible in a screen recording. /95 keeps the blurred depth
   // without the text bleeding through.
@@ -24,12 +27,12 @@ export default function SiteHeader() {
         soma
       </Link>
       <nav className="flex flex-wrap items-center justify-end gap-x-[22px] gap-y-2">
-        {/* Hidden below `sm`: at 390px the four text links wrapped to a second row, which
-            made the header two lines tall and pushed the wordmark off the top row. The
-            wordmark and the one primary CTA are what a phone needs; the section links are
-            reachable by scrolling, which is the whole page. */}
+        {/* Hidden below `sm`. It mattered more when this was four links wrapping to a second
+            row at 390px; with one link it is close to free, and it is kept because the rule
+            it encodes is still right: the wordmark and the one primary CTA are what a phone
+            needs, and it survives the list growing back. */}
         <div className="hidden flex-wrap items-center gap-x-[22px] gap-y-2 sm:flex">
-          {LINKS.map((l) => {
+          {links.map((l) => {
             const active = pathname === l.href;
             return (
               <Link

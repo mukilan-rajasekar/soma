@@ -62,10 +62,6 @@ export default function CorpusWall({ batch, active }: { batch: Ad[]; active: boo
           </figure>
         ))}
       </div>
-      <div className="mt-4 text-[13px] leading-[1.6] text-ink-2">
-        Ten of them, as they came in, under the Soma score each one came back with. Nothing here
-        was made for this page.
-      </div>
     </div>
   );
 }
