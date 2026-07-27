@@ -236,7 +236,7 @@ export default function DeltaChart({
     // grid — every tick a hairline, except zero which is solid and stronger so it
     // reads as the reference rather than as one gridline among several
     ctx.lineWidth = 1;
-    ctx.font = `9px ${tok.fontFamily}`;
+    ctx.font = `11px ${tok.fontFamily}`;
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
     for (const v of ticks) {
@@ -255,7 +255,7 @@ export default function DeltaChart({
 
     if (zeroLabel && lo <= 0 && hi >= 0) {
       ctx.fillStyle = tok.ink3;
-      ctx.font = `8px ${tok.fontFamily}`;
+      ctx.font = `10.5px ${tok.fontFamily}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "bottom";
       ctx.fillText(zeroLabel, x0 + 5, yAt(0) - 4);
@@ -276,7 +276,7 @@ export default function DeltaChart({
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
       ctx.fillStyle = tok.accent;
-      ctx.font = `8px ${tok.fontFamily}`;
+      ctx.font = `10.5px ${tok.fontFamily}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillText(`HOOK · 0–${hookSeconds}s`, x0 + 5, y0 + 2);
@@ -325,8 +325,15 @@ export default function DeltaChart({
       // chart survives deuteranopia (best and worst are both solid 2px, so weight
       // alone can't separate them)
       if (s.endLabel && progress >= 1) {
-        ctx.fillStyle = color;
-        ctx.font = `600 9px ${tok.fontFamily}`;
+        // INK, not the series colour. This badge exists to be the non-colour encoding — the
+        // comment above says so — and it was being painted in the very colour it is supposed to
+        // be redundant to. roleStyle gives every unselected middle-rank series colorToken
+        // "line2" (#d8d8d8, 1.4:1 on paper), so three of the five rank numerals were drawn in a
+        // hairline grey: invisible before compression even starts, and the one thing a viewer
+        // needs in order to map a curve to a row in the list beside it. The terminus position
+        // already says which curve the badge belongs to; the numeral only has to be readable.
+        ctx.fillStyle = tok.ink;
+        ctx.font = `600 11px ${tok.fontFamily}`;
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
         ctx.fillText(s.endLabel, Math.min(xs[n - 1] + 5, x1 + 4), ys[n - 1]);
@@ -336,7 +343,7 @@ export default function DeltaChart({
     // x axis
     ctx.strokeStyle = tok.line;
     ctx.fillStyle = tok.ink3;
-    ctx.font = `9px ${tok.fontFamily}`;
+    ctx.font = `11px ${tok.fontFamily}`;
     ctx.textBaseline = "top";
     const tStep = niceTimeStep(xDomain[1] - xDomain[0]);
     for (let t = xDomain[0]; t <= xDomain[1] + 1e-6; t += tStep) {
@@ -411,7 +418,7 @@ export default function DeltaChart({
 
   return (
     <div>
-      <div className="mb-1.5 text-[10px] uppercase tracking-[0.1em] text-ink-3">{unit}</div>
+      <div className="mb-1.5 text-[12px] uppercase tracking-[0.07em] text-ink-3">{unit}</div>
       <div ref={wrapRef} className="w-full">
         <canvas
           ref={canvasRef}

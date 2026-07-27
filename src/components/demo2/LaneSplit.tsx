@@ -134,14 +134,17 @@ export default function LaneSplit({
           );
         })}
       </div>
+      {/* Three short sentences, and it was three long ones. The founder says this out loud over
+          the figure, so the caption's job is to survive being glanced at, not to make the whole
+          argument in print — the two cards above it have already made it. The scale note stays,
+          though, cut to a clause: a bare 0-100 next to the word cortex invites exactly the wrong
+          reading, and dropping it to save a line would be saving the wrong line. */}
       <p
         className="mt-4 max-w-[70ch] text-[13px] leading-[1.6] text-ink-2"
         style={{ opacity: on ? 1 : 0, transition: "opacity .6s .5s" }}
       >
-        Same ad, same viewer, {gap} seconds apart, and the two networks answer differently at
-        both. That is the whole reason one attention number cannot tell you what an ad did.
-        Each network is read against its own range on this clip, once a second, for every
-        second of the runtime.
+        Same ad, {gap} seconds apart, reading opposite ways. One number could not have told you
+        both. Each network against its own range on this clip.
       </p>
     </div>
   );
@@ -163,7 +166,7 @@ function LaneBar({
   const lane = LANES.find((l) => l.key === laneKey)!;
   return (
     <div className="flex items-center gap-2.5">
-      <span className="w-[64px] shrink-0 text-[11px] uppercase tracking-[0.06em] text-ink-3">
+      <span className="w-[64px] shrink-0 text-[12px] uppercase tracking-[0.06em] text-ink-3">
         {lane.label}
       </span>
       <span className="h-[6px] min-w-0 flex-1 overflow-hidden rounded-full bg-fill">

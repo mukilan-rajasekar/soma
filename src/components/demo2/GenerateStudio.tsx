@@ -95,10 +95,10 @@ export default function GenerateStudio({ report, active }: { report: Report; act
 
         <div className="rounded-2xl border border-line bg-paper p-4">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="text-[12px] uppercase tracking-[0.1em] text-ink-3">The internal test</span>
+            <span className="text-[12px] uppercase tracking-[0.07em] text-ink-3">The internal test</span>
             <span className="ml-auto text-[12.5px] text-ink-3">
               <span className="tabular-nums text-ink">{counted}</span> generated
-              <span className="mx-1.5 text-line-2">·</span>
+              <span className="mx-1.5 text-ink-3">·</span>
               {/* Printed from the start, not held back until the cull fires. This used to
                   render a literal "·" placeholder until p > T_CULL, which is 3.4s into a 5.2s
                   clock — and the recording settles on this beat ~0.7s in, so the camera held on
@@ -110,7 +110,7 @@ export default function GenerateStudio({ report, active }: { report: Report; act
             </span>
           </div>
 
-          <div className="mt-3 text-[11px] uppercase tracking-[0.09em] text-ink-3">
+          <div className="mt-3 text-[12px] uppercase tracking-[0.06em] text-ink-3">
             Predicted score, one column per candidate
           </div>
 
@@ -136,7 +136,7 @@ export default function GenerateStudio({ report, active }: { report: Report; act
               {/* Hidden on phones: at 390px the label sits over the last four columns,
                   and a legend that obscures its own chart is worse than no legend. The
                   dashed rule still reads as a threshold on its own. */}
-              <span className="ml-2 hidden shrink-0 bg-paper pl-1 text-[10.5px] uppercase tracking-[0.09em] text-ink-3 sm:inline">
+              <span className="ml-2 hidden shrink-0 bg-paper pl-1 text-[12px] uppercase tracking-[0.06em] text-ink-3 sm:inline">
                 Pass bar
               </span>
             </div>
@@ -186,7 +186,7 @@ export default function GenerateStudio({ report, active }: { report: Report; act
       >
         <WinnerCard entry={winner} rank={sel + 1} hookLead={hookLead} hookSeconds={report.hookSeconds} active={board} />
         <div className="flex flex-col gap-1.5">
-          <div className="mb-0.5 flex items-baseline justify-between text-[12px] uppercase tracking-[0.1em] text-ink-3">
+          <div className="mb-0.5 flex items-baseline justify-between text-[12px] uppercase tracking-[0.07em] text-ink-3">
             <span>The five that cleared</span>
             <span>Soma</span>
           </div>
@@ -266,7 +266,7 @@ function InputCard({ p }: { p: number }) {
   return (
     <div className="flex flex-col rounded-2xl border border-line-2 bg-paper">
       <div className="p-4">
-        <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">The brief</div>
+        <div className="text-[12px] uppercase tracking-[0.07em] text-ink-3">The brief</div>
         <p className="mt-2 min-h-[4.7em] text-[14px] leading-[1.55] text-ink">
           {shown}
           {typing ? <span className="ml-px inline-block h-[1.05em] w-px translate-y-[0.15em] bg-ink" /> : null}
@@ -291,11 +291,11 @@ function BrandCard() {
         </span>
         <div className="min-w-0">
           <div className="truncate text-ui font-medium text-ink">{BRAND.account}</div>
-          <div className="truncate text-[11.5px] text-ink-3">{BRAND.product}</div>
+          <div className="truncate text-[12.5px] text-ink-3">{BRAND.product}</div>
         </div>
       </div>
 
-      <div className="mt-3.5 text-[11px] uppercase tracking-[0.1em] text-ink-3">Brand kit</div>
+      <div className="mt-3.5 text-[12px] uppercase tracking-[0.07em] text-ink-3">Brand kit</div>
       <div className="mt-2 flex items-center gap-1.5">
         {/* Rings, not filled discs. These five brand hexes are the loudest colour event in
             §04, and they sit ~340px above the overlay where green/red stops being decoration
@@ -314,11 +314,11 @@ function BrandCard() {
             style={{ boxShadow: `inset 0 0 0 3px ${s.hex}` }}
           />
         ))}
-        <span className="ml-1 truncate text-[11.5px] text-ink-3">{BRAND.typeface}</span>
+        <span className="ml-1 truncate text-[12.5px] text-ink-3">{BRAND.typeface}</span>
       </div>
       <div className="mt-2.5 flex flex-wrap gap-1.5">
         {BRAND.tone.map((t) => (
-          <span key={t} className="rounded-full border border-line bg-paper px-1.5 py-0.5 text-[11px] text-ink-2">
+          <span key={t} className="rounded-full border border-line bg-paper px-1.5 py-0.5 text-[12px] text-ink-2">
             {t}
           </span>
         ))}
@@ -347,7 +347,7 @@ function WinnerCard({
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <span className="text-[12px] uppercase tracking-[0.1em] text-ink-3">
+            <span className="text-[12px] uppercase tracking-[0.07em] text-ink-3">
               {rank === 1 ? "Top candidate" : `Candidate ${rank}`}
             </span>
             <span className="ml-auto flex items-baseline gap-1">
@@ -366,7 +366,7 @@ function WinnerCard({
       </div>
 
       <div className="mt-3.5 rounded-xl border border-line bg-paper p-3">
-        <div className="text-[11px] uppercase tracking-[0.1em] text-ink-3">Why the generator chose it</div>
+        <div className="text-[12px] uppercase tracking-[0.07em] text-ink-3">Why the generator chose it</div>
         <p className="mt-1.5 text-[13px] leading-[1.55] text-ink-2">{dir.neural}</p>
         {/* The receipt, and it is a real one — leadsHookWindow checks the measured ventral
             lane sample by sample and this line only renders when the check passes. A
@@ -408,7 +408,7 @@ function WinnerCard({
 function MiniScore({ label, v, tone }: { label: string; v: number; tone?: "accent" }) {
   return (
     <div className="rounded-xl border border-line bg-paper px-2 py-1.5">
-      <div className="text-[10.5px] uppercase tracking-[0.09em] text-ink-3">{label}</div>
+      <div className="text-[12px] uppercase tracking-[0.06em] text-ink-3">{label}</div>
       <div className="mt-0.5 text-[16px] font-medium leading-none tabular-nums text-ink">{v}</div>
       <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-line">
         <div

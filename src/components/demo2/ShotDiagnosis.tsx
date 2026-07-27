@@ -82,7 +82,7 @@ export default function ShotDiagnosis({
                   style={{ background: drag ? tokenAlpha("error", 0.25 + mag * 0.6) : tokenAlpha("ink", 0.2 + mag * 0.6) }}
                 />
               </div>
-              <div className="mt-1.5 text-center text-[11px] tabular-nums text-ink-3">{fmtT(s.start)}</div>
+              <div className="mt-1.5 text-center text-[12px] tabular-nums text-ink-3">{fmtT(s.start)}</div>
               {/* The shot's CONTRIBUTION, which is the negative of its leave-one-out delta.
                   `s.delta` is "what happens to the score if this shot is cut", so a shot that
                   hurts the ad carries a POSITIVE delta — and printing it raw put "+3" and "+4"

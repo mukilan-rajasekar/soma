@@ -75,7 +75,7 @@ export default function AdList({
             />
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-1.5">
-                <span className="text-[10px] tabular-nums text-ink-3">{ad.rank}</span>
+                <span className="text-[12px] tabular-nums font-medium text-ink-2">{ad.rank}</span>
                 <span
                   className={`truncate text-[13px] ${selected ? "font-medium text-ink" : "text-ink-2"}`}
                 >

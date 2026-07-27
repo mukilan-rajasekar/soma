@@ -226,7 +226,7 @@ export default function ArcPlot({
     // grid — 4 horizontal hairlines
     ctx.strokeStyle = TOK.line;
     ctx.lineWidth = 1;
-    ctx.font = `10.5px ${TOK.fontFamily}`;
+    ctx.font = `11.5px ${TOK.fontFamily}`;
     ctx.fillStyle = TOK.ink3;
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
@@ -280,7 +280,7 @@ export default function ArcPlot({
       // 0.9 within the first three seconds, so the dashed line ran straight through the
       // caption. Nudging the offset only moved which ad collided. Above y0 there is no data
       // by construction, which is why PADT grows to PADT_HOOK to make room for it.
-      ctx.font = `10px ${TOK.fontFamily}`;
+      ctx.font = `11.5px ${TOK.fontFamily}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "bottom";
       ctx.fillText(`HOOK · 0–${hookSeconds % 1 === 0 ? hookSeconds : hookSeconds.toFixed(1)}s`, x0, y0 - 6);
@@ -406,7 +406,7 @@ export default function ArcPlot({
         ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
         ctx.stroke();
         if (markLabel) {
-          ctx.font = `10px ${TOK.fontFamily}`;
+          ctx.font = `11.5px ${TOK.fontFamily}`;
           ctx.textBaseline = "middle";
           // Trailing side by default. A marked peak is a peak, so the curve climbs INTO the
           // ring from the left and falls away to the right — putting the label ahead of the
@@ -424,7 +424,12 @@ export default function ArcPlot({
           ctx.lineWidth = 3;
           ctx.strokeStyle = TOK.paper;
           ctx.strokeText(markLabel, lx, my);
-          ctx.fillStyle = col;
+          // The RING stays in the lane colour, because that is what ties it to the curve it
+          // sits on; the TYPE does not. §02 marks the ventral peak, and accent-2 (#5f8b99) is
+          // 3.72:1 on paper — below WCAG AA for normal text, at 11.5px, on the one label the
+          // narration points at out loud ("spikes at 0:02"). The halo above rescues it from the
+          // band and the grid passing underneath, but a halo cannot add contrast.
+          ctx.fillStyle = TOK.ink;
           ctx.fillText(markLabel, lx, my);
           ctx.textAlign = "left";
         }
@@ -486,7 +491,7 @@ export default function ArcPlot({
 
     // x-axis end labels
     ctx.fillStyle = TOK.ink3;
-    ctx.font = `10.5px ${TOK.fontFamily}`;
+    ctx.font = `11.5px ${TOK.fontFamily}`;
     ctx.textBaseline = "top";
     ctx.textAlign = "left";
     ctx.fillText("0:00", x0, y1 + 6);
@@ -550,7 +555,7 @@ export default function ArcPlot({
                 <span className="text-[12.5px] font-medium text-ink">{l.label}</span>
                 <span className="whitespace-nowrap text-[12.5px] text-ink-3">({l.region})</span>
               </div>
-              <div className="mt-0.5 pl-7 text-[11.5px] leading-[1.45] text-ink-3">{l.note}</div>
+              <div className="mt-0.5 pl-7 text-[12.5px] leading-[1.45] text-ink-3">{l.note}</div>
             </div>
           ))}
           {brandMentions.length ? (
@@ -559,7 +564,7 @@ export default function ArcPlot({
                 <span aria-hidden="true" className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />
                 <span className="text-[12.5px] font-medium text-ink">Brand named</span>
               </div>
-              <div className="mt-0.5 pl-[26px] text-[11.5px] leading-[1.45] text-ink-3">on screen or out loud</div>
+              <div className="mt-0.5 pl-[26px] text-[12.5px] leading-[1.45] text-ink-3">on screen or out loud</div>
             </div>
           ) : null}
         </div>

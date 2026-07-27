@@ -97,7 +97,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
       {/* ── the instruction ─────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-line-2 bg-paper p-4">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-[12px] uppercase tracking-[0.1em] text-ink-3">Ask for the edit</span>
+          <span className="text-[12px] uppercase tracking-[0.07em] text-ink-3">Ask for the edit</span>
           <span className="ml-auto text-[12.5px] text-ink-3">
             {applied ? (
               <>Applied · 0 frames re-rendered</>
@@ -132,11 +132,11 @@ export default function EditStudio({ report, active }: { report: Report; active:
               }}
             >
               <div className="flex items-center gap-2">
-                <span className="rounded-full border border-line bg-paper px-1.5 py-0.5 text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
+                <span className="rounded-full border border-line bg-paper px-1.5 py-0.5 text-[12px] uppercase tracking-[0.08em] text-ink-3">
                   {KIND_LABEL[o.kind]}
                 </span>
                 {won ? (
-                  <span className="rounded-full bg-ink px-1.5 py-0.5 text-[10.5px] uppercase tracking-[0.08em] text-white">
+                  <span className="rounded-full bg-ink px-1.5 py-0.5 text-[12px] uppercase tracking-[0.08em] text-white">
                     Applied
                   </span>
                 ) : null}
@@ -165,7 +165,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
                 </span>
                 {/* Never symmetrised. The asymmetry between a measured option and a
                     predicted one is the honest part of this row — do not tidy it away. */}
-                <span className="text-[11px] uppercase tracking-[0.07em] text-ink-3">
+                <span className="text-[12px] uppercase tracking-[0.07em] text-ink-3">
                   {r.measured ? "measured" : "predicted"}
                 </span>
               </div>
@@ -178,7 +178,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
       <div className="rounded-2xl border border-line bg-fill p-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-[188px_1fr]">
           <div>
-            <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">Soma score</div>
+            <div className="text-[12px] uppercase tracking-[0.07em] text-ink-3">Soma score</div>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-[40px] font-medium leading-none tabular-nums text-ink">{score}</span>
               <span
@@ -224,7 +224,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
                 ghost={applied ? { dorsal: source.lanes.dorsal, timestamps: source.timestamps } : null}
                 endMarker={applied ? after.duration : null}
               />
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10.5px] uppercase tracking-[0.08em] text-ink-3">
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] uppercase tracking-[0.08em] text-ink-3">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="inline-block h-[2px] w-4 bg-ink" /> After the splice
                 </span>
@@ -269,7 +269,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
                     style={{ background: drag ? tokenAlpha("error", 0.55) : tokenAlpha("ink", 0.35) }}
                   />
                 </div>
-                <div className="mt-1 truncate text-center text-[10.5px] tabular-nums text-ink-3">{fmtT(s.start)}</div>
+                <div className="mt-1 truncate text-center text-[12px] tabular-nums text-ink-3">{fmtT(s.start)}</div>
               </div>
             );
           })}
@@ -286,7 +286,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
           >
             {rows.map((r) => (
               <div key={r.label}>
-                <div className="text-[10.5px] uppercase tracking-[0.09em] text-ink-3">{r.label}</div>
+                <div className="text-[12px] uppercase tracking-[0.06em] text-ink-3">{r.label}</div>
                 <div className="mt-0.5 text-[13px] tabular-nums text-ink-2">
                   <span className="line-through">{r.before}</span>
                   <span className="mx-1.5 text-ink-3">→</span>
@@ -310,7 +310,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
               frame lifted out of this campaign's footage, and implying a separately
               uploaded JPG is a claim a reader can disprove with one right-click. */}
           <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-[0.1em] text-ink-3">Static, from this campaign</div>
+            <div className="text-[12px] uppercase tracking-[0.07em] text-ink-3">Static, from this campaign</div>
             <p className="mt-1 text-[12.5px] leading-[1.45] text-ink-2">{STATIC_COMMAND}</p>
           </div>
         </div>

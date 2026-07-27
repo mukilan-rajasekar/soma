@@ -135,7 +135,7 @@ export default function LivePlayer({
           <LiveStat label="Attention" sub="dorsal" value={att} tone="ink" flash={false} />
           <LiveStat label="Surprise" sub="ventral" value={sur} tone="accent" flash={inHook} />
           <div className="rounded-2xl border border-line bg-fill p-3">
-            <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">Soma score</div>
+            <div className="text-[12px] uppercase tracking-[0.07em] text-ink-3">Soma score</div>
             <div className="mt-1.5 flex items-baseline gap-1">
               <span className="text-[28px] font-medium tabular-nums leading-none text-ink">{ad.scores.soma}</span>
               <span className="text-[12px] text-ink-3">/100</span>
@@ -181,8 +181,8 @@ function LiveStat({ label, sub, value, tone, flash }: { label: string; sub: stri
   return (
     <div className={`rounded-2xl border bg-fill p-3 transition-colors ${flash ? "border-accent-2/60" : "border-line"}`}>
       <div className="flex items-baseline justify-between">
-        <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
-        <div className="text-[11px] uppercase tracking-[0.06em] text-ink-3">{sub}</div>
+        <div className="text-[12px] uppercase tracking-[0.07em] text-ink-3">{label}</div>
+        <div className="text-[12px] uppercase tracking-[0.06em] text-ink-3">{sub}</div>
       </div>
       <div className="mt-1.5 text-[22px] font-medium tabular-nums leading-none text-ink">{pct}</div>
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line">

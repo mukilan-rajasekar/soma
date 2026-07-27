@@ -34,11 +34,22 @@
   --color-paper: #ffffff; /* page background            → bg-paper   */
   --color-ink: #0a0a0a; /* primary text / black fill  → text-ink / bg-ink   */
   --color-ink-2: #4a4a4a; /* secondary / body copy      → text-ink-2 */
-  --color-ink-3: #727272; /* tertiary / meta / muted    → text-ink-3
-                             4.81:1 on paper, 4.61:1 on fill — clears WCAG AA
-                             body text (4.5:1) at the 10–13px sizes this token
-                             is actually used at. Was #8a8a8a (3.45:1 / 3.31:1),
-                             which failed AA everywhere it carried real copy. */
+  --color-ink-3: #5c5c5c; /* tertiary / meta / muted    → text-ink-3
+                             6.69:1 on paper, 6.41:1 on fill. Was #727272
+                             (4.81 / 4.61) and before that #8a8a8a (3.45 / 3.31).
+                             The 4.81 note that used to sit here read its own
+                             number backwards: 4.5:1 is the SMALL-text floor, not
+                             a licence to go smaller, and clearing it by 0.31 on
+                             paper and 0.11 on fill is not headroom. This token
+                             carries ~70 labels at 10–13px, most of them uppercase
+                             with positive tracking, on a page that gets recorded
+                             and H.264-compressed — where letter-spacing widens the
+                             gaps the encoder then fills with ringing and uppercase
+                             removes the ascender cues that let a reader recover a
+                             damaged word. Darkening the token was the one fix that
+                             reaches every one of those call sites, the canvas ones
+                             included: demo2/tokens.ts and preflight/tokens.ts both
+                             resolve ink3 from this property at draw time. */
 
   /* Hairlines & fills */
   --color-line: #e2e2e2; /* default 1px hairline       → border-line   */

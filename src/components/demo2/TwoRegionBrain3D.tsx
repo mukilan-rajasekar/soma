@@ -720,9 +720,13 @@ function Chip({
       <span
         className={`inline-block h-1.5 w-1.5 rounded-full ${tone === "accent" ? "bg-accent-2" : "bg-ink"}`}
       />
-      <span
-        className={`text-[9px] font-semibold uppercase tracking-[0.12em] ${tone === "accent" ? "text-accent-2" : "text-ink"}`}
-      >
+      {/* 11px, and always ink. These two chips are the only thing naming the networks in §01's
+          figure, and they were 9px at 0.12em tracking with the ventral one in accent-2 —
+          #5f8b99, 3.72:1, below AA for normal text. The DOT beside it still carries the lane
+          colour, which is what matches the chip to the region lighting up in the cloud, so
+          nothing is lost by making the word readable. Tracking eased off with the size bump:
+          letter-spacing is what compression turns into ringing at these sizes. */}
+      <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink">
         {label}
       </span>
     </div>

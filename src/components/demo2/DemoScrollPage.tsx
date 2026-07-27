@@ -249,10 +249,13 @@ export default function DemoScrollPage({
       anchor: "science",
       eyebrow: "The science",
       heading: <>Attention isn&rsquo;t one thing. Different regions do <span className="font-serif font-normal italic">different</span> jobs.</>,
-      // "two networks" was wrong about the page it opens. §02's arc draws three lanes and §03
-      // is entirely the third one, so the beat that introduces the read-out was naming two of
-      // the three things the next two beats measure.
-      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself: three networks, read separately, once a second for the whole runtime.",
+      // Two, not three. This briefly said "three networks" to cover the comprehension lane that
+      // §02 draws and §03 is entirely about — but the count was then wrong about its own beat,
+      // which shows two cards, a two-region cortex and a split figure reading two lanes. It says
+      // two because two is what is on screen; §03 introduces the third where the third lives.
+      // "Once a second" is the part worth keeping: it is the fact the split figure demonstrates
+      // and the one §02 otherwise assumes you already know.
+      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself: two networks, measured separately, once a second for the whole runtime.",
       // The two cards are timed against the figure beside them, not against each other: the
       // dorsal card arrives as the dorsal region lights (TwoRegionBrain's STAGE.dorsal opens
       // at 0.42 of a 2100ms build ≈ 880ms) and the ventral card as the ventral one does
@@ -339,30 +342,13 @@ export default function DemoScrollPage({
           </div>
         </div>
 
-        {/* The third lane, queued rather than presented. Deliberately NOT a third RegionCard:
-            the two above it are the networks this beat's figure actually lights, and the two
-            columns beside them are tuned to the same height (see the grid note above), so a
-            third peer card would both break that and claim the cortex render shows something
-            it does not. Dashed and low-contrast reads as "coming", which is the truth — §03 is
-            entirely this lane. The triad is established before §02 draws all three arcs, which
-            is the point: it stops §02 introducing a metric §01 never mentioned. */}
-        <div
-          className="mt-4 flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-2xl border border-dashed border-line-2 px-4 py-3"
-          style={{
-            opacity: revealed && scienceIn ? 1 : 0,
-            transition: "opacity .55s 1640ms",
-          }}
-        >
-          <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-ink-3" />
-          <span className="text-ui font-medium text-ink-2">Comprehension</span>
-          <span className="text-[11px] uppercase tracking-[0.06em] text-ink-3">
-            association cortex
-          </span>
-          <span className="ml-auto text-[12.5px] text-ink-3">
-            where meaning gets built · read in 03
-          </span>
-        </div>
-
+        {/* A dimmed third "Comprehension · read in 03" row sat here, to establish the triad
+            before §02 draws three arcs. Removed: this beat is about two networks and shows two
+            — two cards, a two-region cortex, and a split figure reading two lanes — so a third
+            entry was the one object in the section that pointed at something not on screen, and
+            it read as a row that had failed to load rather than as one that was queued. §03 has
+            a hero-sized heading of its own and introduces the lane perfectly well when it gets
+            there. The lede below the heading no longer counts networks either. */}
         <LaneSplit ad={heroAd} moments={splitMoments} active={revealed} />
         </div>
       ),
@@ -581,30 +567,15 @@ export default function DemoScrollPage({
             <Stat big lg value={100} suffix="+" label="Founders and companies" sub="on the waitlist" active={revealed} />
             <Stat big lg value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
           </div>
+          {/* A paragraph about the published retention null sat here, as the counterweight to
+              the 92% tile above: nothing else on the page ever misses, and a page on which
+              nothing ever misses is one a technical reader discounts. Removed at the founder's
+              call — it is a diligence point, made better out loud than in 74 characters of grey
+              type under a wall of ads, and /demo still carries it in full inside the vendor
+              checklist (VendorChecklist.tsx, "What did you test that didn't work?") where a
+              cold reader arrives at it with the sources beside it. If it ever comes back, that
+              is the wording to reuse rather than a fresh paraphrase. */}
           <CorpusWall batch={batch} active={revealed} />
-          {/* The one thing on this route that did not work, next to the tile that claims 92%.
-              Every figure on the page until here moves the right way: scores climb, the edit
-              adds points, the top candidate wins, the losers get culled. A page on which
-              nothing ever misses is a page a technical reader discounts wholesale, and this
-              company happens to own the strongest possible answer to that — a pre-registered
-              test with a null outcome, published rather than buried. It was on /demo only,
-              inside the vendor checklist, which is the section a narrated walkthrough drops
-              because it is five questions to read aloud. The claim survives on its own in one
-              sentence, and it belongs under the accuracy number rather than anywhere else.
-              Wording is VendorChecklist's, deliberately: that answer is already the vetted
-              phrasing and the two must not drift. Source: docs/science/PREREGISTRATION.md
-              (Stouffer p ~ 0.69 across 15 videos) and validation/…/retention_head_roi.json. */}
-          <Rise on={revealed} delay={900}>
-            <p className="mt-6 max-w-[74ch] text-[13px] leading-[1.6] text-ink-3">
-              And the one we published that did not work: retention, tested against real
-              most-replayed data. It came back null. It sits on{" "}
-              <Link href="/science" className="text-ink underline decoration-line-2 underline-offset-[3px] transition-colors hover:decoration-ink">
-                the science page
-              </Link>{" "}
-              next to everything that did work, because a read-out you cannot check is not a
-              read-out.
-            </p>
-          </Rise>
         </div>
       ),
     },
@@ -666,7 +637,7 @@ export default function DemoScrollPage({
         <div className="mx-auto grid max-w-[1180px] grid-cols-1 items-center gap-12 md:grid-cols-[1.1fr_1fr]">
           <div>
             <div
-              className="mb-4 text-[12px] uppercase tracking-[0.12em] text-ink-3"
+              className="mb-4 text-[12px] uppercase tracking-[0.07em] text-ink-3"
               style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity .6s") }}
             >
               Soma · a brain read-out for ads
@@ -942,7 +913,7 @@ function BetaMarquee() {
   return (
     <section className="border-y border-line bg-fill py-[clamp(24px,5vh,44px)]">
       <div className="mx-auto mb-[clamp(14px,2.6vh,22px)] max-w-[1180px] px-[clamp(18px,5vw,40px)]">
-        <span className="text-[12px] uppercase tracking-[0.12em] text-ink-3">
+        <span className="text-[12px] uppercase tracking-[0.07em] text-ink-3">
           Already running ads through the beta
         </span>
       </div>
@@ -1022,7 +993,7 @@ function RegionCard({
           </span>
           <span className="text-ui font-medium text-ink">{title}</span>
         </div>
-        <div className="mt-1 text-[11px] uppercase tracking-[0.06em] text-ink-3">{tag}</div>
+        <div className="mt-1 text-[12px] uppercase tracking-[0.06em] text-ink-3">{tag}</div>
         <p className="mt-2 text-[13.5px] leading-[1.55] text-ink-2">{body}</p>
       </div>
     </Rise>
@@ -1051,7 +1022,7 @@ function Stat({
   const p = useAnimeClock(on, big ? 1200 : 900);
   return (
     <div ref={ref} className={`flex flex-col rounded-2xl border border-line bg-fill ${lg ? "px-6 py-8" : big ? "min-h-[178px] px-5 py-6" : "p-5"}`}>
-      <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
+      <div className="text-[12px] uppercase tracking-[0.07em] text-ink-3">{label}</div>
       <div className={`flex items-baseline gap-1 ${lg ? "mt-5" : "mt-2"}`}>
         <span
           className={`font-medium tabular-nums leading-none text-ink ${lg ? "text-[62px] tracking-[-0.03em]" : big ? "text-[44px]" : "text-[28px]"}`}

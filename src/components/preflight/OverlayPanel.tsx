@@ -99,7 +99,7 @@ export default function OverlayPanel({
         <div className="mb-4 flex flex-wrap items-center gap-2.5">
           <label
             htmlFor="preflight-metric"
-            className="text-[10px] uppercase tracking-[0.12em] text-ink-3"
+            className="text-[12px] uppercase tracking-[0.08em] text-ink-3"
           >
             Metric
           </label>

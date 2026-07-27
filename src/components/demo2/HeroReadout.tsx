@@ -28,9 +28,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import ArcPlot from "./ArcPlot";
+import { LANES } from "./lanes";
+import { tokenVar } from "./tokens";
 import { type Ad } from "./types";
 
 export type HeroPhase = "rest" | "blank" | "build";
+
+// Double speed. The clip is 29 seconds and the hero is talked over for a good deal less than
+// that, so at 1x the arc was still filling in when the narration had already moved on and the
+// curve never got to close. At 2x it completes in about 14, which is inside the time anyone
+// spends on an opening frame, and the drawing reads as brisk rather than as a progress bar.
+// It costs nothing elsewhere: the audio is muted, and the arc is driven by currentTime rather
+// than by a timer, so the curve speeds up with the footage and the two stay locked together.
+const RATE = 2;
 
 export default function HeroReadout({
   ad,
@@ -63,6 +73,7 @@ export default function HeroReadout({
       // From the top every time. The element survives a phase change on /demo, so without the
       // seek a re-entry would resume mid-clip.
       v.currentTime = 0;
+      v.playbackRate = RATE;
       v.play().catch(() => {});
       return;
     }
@@ -94,12 +105,13 @@ export default function HeroReadout({
   const dur = ad.duration;
 
   return (
-    // 140px, and the plot height below is 140 * 16/9 so the two bottom edges line up. Sized
-    // from the footage rather than from the chart: at 110 the clip read as a thumbnail glued to
-    // a figure, and the claim this card makes is that the curve came off THAT video, which only
-    // lands if the video is legible. 140 is as wide as the column takes before the plot loses
-    // the room to show a 29-second arc.
-    <div className="grid grid-cols-[140px_1fr] gap-3">
+    <div>
+      {/* 140px, and the plot height below is 140 * 16/9 so the two bottom edges line up. Sized
+          from the footage rather than from the chart: at 110 the clip read as a thumbnail glued
+          to a figure, and the claim this card makes is that the curve came off THAT video, which
+          only lands if the video is legible. 140 is as wide as the column takes before the plot
+          loses the room to show a 29-second arc. */}
+      <div className="grid grid-cols-[140px_1fr] gap-3">
       <div className="relative overflow-hidden rounded-xl border border-line bg-ink">
         <video
           ref={videoRef}
@@ -155,12 +167,41 @@ export default function HeroReadout({
         // framed, and a chart that is complete until the take starts cannot do that.
         progress={live ? Math.min(1, dur > 0 ? t / dur : 1) : 1}
         playhead={live ? t : null}
-        // The lanes are named one screen down, in the section that exists to name them, and
-        // explained under §02's arc where all three are drawn. A key attached to the opening
-        // frame pushed the score out of shot for six lines nobody reads yet.
+        // ArcPlot's own legend stays off — it prints the region names and a line of prose per
+        // lane, which is §02's job and which drew three times on this page. The two-word key
+        // below replaces it.
         showLegend={false}
         height={249}
       />
+      </div>
+
+      {/* Two words, because two unlabelled curves is a question rather than a figure. The full
+          explained legend (region names, a line of plain English each) belongs to §02, where the
+          lanes are taught; repeating it here was six lines of key attached to the opening frame.
+          But stripping it entirely left the hero showing a solid line and a dashed line with
+          nothing saying which was which, on the one card a viewer looks at before anything has
+          been explained to them. The swatches take their colour, weight and dash from lanes.ts,
+          the same table the curves are drawn from, so a key here cannot describe a lane that is
+          not on the chart. */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        {["attention", "surprise"].map((k) => {
+          const lane = LANES.find((l) => l.key === k)!;
+          return (
+            <span key={k} className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="inline-block w-5 shrink-0"
+                style={{
+                  borderTopWidth: lane.width,
+                  borderTopStyle: lane.border,
+                  borderTopColor: tokenVar(lane.colorToken),
+                }}
+              />
+              <span className="text-[13px] font-medium text-ink">{lane.label}</span>
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }

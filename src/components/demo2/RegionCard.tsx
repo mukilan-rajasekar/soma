@@ -57,7 +57,7 @@ export default function RegionCard({
           </span>
           <span className="text-ui font-medium text-ink">{title}</span>
         </div>
-        <div className="mt-1 text-[11px] uppercase tracking-[0.06em] text-ink-3">{tag}</div>
+        <div className="mt-1 text-[12px] uppercase tracking-[0.06em] text-ink-3">{tag}</div>
         <p className="mt-2 text-[13.5px] leading-[1.55] text-ink-2">{body}</p>
       </div>
     </div>
