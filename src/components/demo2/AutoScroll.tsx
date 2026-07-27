@@ -262,7 +262,15 @@ function buildPlan(m: HTMLElement): Stop[] {
   });
 
   const kept: typeof raw = [];
-  for (const st of raw) if (!kept.length || st.s - kept[kept.length - 1].s > 60) kept.push(st);
+  // Two stops closer together than about a quarter of the frame are not two beats, they are one
+  // beat photographed twice. 60px was a duplicate filter; it is not a composition rule, and the
+  // on-camera gate pass above makes near-neighbours much more common because it pulls stops
+  // toward each other. The editor beat was the case that showed it: two stops 196px apart, 7.9s
+  // apart, showing the same panel with the score reading 64 on one and 66 on the other. That
+  // plays as a twitch between two long holds. Merged, the camera holds still and the number
+  // climbs in place, which is the whole premise of a stepped take.
+  const MIN_HOP = Math.max(60, Math.round(usable * 0.27));
+  for (const st of raw) if (!kept.length || st.s - kept[kept.length - 1].s > MIN_HOP) kept.push(st);
   if (!kept.length) return [];
   kept[0].s = 0;
   kept[kept.length - 1].s = maxScroll;
