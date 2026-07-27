@@ -82,9 +82,17 @@ passes and agree with its taste.
       (ad_01.mp4), a third scheme. Set the five `video` fields instead (they take
       precedence over the basename fallback) and wrote the reason into
       demo/README.md, where a re-run would hit it.
-- [ ] `git rm public/preflight/batch_report_old.json` (12 KB). It is tracked and
+- [x] `git rm public/preflight/batch_report_old.json` (12 KB). It is tracked and
       referenced by nothing in `src/`, `scripts/`, `tools/` or `demo/`. The live
       artifact is `batch_report.json`, named at `preflight/report.ts:15`.
+      Confirmed and removed. It was 8.8 KB on disk, not 12, and it entered the repo in
+      the same commit as batch_report.json (ed7aac2) as a superseded snapshot: same
+      schemaVersion, same five ads, different order. Its five `video` fields still
+      pointed at `/preflight/videos/v0*.mp4`, which loop(8) deleted — so it was stale as
+      well as orphaned. Removing it also drops it from
+      `.next/server/app/preflight/page.js.nft.json`: report.ts builds its path with
+      `path.join(...)`, so Next traces the whole directory and was bundling the dead
+      file into the /preflight function.
 - [ ] Give the repo a discoverable dev loop. `package.json` exposes only
       `dev`/`build`/`start`/`lint`, so the only way to learn how to typecheck or
       how to run the Python suite is to read `scripts/verify.sh`. Add

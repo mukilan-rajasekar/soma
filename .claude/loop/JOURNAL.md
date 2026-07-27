@@ -262,3 +262,24 @@ as the landing zone for future batch transcodes is untouched. (3) batch_report_o
 the orphan fixture that is the next backlog item — proves that directory ONCE held
 campaign-named files (`/preflight/videos/v03_30s_product_first.mp4`). The naming split is
 recent drift, not an original design decision.
+
+## 2026-07-27 — git rm public/preflight/batch_report_old.json
+changed: git rm public/preflight/batch_report_old.json (only file touched)
+why: an 8.8 KB tracked artifact that nothing reads. Re-verified the premise repo-wide
+rather than trusting it: the only hits for the name outside .git are this journal, the
+backlog, and build output under .next/. Then checked what it actually is before deleting
+— it is not a different schema or a compat fixture, it is a superseded snapshot of the
+same artifact, added in the SAME commit as batch_report.json (ed7aac2), same
+schemaVersion, same five ads, only the ordering and the scores differ. Its five `video`
+fields still point at /preflight/videos/v0*.mp4, the directory loop(8) emptied, so as of
+the previous iteration it described media that no longer exists. Fast gate green (build,
+eslint src, 8 pytest).
+surprised: two things. (1) It was not inert. src/components/preflight/report.ts builds
+its path with path.join(...REPORT_PATH) instead of a literal, so Next's file trace cannot
+resolve the single file and pulls in the whole public/preflight/ directory —
+.next/server/app/preflight/page.js.nft.json listed batch_report_old.json before this
+change and lists only batch_report.json after. The dead file was being bundled into the
+/preflight serverless function on every deploy. That also means any future file dropped
+in that directory ships with the function whether or not it is read. (2) The backlog said
+12 KB; it is 8842 bytes. Small, but a reminder that the seeded sizes are estimates, so
+"12 KB of dead weight" is not by itself the argument — being unread is.
