@@ -326,7 +326,7 @@ Three constraints that apply to all of them:
       non-finite guards dropped, min-max instead of p2..p98, clip dropped, zero-MAD
       fallback dropped, tanh dropped, mean instead of median) each turn the file red; the
       source was restored clean afterwards.
-- [ ] Add `test_affect_head.py` for `_proxy_arc`, the nested baseline the whole
+- [x] Add `test_affect_head.py` for `_proxy_arc`, the nested baseline the whole
       affect claim is measured against. Small and exact: with a hand-built preds
       array and one mask, `valence` must be the SIGNED mean over the mask (so an
       all-negative ROI gives a negative arc — assert it actually goes below zero)
@@ -335,6 +335,35 @@ Three constraints that apply to all of them:
       valence lane, and nothing today would catch it. Also assert `_proxy_arc`
       returns `None` — not a fabricated zero arc — for a dim with no matching mask,
       since `head_apply._baseline_series` branches on exactly that None.
+      Shipped as 18 tests; every property the item named held exactly — valence is the
+      SIGNED mean (an all-negative ROI gives [-2, -3, -0.5], strictly below zero), arousal
+      is the `|.|` mean of that same input ([2, 3, 0.5], strictly above), and a dim with no
+      matching mask returns None rather than a fabricated zero arc. Added beyond the item,
+      in rough order of how much they close: the proxy for a dim is BIT-IDENTICAL to one of
+      `pool_features`' own columns (valence -> `valence|sgn`, arousal -> `arousal|mag`),
+      which is what makes it a NESTED baseline and is the coupling that breaks first if
+      either convention drifts; an exactly-cancelling ROI separates the two branches (signed
+      mean 0, `|.|` mean 3/5), so no single fixture can satisfy both by accident; valence is
+      antisymmetric in preds and arousal symmetric, which pins the conventions for every
+      input rather than for one hand-computed row; and `head_apply._baseline_series` is
+      executed on BOTH sides of that None — the proxy recomputed at t = arange(n_sec)
+      through a real `save_head`/`load_head` round-trip, and `SystemExit` when the head's
+      dim has no mask. Also covered `load_affect_masks`, since it is what actually builds
+      the (name, mask) list `_proxy_arc` looks up: valence always precedes arousal even when
+      the arousal filename sorts first (that order is the feature-column order `save_head`
+      serializes, so a flip swaps every valence weight with an arousal one), masks are cast
+      to bool, non-affect `roi_*.npy` files are ignored, and sorted-glob-first-hit wins. The
+      bool cast is the sharpest of those: numpy fancy-indexes an INT array BY POSITION, so
+      an uncast 0/1 mask selects columns [0, 1, 1] — a different, differently-sized ROI that
+      still returns a perfectly plausible arc. One behaviour is pinned as DOCUMENTED rather
+      than as desirable: the branch is `if dim == "valence"`, so every other dim silently
+      takes the `|.|` branch, including a third lane added later. And an all-False mask
+      gives all-NaN (with numpy's mean-of-empty-slice RuntimeWarning), not zeros — asserted,
+      because zeros would be indistinguishable from a genuinely silent ROI. Verified the
+      suite bites: nine hand-applied mutations to `affect_head.py` (conventions swapped,
+      valence always `|.|`, arousal always signed, None -> zeros, mask lookup by position
+      instead of by name, bool cast dropped, dim order flipped, last-hit-wins, key filter
+      dropped) each turn the file red; the source was restored clean afterwards.
 - [ ] Add `test_head_apply.py` for the `arc_<id>.json` contract in `apply_one`.
       Bigger than the others (it needs a head fixture, which `head_io.save_head`
       can build in-test) but it is the only writer of the file the demo renders.

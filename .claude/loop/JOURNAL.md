@@ -573,3 +573,41 @@ rather than a contract, so the test asserts the invariant (flat, finite, in rang
 and leaves the floor value to a comment. Asserting 0.0 would have enshrined it.
 (2) numpy 2.5 removed ndarray.ptp() — arr.ptp() is an AttributeError now, only
 np.ptp(arr) works. Cost a probe run.
+
+## 2026-07-27 — Add test_affect_head.py: pin _proxy_arc as the signed/absolute valence-arousal baseline
+changed: test_affect_head.py (new, 18 tests), .claude/loop/{BACKLOG.md,LAST_TASK}, AGENTS.md
+why: `_proxy_arc` is six lines and it is the yardstick the entire affect claim is
+measured against — build_videos feeds it in as the last feature column and report()
+prints delta_r = r_head - r_proxy, so every "the trained head beats the arithmetic
+proxy" number in the affect table is that function's output. head_apply recomputes it
+at inference (baseline_col == "proxy") so a scored ad meets the same baseline training
+used. It had never been executed. Both properties the item measured held exactly: an
+all-negative ROI gives valence [-2, -3, -0.5] and arousal [2, 3, 0.5] on the identical
+input, and a dim with no mask returns None. The swap that matters is invisible
+downstream — it preserves shape, length and dtype and only inverts the direction of
+every valence lane in the demo — so the fixtures are built to make it detectable: one
+ROI cancels exactly under the signed mean (0) while reading 3/5 under |.|, and the
+antisymmetry/symmetry pair pins both conventions for every input rather than for one
+row. Added beyond the item: the proxy is BIT-IDENTICAL to one of pool_features' own
+columns (valence -> valence|sgn, arousal -> arousal|mag), which is what makes it a
+nested rather than a separate baseline; head_apply._baseline_series executed on both
+sides of the None, through a real save_head/load_head round-trip; and
+load_affect_masks, since it is what builds the (name, mask) list the lookup reads —
+valence always precedes arousal even when the arousal filename sorts first, masks are
+cast to bool, non-affect roi_*.npy are ignored, first sorted hit wins. Then checked
+the suite bites rather than trusting green: nine hand mutations to affect_head.py
+(conventions swapped, valence always |.|, arousal always signed, None -> zeros, lookup
+by position, bool cast dropped, dim order flipped, last-hit-wins, key filter dropped)
+each turn it red; source restored clean. Fast gate green: 125 pytest in 1.15s.
+surprised: two things. (1) load_affect_masks' `np.asarray(np.load(...), bool)` looked
+like defensive tidiness and is load-bearing. numpy fancy-indexes an INTEGER array by
+POSITION, so a 0/1 int mask saved by any future mask-builder would select columns
+[0, 1, 1] instead of vertices 1 and 2 — a different, differently-sized ROI that raises
+nothing and returns a perfectly plausible arc. build_roi_mask.py saves bool today, so
+the cast is the only thing standing between a dtype change there and a silently wrong
+proxy here. (2) The nested baseline is not merely correlated with the head's features,
+it is one of them verbatim, so X carries a duplicated column by construction. Harmless
+under ridge (that is what the penalty is for) but it means "beats the proxy" is asking
+the head to beat one of its own inputs — a stronger and more honest framing than the
+report's wording suggests, and one that would break silently if either convention
+drifted, since nothing but this test now compares the two.
