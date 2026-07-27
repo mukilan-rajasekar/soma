@@ -191,13 +191,14 @@ export default function VariantOverlay({ variants, active }: { variants: Ad[]; a
             </button>
           );
         })}
-        {/* Was "Same footage, recut. Attention diverges in the first seconds, the opener
-            decides the arc." — a near-verbatim repeat of the line DemoScrollPage prints
-            directly above this chart, about 200px up the page. The legend's own footer is
-            the one place that can carry what nothing else says: that these rows are
-            controls. Nothing else on the page indicated the arcs were selectable. */}
+        {/* This said "Pick a cut to bring its arc forward." — an interaction affordance on a
+            page whose primary delivery is a silent 55-second recording where nothing is ever
+            clicked. It advertised an action that never happens on camera. The rows ARE still
+            selectable for a reader who opens the link; that just does not need a caption. What
+            the footer can carry instead is the one thing the ranking alone does not say: that
+            the three pale arcs are the field, not noise. */}
         <div className="mt-1 px-1 text-[12.5px] leading-[1.5] text-ink-3">
-          Pick a cut to bring its arc forward.
+          Best and worst in colour. The middle three are the field.
         </div>
       </div>
     </div>

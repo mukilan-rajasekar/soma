@@ -1,0 +1,78 @@
+{
+  "source": "arc",
+  "series_col": "global_mag",
+  "features": [
+    "hook_decay",
+    "hook_slope",
+    "decay_tau",
+    "surprise_rate",
+    "rise_fall_asym",
+    "tvar"
+  ],
+  "min_effect_r": 0.1,
+  "signal": false,
+  "lead": "hook_decay",
+  "n_ads": 29,
+  "n_with_baseline": 29,
+  "controlled": true,
+  "covariates": [
+    "loudness",
+    "cuts",
+    "luminance",
+    "motion",
+    "duration"
+  ],
+  "n_perm": 20000,
+  "n_perm_combined": 2000,
+  "alpha": 1.0,
+  "per_feature": {
+    "hook_decay": {
+      "raw_r": 0.2603229562914002,
+      "partial_r": 0.40024603437463346,
+      "perm_p": 0.054447277636118195,
+      "holm_p": 0.32668366581670916,
+      "signal": false
+    },
+    "hook_slope": {
+      "raw_r": -0.2689510845775735,
+      "partial_r": -0.12942329854293616,
+      "perm_p": 0.5516724163791811,
+      "holm_p": 1.0,
+      "signal": false
+    },
+    "decay_tau": {
+      "raw_r": 0.2317268739715115,
+      "partial_r": 0.17511164547101196,
+      "perm_p": 0.4073296335183241,
+      "holm_p": 1.0,
+      "signal": false
+    },
+    "surprise_rate": {
+      "raw_r": -0.28356553045004396,
+      "partial_r": -0.3303797619670619,
+      "perm_p": 0.11389430528473576,
+      "holm_p": 0.5629718514074297,
+      "signal": false
+    },
+    "rise_fall_asym": {
+      "raw_r": -0.03773198182050834,
+      "partial_r": 0.10418698651300516,
+      "perm_p": 0.6283185840707964,
+      "holm_p": 1.0,
+      "signal": false
+    },
+    "tvar": {
+      "raw_r": 0.3576975469496417,
+      "partial_r": 0.3336578062350913,
+      "perm_p": 0.11259437028148593,
+      "holm_p": 0.5629718514074297,
+      "signal": false
+    }
+  },
+  "combined": {
+    "oos_r": 0.13703021701485196,
+    "perm_p": 0.6146926536731634,
+    "signal": false
+  },
+  "verdict": "NULL \u2014 no temporal shape feature survives Holm and the combined model does not clear the floor. Top LEAD is hook_decay (partial r=0.40, raw perm p=0.054, Holm p=0.327); combined OOS r=0.14, perm p=0.615. Reported plainly as an UNDERPOWERED baseline \u2014 the read-out's value is the reusable architecture that fires when real retention labels arrive, NOT a positive result today. Do not quote the lead as a finding."
+}

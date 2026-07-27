@@ -32,9 +32,15 @@ export default function Section({ n, eyebrow, heading, lede, children, tint }: P
   const [ref, revealed] = useReveal<HTMLElement>({ threshold: 0, rootMargin: "0px 0px -25% 0px" });
   const hasText = Boolean(n || eyebrow || heading || lede);
   return (
+    // 9vh top AND bottom put 162px of pure padding between the last figure of one beat and the
+    // eyebrow of the next at a 900px viewport, and the recording framed a good share of it: two
+    // stops ended on ~255px of empty paper. 6.5vh is ~59px, which still separates the beats
+    // cleanly and takes ~350px off the page. That second effect is the more valuable one: the
+    // take is a fixed 55 seconds, so a shorter page is the same time spread over less distance,
+    // which reads as calmer rather than faster.
     <section
       ref={ref}
-      className={`scroll-mt-16 border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(48px,9vh,104px)] ${tint ? "bg-fill" : "bg-paper"}`}
+      className={`scroll-mt-16 border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(40px,6.5vh,76px)] ${tint ? "bg-fill" : "bg-paper"}`}
     >
       <div className="mx-auto max-w-[980px]">
         {n || eyebrow ? (

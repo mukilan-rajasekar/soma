@@ -1,0 +1,52 @@
+{
+  "n_ads": 29,
+  "n_with_baseline": 29,
+  "score": "head",
+  "head": "head_attn.json",
+  "covariates": [
+    "loudness",
+    "cuts",
+    "luminance",
+    "motion",
+    "duration"
+  ],
+  "min_effect_r": 0.1,
+  "n_perm": 20000,
+  "signal": false,
+  "primary": {
+    "summary": "mean",
+    "raw_r": -0.2500000075982599,
+    "partial_r": -0.12815364730584186,
+    "perm_p": 0.5476726163691815,
+    "top1_hit": 0.0,
+    "topk_prec": 0.2222222222222222,
+    "k": 9
+  },
+  "exploratory": {
+    "peak": {
+      "raw_r": -0.242327145865953,
+      "partial_r": -0.1401494587222905,
+      "perm_p": 0.5087245637718114,
+      "top1_hit": 0.0,
+      "topk_prec": 0.2222222222222222,
+      "k": 9
+    },
+    "hook": {
+      "raw_r": -0.026377420760586946,
+      "partial_r": 0.33055633311672716,
+      "perm_p": 0.11184440777961102,
+      "top1_hit": 0.0,
+      "topk_prec": 0.2222222222222222,
+      "k": 9
+    },
+    "area": {
+      "raw_r": -0.18232249074843507,
+      "partial_r": -0.07052917647430787,
+      "perm_p": 0.744562771861407,
+      "top1_hit": 0.0,
+      "topk_prec": 0.3333333333333333,
+      "k": 9
+    }
+  },
+  "verdict": "NULL \u2014 the head neural score does NOT beat the ffmpeg baseline at predicting ad rank (partial r=-0.13, perm p=0.548). Reported plainly. The 'predict your winner' claim waits until this clears the floor; the learned-head bet then moves to the proprietary ad-outcome flywheel."
+}

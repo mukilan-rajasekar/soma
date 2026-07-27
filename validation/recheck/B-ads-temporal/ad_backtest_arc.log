@@ -1,0 +1,16 @@
+
+==========================================================================
+AD-OUTCOME BACKTEST   n_ads=29  score=arc  covariates=['loudness', 'cuts', 'luminance', 'motion', 'duration']
+==========================================================================
+summary    raw r  partial r   perm p   top1  top-k prec
+--------------------------------------------------------------------------
+mean        0.00       0.12    0.559      0        0.33  <- PRIMARY
+peak        0.24       0.27    0.193      0        0.44  (exploratory)
+hook        0.17       0.39    0.059      0        0.44  (exploratory)
+area        0.35       0.09    0.668      0        0.33  (exploratory)
+--------------------------------------------------------------------------
+VERDICT: NULL — the arc neural score does NOT beat the ffmpeg baseline at predicting ad rank (partial r=0.12, perm p=0.559). Reported plainly. The 'predict your winner' claim waits until this clears the floor; the learned-head bet then moves to the proprietary ad-outcome flywheel.
+
+Reminder: outcome labels (TikTok rank / Meta longevity) are PROXIES for real spend outcomes; the scorer is applied out-of-distribution. n_ads is the sample size, not n_seconds.
+[wrote] validation/recheck/B-ads-temporal/ad_backtest_arc.csv
+[wrote] validation/recheck/B-ads-temporal/ad_backtest_arc.json

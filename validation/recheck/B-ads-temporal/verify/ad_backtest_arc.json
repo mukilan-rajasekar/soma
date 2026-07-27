@@ -1,0 +1,52 @@
+{
+  "n_ads": 29,
+  "n_with_baseline": 29,
+  "score": "arc",
+  "head": null,
+  "covariates": [
+    "loudness",
+    "cuts",
+    "luminance",
+    "motion",
+    "duration"
+  ],
+  "min_effect_r": 0.1,
+  "n_perm": 20000,
+  "signal": false,
+  "primary": {
+    "summary": "mean",
+    "raw_r": 0.0007395538531005686,
+    "partial_r": 0.1228914616169194,
+    "perm_p": 0.5588720563971802,
+    "top1_hit": 0.0,
+    "topk_prec": 0.3333333333333333,
+    "k": 9
+  },
+  "exploratory": {
+    "peak": {
+      "raw_r": 0.24109455611078534,
+      "partial_r": 0.2714283027621177,
+      "perm_p": 0.19329033548322583,
+      "top1_hit": 0.0,
+      "topk_prec": 0.4444444444444444,
+      "k": 9
+    },
+    "hook": {
+      "raw_r": 0.17132997596829838,
+      "partial_r": 0.38760791887217316,
+      "perm_p": 0.0592470376481176,
+      "top1_hit": 0.0,
+      "topk_prec": 0.4444444444444444,
+      "k": 9
+    },
+    "area": {
+      "raw_r": 0.3547393315372394,
+      "partial_r": 0.09140837016236575,
+      "perm_p": 0.6677166141692915,
+      "top1_hit": 0.0,
+      "topk_prec": 0.3333333333333333,
+      "k": 9
+    }
+  },
+  "verdict": "NULL \u2014 the arc neural score does NOT beat the ffmpeg baseline at predicting ad rank (partial r=0.12, perm p=0.559). Reported plainly. The 'predict your winner' claim waits until this clears the floor; the learned-head bet then moves to the proprietary ad-outcome flywheel."
+}

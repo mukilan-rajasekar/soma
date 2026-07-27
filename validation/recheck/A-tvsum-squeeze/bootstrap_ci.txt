@@ -1,0 +1,6 @@
+n=15 per-video r_head: median=0.201 mean=0.150
+bootstrap MEDIAN r: 0.201  95% CI [-0.069, 0.337]  (B=10000)
+bootstrap MEAN   r: 0.150  95% CI [0.038, 0.256]
+frac bootstrap medians > 0: 0.782
+frac bootstrap means   > 0: 0.997
+[5-mask] median r=0.173 95% CI [-0.037, 0.311]

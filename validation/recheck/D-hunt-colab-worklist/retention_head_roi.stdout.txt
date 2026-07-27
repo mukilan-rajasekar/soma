@@ -1,0 +1,4 @@
+[skip] -esJrBWj2d8: missing retention_-esJrBWj2d8.csv
+[skip] 0tmA_C6XwfM: missing retention_0tmA_C6XwfM.csv
+[skip] 37rzWOQsNIw: missing retention_37rzWOQsNIw.csv
+only 0 usable videos (need >=3 for LOVO; >=15-30 for any real claim). Extract more Mr.HiSum videos + run mrhisum_prep.

@@ -58,3 +58,6 @@ demo/out/
 colab_extract.ipynb
 colab_overnight.ipynb
 colab_overnight_full.ipynb
+
+# colab upload bundles (soma_ads_7.zip alone is 58 MB) — never commit
+colab_upload/

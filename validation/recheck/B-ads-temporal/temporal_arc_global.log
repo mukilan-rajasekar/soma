@@ -1,0 +1,20 @@
+
+==============================================================================
+TEMPORAL-DYNAMICS READ-OUT   n_ads=29  source=arc/global_mag  controlled  cov=['loudness', 'cuts', 'luminance', 'motion', 'duration']
+==============================================================================
+feature           raw r  partial r   perm p   holm p      
+------------------------------------------------------------------------------
+hook_decay         0.26       0.40    0.054    0.327  <-lead
+hook_slope        -0.27      -0.13    0.552    1.000
+decay_tau          0.23       0.18    0.407    1.000
+surprise_rate     -0.28      -0.33    0.114    0.563
+rise_fall_asym    -0.04       0.10    0.628    1.000
+tvar               0.36       0.33    0.113    0.563
+------------------------------------------------------------------------------
+COMBINED ridge                0.14    0.615            (LOO OOS, full-refit null)
+------------------------------------------------------------------------------
+VERDICT: NULL — no temporal shape feature survives Holm and the combined model does not clear the floor. Top LEAD is hook_decay (partial r=0.40, raw perm p=0.054, Holm p=0.327); combined OOS r=0.14, perm p=0.615. Reported plainly as an UNDERPOWERED baseline — the read-out's value is the reusable architecture that fires when real retention labels arrive, NOT a positive result today. Do not quote the lead as a finding.
+
+Reminder: outcome (days-running) is a PROXY for real spend; the scorer is applied out-of-distribution; n_ads is the sample size, not n_seconds.
+[wrote] validation/recheck/B-ads-temporal/temporal_arc_global.csv
+[wrote] validation/recheck/B-ads-temporal/temporal_arc_global.json

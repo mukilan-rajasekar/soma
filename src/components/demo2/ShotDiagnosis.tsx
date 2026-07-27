@@ -83,8 +83,18 @@ export default function ShotDiagnosis({
                 />
               </div>
               <div className="mt-1.5 text-center text-[11px] tabular-nums text-ink-3">{fmtT(s.start)}</div>
+              {/* The shot's CONTRIBUTION, which is the negative of its leave-one-out delta.
+                  `s.delta` is "what happens to the score if this shot is cut", so a shot that
+                  hurts the ad carries a POSITIVE delta — and printing it raw put "+3" and "+4"
+                  in red next to "-1" and "-2" in black, directly under a legend reading "drags
+                  it down / carries it". Every glance-length read of that frame gets it exactly
+                  backwards, and a silent 55-second recording is nothing but glance-length
+                  reads. Negated, a dragging shot shows -3 (it costs you three points) and a
+                  load-bearing one shows +1 (it earns you one), which is also the framing
+                  EditStudio's own line uses: "each scored for what it costs or earns".
+                  `drag` is untouched: the colour still keys off the raw delta. */}
               <div className={`text-center text-[13px] font-medium tabular-nums ${drag ? "text-error" : "text-ink"}`}>
-                {s.delta > 0 ? `+${s.delta}` : s.delta}
+                {-s.delta > 0 ? `+${-s.delta}` : -s.delta}
               </div>
             </div>
           );

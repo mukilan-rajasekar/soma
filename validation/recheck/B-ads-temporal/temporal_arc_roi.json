@@ -1,0 +1,78 @@
+{
+  "source": "arc",
+  "series_col": "roi_mag",
+  "features": [
+    "hook_decay",
+    "hook_slope",
+    "decay_tau",
+    "surprise_rate",
+    "rise_fall_asym",
+    "tvar"
+  ],
+  "min_effect_r": 0.1,
+  "signal": false,
+  "lead": "rise_fall_asym",
+  "n_ads": 29,
+  "n_with_baseline": 29,
+  "controlled": true,
+  "covariates": [
+    "loudness",
+    "cuts",
+    "luminance",
+    "motion",
+    "duration"
+  ],
+  "n_perm": 20000,
+  "n_perm_combined": 2000,
+  "alpha": 1.0,
+  "per_feature": {
+    "hook_decay": {
+      "raw_r": 0.08406262130243129,
+      "partial_r": 0.19924698173337846,
+      "perm_p": 0.34678266086695664,
+      "holm_p": 1.0,
+      "signal": false
+    },
+    "hook_slope": {
+      "raw_r": -0.03007519002608979,
+      "partial_r": 0.033438567552093436,
+      "perm_p": 0.8776061196940153,
+      "holm_p": 1.0,
+      "signal": false
+    },
+    "decay_tau": {
+      "raw_r": 0.24824357669075753,
+      "partial_r": 0.13949423583313184,
+      "perm_p": 0.5135243237838109,
+      "holm_p": 1.0,
+      "signal": false
+    },
+    "surprise_rate": {
+      "raw_r": -0.11096042495871285,
+      "partial_r": -0.11803861764837743,
+      "perm_p": 0.5788210589470526,
+      "holm_p": 1.0,
+      "signal": false
+    },
+    "rise_fall_asym": {
+      "raw_r": -0.1521691108945501,
+      "partial_r": -0.20147545556231386,
+      "perm_p": 0.3388830558472076,
+      "holm_p": 1.0,
+      "signal": false
+    },
+    "tvar": {
+      "raw_r": 0.3251571774132167,
+      "partial_r": 0.12871721659622973,
+      "perm_p": 0.544722763861807,
+      "holm_p": 1.0,
+      "signal": false
+    }
+  },
+  "combined": {
+    "oos_r": -0.2141713283919179,
+    "perm_p": 0.4427786106946527,
+    "signal": false
+  },
+  "verdict": "NULL \u2014 no temporal shape feature survives Holm and the combined model does not clear the floor. Top LEAD is rise_fall_asym (partial r=-0.20, raw perm p=0.339, Holm p=1.000); combined OOS r=-0.21, perm p=0.443. Reported plainly as an UNDERPOWERED baseline \u2014 the read-out's value is the reusable architecture that fires when real retention labels arrive, NOT a positive result today. Do not quote the lead as a finding."
+}

@@ -165,7 +165,7 @@ export default function DemoScrollPage({
       anchor: "science",
       eyebrow: "The science",
       heading: <>Attention isn&rsquo;t one thing. Different regions do <span className="font-serif font-normal italic">different</span> jobs.</>,
-      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself — two networks, measured separately.",
+      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself: two networks, measured separately.",
       // The two cards are timed against the figure beside them, not against each other: the
       // dorsal card arrives as the dorsal region lights (TwoRegionBrain's STAGE.dorsal opens
       // at 0.42 of a 2100ms build ≈ 880ms) and the ventral card as the ventral one does
@@ -206,7 +206,7 @@ export default function DemoScrollPage({
       key: "hook",
       eyebrow: "Hook scoring",
       heading: <>The first three seconds are <span className="font-serif font-normal italic">everything</span>.</>,
-      lede: "The first 3 seconds are scored separately — about 45% of the total. Surprise is what measures them.",
+      lede: "The first 3 seconds are scored separately, about 45% of the total. Surprise is what measures them.",
       // The science section already renders TwoRegionBrain (focus="both"). A second brain
       // stood here — focus="ventral" plus an "in the hook window, the ventral network leads"
       // caption — repeating the same visual and the same sentence the science body copy had
@@ -298,7 +298,7 @@ export default function DemoScrollPage({
       anchor: "edit",
       eyebrow: "AI ad editing",
       heading: <>Change it in a sentence. It re-scores <span className="font-serif font-normal italic">itself</span>.</>,
-      lede: "Edited in plain language. Every candidate edit is scored and the best cut comes back — your frames, never regenerated.",
+      lede: "Edited in plain language. Every candidate edit is scored and the best cut comes back, from your frames, never regenerated.",
       body: (revealed) => (
         <div className="space-y-9">
           {/* Diagnosis first, then the edit that acts on it — on both routes. This is the
@@ -361,11 +361,20 @@ export default function DemoScrollPage({
       // populates the corpus by scraping TikTok Creative Center and report.corpus.ads is 700 —
       // and "biggest database in the category" is a comparative claim with no benchmark behind
       // it. Both are here because they were asked for directly.
+      // Three tiles, one anatomy. They used to have three: bars render only when a tile has a
+      // `tone`, so 1,500+ and 200+ had none and 92% had one, which left the three sub-labels
+      // sitting at different heights across the row and made a deliberate grid look like a
+      // rendering accident. The 75% baseline notch made it worse: an unlabelled hairline drawn
+      // in paper over the fill, which at the 640px this is watched at reads as a seam in the
+      // bar rather than as a reference point.
+      // Bars are gone from this beat entirely. Two of these three numbers have no 0-100 scale
+      // for a bar to be a fraction OF, so it was never measuring anything here. §02's hook
+      // tiles keep theirs, where 0-100 is real and the green/red pair IS the argument.
       body: (revealed) => (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Stat big value={1500} suffix="+" label="Ads in the database" sub="from people · the biggest database in the category" active={revealed} />
+          <Stat big value={1500} suffix="+" label="Ads in the database" sub="the biggest in the category" active={revealed} />
           <Stat big value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
-          <Stat big value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" tone="pos" baseline={75} active={revealed} />
+          <Stat big value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
         </div>
       ),
     },
@@ -537,18 +546,26 @@ export default function DemoScrollPage({
           checklist were removed earlier. All of it is preserved in this branch's history;
           the checklist and service ladder are the strongest diligence assets on the site
           and want a home on /science or a /demo/full route rather than deletion. */}
-      <section className="border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(56px,12vh,128px)]">
-        <div className="mx-auto max-w-[980px]">
-          <h2 className="max-w-[18ch] text-balance text-section text-ink">
+      {/* The last stop is pinned to maxScroll, so this section IS the closing frame, and it is
+          held longer than any other. It used to be a short block: at 900px tall the frame was
+          the top 460px of the database beat, the CTA in a narrow left column, and roughly 40%
+          empty paper bottom-right. The most-remembered frame of the take was half leftovers,
+          carried no wordmark, and gave a reader no address to go to.
+          min-h-screen with the content centred makes the frame contain nothing but the close,
+          whatever the viewport. */}
+      <section className="flex min-h-screen flex-col justify-center border-t border-line px-[clamp(18px,5vw,40px)] py-[clamp(56px,12vh,128px)]">
+        <div className="mx-auto w-full max-w-[980px] text-center">
+          <span className="text-wordmark text-ink">soma</span>
+          <h2 className="mx-auto mt-8 max-w-[19ch] text-balance text-section text-ink">
             Stop guessing which ad <span className="font-serif font-normal italic">wins</span>.
           </h2>
           {/* Was "Ten clips, ranked and diagnosed. Send us your batch and see where your
               attention goes." — a measurement-only promise, which contradicted the 23
               seconds of generate-and-edit that immediately precede it. */}
-          <p className="mt-4 max-w-[54ch] text-body text-ink-2">
+          <p className="mx-auto mt-4 max-w-[52ch] text-body text-ink-2">
             Send us your batch. We rank it, diagnose it, and give you back the cut that wins.
           </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link href="/" className="rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85">
               Request access
             </Link>
@@ -556,6 +573,9 @@ export default function DemoScrollPage({
               Explore the live console
             </Link>
           </div>
+          {/* A closing frame with no address is a closing frame a viewer cannot act on. This is
+              the one line in the take that tells them where to go. */}
+          <div className="mt-9 text-[13px] tracking-[0.02em] text-ink-3">usesoma.work</div>
         </div>
       </section>
     </main>
@@ -609,12 +629,15 @@ function ActStrip({ acts }: { acts: { n: string; title: string; body: string; hr
 // rendered as-is.
 //   → To add a logo later: drop public/logos/<name>.svg and set `logo` below.
 type Brand = { name: string; mark: string; logo?: string; rawLogo?: boolean };
+// TikTok leads. It is the only mark here with a real logo file rather than a monogram, and the
+// opening frame of the recording is the one frame guaranteed to be seen, so the roster should
+// enter on its strongest item instead of ending on it.
 const BETA_BRANDS: Brand[] = [
   { name: "TikTok", mark: "T", logo: "/logos/tiktok.svg" },
-  { name: "Supercell", mark: "S" }, // only a 3-line pixel wordmark exists — illegible at badge size
-  { name: "MrBeast", mark: "M" }, // no standalone symbol logo — monogram for now
-  { name: "NextXI", mark: "N" }, // logo dropping in later
   { name: "Browserbase", mark: "B", logo: "/logos/browserbase.svg", rawLogo: true },
+  { name: "Supercell", mark: "S" }, // only a 3-line pixel wordmark exists, illegible at badge size
+  { name: "MrBeast", mark: "M" }, // no standalone symbol logo, monogram for now
+  { name: "NextXI", mark: "N" }, // logo dropping in later
 ];
 
 // Per-instance marquee tuning. --marquee-gap is the space between logos (and, because
@@ -622,10 +645,16 @@ const BETA_BRANDS: Brand[] = [
 // --marquee-duration is one full loop. Both cascade to the track, whose keyframes and
 // reduced-motion fallback live in globals.css. The edge masks fade marks in and out at the
 // rails so nothing pops at the boundary.
-const EDGE_FADE = "linear-gradient(to right, transparent, #000 7%, #000 93%, transparent)";
+// The gap is what decides whether the loop's seam is visible. One copy of the roster at the old
+// clamp(32px,6vw,72px) measured about 1,160px, so inside a 1,440px frame you saw the end of copy
+// one AND the start of copy two: the opening frame of the recording showed "Supercell" twice,
+// once whole and once cut off at the rail, which reads as a rendering fault rather than as an
+// infinite scroll. Widening the gap pushes a single copy past the frame width so the join
+// happens outside it, and the deeper edge fade covers what is left at the rails.
+const EDGE_FADE = "linear-gradient(to right, transparent, #000 11%, #000 89%, transparent)";
 const marqueeStyle = {
-  "--marquee-gap": "clamp(32px, 6vw, 72px)",
-  "--marquee-duration": "36s",
+  "--marquee-gap": "clamp(40px, 8vw, 108px)",
+  "--marquee-duration": "42s",
   WebkitMaskImage: EDGE_FADE,
   maskImage: EDGE_FADE,
 } as React.CSSProperties;
@@ -635,7 +664,7 @@ function BrandMark({ brand }: { brand: Brand }) {
     <div className="mr-[var(--marquee-gap)] flex shrink-0 items-center gap-2.5">
       <span
         aria-hidden="true"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-ink"
+        className="rounded-badge flex h-9 w-9 shrink-0 items-center justify-center bg-ink"
       >
         {brand.logo ? (
           // eslint-disable-next-line @next/next/no-img-element

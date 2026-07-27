@@ -1,0 +1,13 @@
+Branch A — TVSum head squeeze recheck (REAL data: data/arcs preds+arcs, data/tvsum human, data/baseline ffmpeg, data/roi_mask_*.npy)
+head_4mask.csv/.stdout        PRIMARY reproduction, prior 4-mask config (arousal,dan,dmn,valence): median r_head=0.201, Stouffer p=0.00027, paired-vs-arc p=0.087
+head_5mask.csv/.stdout        EXPLORATORY add-language-ROI (5 masks): median r_head=0.173 (LOWER), Stouffer p=0.0002, paired p=0.063
+head_null_200_4mask.stdout    head_null_test 200 shuffles: real p=0.00027, 0/200 beat it, EMPIRICAL p=0.0050 (< prior 0.032 30-shuffle floor)
+incremental_roi.csv           raw ROI arc vs ffmpeg: 0/15 add signal (reproduces prior)
+incremental_global.csv        raw GLOBAL arc vs ffmpeg: 3/15 add signal (reproduces prior)
+head_incremental_4mask.csv    WITHIN-ITEM trained-head LOVO pred vs ffmpeg: 2/15 per-video, combined Stouffer p=0.0005, median partial=0.178
+head_incremental_5mask.csv    same, 5-mask: 3/15, p=0.0004, median partial=0.144
+retention_roi.json/.csv       EXPLORATORY retention_head on TVSum labels, --features roi (global-nested,2s grid): gate1 r=0.11 p=0.0001; gate3 median partial=0.09 p=0.0009 (below 0.1 floor)
+retention_roitemporal.json    EXPLORATORY --features roi+temporal: gate1 r=0.16 p=0.0002; gate3 median partial=0.13 PASS p=0.0011 (temporal shape adds within-item lift)
+bootstrap_ci.txt              B=10000 bootstrap on 15 per-video r: MEDIAN r=0.201 CI[-0.069,0.337] CROSSES 0; MEAN r=0.150 CI[0.038,0.256] excludes 0
+masks4/                       symlinks to the 4 prior masks (exact prior reproduction)
+tvsum_ret/                    TVSum human interest column-renamed to retention_<id>.csv (t_sec,most_replayed) — same real labels, no fabrication

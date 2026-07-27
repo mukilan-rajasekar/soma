@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YC Fall 2026 — 11-Day Sprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --base:#0E1420; --panel:#141D2E; --panel-2:#1A2437; --line:#27324B;
+    --ink:#E9EDF5; --dim:#8C99B2; --faint:#566179;
+    --hot-a:#FF3D7F; --hot-b:#FF9A3D; --done:#3DD68C;
+    --t-team:#6EA8FF; --t-validation:#FF5C86; --t-customer:#33CFB6;
+    --t-demo:#B08CFF; --t-application:#F5C451; --t-interview:#FF9E6B; --t-submit:#3DD68C;
+    --mono:'Space Mono',monospace; --disp:'Space Grotesk',sans-serif; --body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--base);color:var(--ink);font-family:var(--body);
+    line-height:1.5;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(1200px 600px at 80% -10%, rgba(255,61,127,.10), transparent 60%),
+                     radial-gradient(900px 500px at -10% 10%, rgba(110,168,255,.08), transparent 55%);
+    background-attachment:fixed;padding-bottom:80px}
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
+
+  /* ---- mission control header ---- */
+  header{position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg, rgba(14,20,32,.96), rgba(14,20,32,.90));
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .hd{max-width:860px;margin:0 auto;padding:16px 20px 14px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--dim);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--hot-a);
+    box-shadow:0 0 8px var(--hot-a);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .clock{display:flex;align-items:baseline;gap:14px;margin-top:8px;flex-wrap:wrap}
+  .tminus{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--faint);
+    text-transform:uppercase;align-self:center}
+  .count{font-family:var(--mono);font-weight:700;font-size:clamp(26px,7vw,40px);letter-spacing:.02em;
+    background:linear-gradient(90deg,var(--hot-a),var(--hot-b));-webkit-background-clip:text;
+    background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+  .count .u{color:var(--faint);-webkit-text-fill-color:var(--faint);font-size:.5em;margin:0 2px 0 1px}
+  .deadline{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.04em;margin-top:6px}
+  .deadline b{color:var(--ink);font-weight:700}
+
+  /* activation bar */
+  .activation{margin-top:14px}
+  .act-top{display:flex;justify-content:space-between;align-items:baseline;
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .act-pct{color:var(--ink);font-weight:700}
+  .act-rail{margin-top:7px;height:9px;border-radius:6px;background:var(--panel-2);
+    border:1px solid var(--line);overflow:hidden;position:relative}
+  .act-fill{height:100%;width:0%;border-radius:6px;
+    background:linear-gradient(90deg,var(--hot-a),var(--hot-b));
+    box-shadow:0 0 14px rgba(255,90,127,.5);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+  .act-sub{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:6px;letter-spacing:.04em}
+
+  /* legend */
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:22px 0 6px;
+    font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.04em}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+  .intro{color:var(--dim);font-size:14px;margin:16px 0 26px;max-width:640px}
+  .intro b{color:var(--ink);font-weight:600}
+
+  /* ---- day cards ---- */
+  .day{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    margin-bottom:14px;overflow:hidden}
+  .day.hero{border-color:rgba(255,92,134,.4);box-shadow:0 0 0 1px rgba(255,92,134,.12)}
+  .day-head{width:100%;display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;
+    background:none;border:none;cursor:pointer;text-align:left;padding:15px 16px;color:inherit}
+  .day-head:hover{background:var(--panel-2)}
+  .day-head:focus-visible{outline:2px solid var(--t-team);outline-offset:-2px}
+  .rail{display:flex;flex-direction:column;gap:2px;padding-left:12px;
+    border-left:3px solid var(--tc,var(--line));min-width:74px}
+  .num{font-family:var(--mono);font-weight:700;font-size:20px;color:var(--ink);line-height:1}
+  .date{font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.06em}
+  .main{min-width:0}
+  .track{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--tc,var(--dim));font-weight:700}
+  .theme{font-family:var(--disp);font-weight:600;font-size:16.5px;color:var(--ink);margin-top:2px}
+  .cnt{font-family:var(--mono);font-size:12px;color:var(--dim);white-space:nowrap}
+  .cnt.full{color:var(--done)}
+  .chev{font-size:12px;color:var(--faint);transition:transform .25s}
+  .day.collapsed .chev{transform:rotate(-90deg)}
+  .day.collapsed .body{display:none}
+
+  .body{padding:2px 16px 14px}
+  .task{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;
+    padding:11px 6px 11px 8px;border-top:1px solid var(--line);cursor:pointer}
+  .task:first-child{border-top:1px solid transparent}
+  .task input{position:absolute;opacity:0;width:0;height:0}
+  .box{width:19px;height:19px;border-radius:5px;border:1.5px solid var(--line);background:var(--panel-2);
+    display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .15s;flex-shrink:0}
+  .box svg{width:11px;height:11px;stroke:var(--base);stroke-width:3.5;fill:none;
+    stroke-dasharray:16;stroke-dashoffset:16;transition:stroke-dashoffset .2s .05s}
+  .task input:checked ~ .box{background:linear-gradient(135deg,var(--done),#2fb877);border-color:var(--done)}
+  .task input:checked ~ .box svg{stroke-dashoffset:0}
+  .task input:focus-visible ~ .box{outline:2px solid var(--t-team);outline-offset:2px}
+  .txt{font-size:14.5px;color:var(--ink);transition:color .15s}
+  .task input:checked ~ .txt{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--faint)}
+  .txt .hint{display:block;font-size:12.5px;color:var(--faint);margin-top:2px;line-height:1.45}
+  .crit{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+    font-weight:700;color:var(--hot-a);border:1px solid rgba(255,61,127,.35);border-radius:20px;
+    padding:3px 8px;white-space:nowrap;margin-top:1px;align-self:start;background:rgba(255,61,127,.06)}
+
+  footer{text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint);
+    margin-top:30px;letter-spacing:.05em;line-height:1.8}
+  footer button{background:none;border:1px solid var(--line);color:var(--dim);font-family:var(--mono);
+    font-size:11px;padding:6px 12px;border-radius:7px;cursor:pointer;letter-spacing:.06em}
+  footer button:hover{border-color:var(--hot-a);color:var(--ink)}
+
+  @media (max-width:560px){
+    .day-head{grid-template-columns:auto 1fr auto;gap:10px}
+    .chev{display:none}
+    .rail{min-width:62px;padding-left:10px}
+    .theme{font-size:15px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <div class="eyebrow"><span class="dot"></span> Neural ad pre-testing · YC Fall 2026 sprint</div>
+    <div class="clock">
+      <span class="tminus">T&#8722;minus</span>
+      <span class="count" id="count">—</span>
+    </div>
+    <div class="deadline">On-time deadline · <b>Mon Jul 27, 8:00 PM PT</b> · decision by Aug 28</div>
+    <div class="activation">
+      <div class="act-top"><span>Sprint activation</span><span class="act-pct" id="pct">0%</span></div>
+      <div class="act-rail"><div class="act-fill" id="fill"></div></div>
+      <div class="act-sub" id="sub">0 / 0 tasks fired</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="legend" id="legend"></div>
+  <p class="intro">The plan we built, on a clock. <b>Pink = critical path</b> — the chain that has to hold (team → validation → demo → application). Everything else runs in parallel. Your progress saves automatically. Submit on Day 11, a day early — never at the buzzer.</p>
+  <div id="days"></div>
+  <footer>
+    Built for the sprint · progress stored locally on this device<br>
+    <button id="reset">Reset all progress</button>
+  </footer>
+</div>
+
+<script>
+const TRACKS = {
+  team:'Team', validation:'Validation', customer:'Customer',
+  demo:'Demo', application:'Application', interview:'Interview', submit:'Submit'
+};
+
+const DAYS = [
+ {id:'d1',n:1,date:'Thu · Jul 16',track:'team',theme:'Lock the team, load the guns',items:[
+   {id:'d1a',crit:true,t:'Have the direct cofounder talk with Imran',h:'Get an explicit yes/no on cofounder + a rough equity split. This gates the whole application — YC funds teams, not solo founders with an undefined "friend in neuro."'},
+   {id:'d1b',t:'Decide who is CEO / owns the application + partner comms',h:'Whoever runs the business side and talks to partners. Usually the one writing this.'},
+   {id:'d1c',crit:true,t:'Get access to Imran\u2019s YouTube Studio + pull his videos',h:'Export every video with its average % viewed / avg view duration, and download the actual video files. This is your validation dataset.'},
+   {id:'d1d',t:'Create a shared sprint folder; make this tracker home base'},
+   {id:'d1e',t:'Open the YC application, read every question end-to-end',h:'Don\u2019t answer yet — just learn the shape of what you\u2019re aiming at.'},
+   {id:'d1f',t:'Write the customer-discovery outreach message',h:'Short cold DM/email to performance marketers. (Ask me to draft it.)'},
+   {id:'d1g',t:'Build a target list of 30\u201340 buyers',h:'Performance marketers, DTC founders, agency creative strategists — from LinkedIn, X, and marketing communities.'},
+ ]},
+ {id:'d2',n:2,date:'Fri · Jul 17',track:'validation',theme:'Pipeline hot, outreach live',items:[
+   {id:'d2a',crit:true,t:'Run the batching cell over Imran\u2019s videos \u2192 one stats CSV each',h:'Start early — the 1GB model download + GPU feature extraction is slow. Use the Colab batch cell you already have.'},
+   {id:'d2b',crit:true,t:'Build engagement.csv with REAL retention numbers',h:'Retention (avg % viewed), not views/likes — views are the algorithm\u2019s doing; retention is the content\u2019s.'},
+   {id:'d2c',t:'Send outreach batch 1 (15\u201320 messages)'},
+   {id:'d2d',t:'Draft the one-liner + "what does your company do" answer'},
+ ]},
+ {id:'d3',n:3,date:'Sat · Jul 18',track:'validation',theme:'First honest signal',items:[
+   {id:'d3a',crit:true,t:'Run honest_corr.py --outcomes retention_pct',h:'Record exactly what survives the permutation + leave-one-out test. No eyeballing 12 correlations and keeping the best.'},
+   {id:'d3b',crit:true,t:'Write the one true sentence about the result',h:'e.g. "predicted pacing correlates with retention across N of a creator\u2019s videos." No inflation — this replaces the fake 0.77.'},
+   {id:'d3c',t:'If nothing survives, decide the fix',h:'More videos? Drop-off curve instead of a single number? Time-resolved features instead of scalars?'},
+   {id:'d3d',t:'Send outreach batch 2; follow up batch 1; book any calls'},
+ ]},
+ {id:'d4',n:4,date:'Sun · Jul 19',track:'validation',theme:'Arc beats scalar',items:[
+   {id:'d4a',crit:true,t:'Build the arc-vs-retention view',h:'Predicted second-by-second attention curve overlaid on Imran\u2019s actual drop-off curve. Far stronger than a single r. (Ask me to add this to the script.)'},
+   {id:'d4b',t:'Find 2\u20133 videos where the arc visibly tracks a real drop',h:'These become your demo hero clips — where "we predicted it" is undeniable.'},
+   {id:'d4c',t:'Write your customer-call script',h:'How do you test creative now? What does it cost? Biggest creative blind spot? Would you pay for a prediction?'},
+ ]},
+ {id:'d5',n:5,date:'Mon · Jul 20',track:'customer',theme:'Talk to buyers',items:[
+   {id:'d5a',t:'Run 3\u20135 customer calls',h:'Capture verbatim quotes, pricing reactions, and anyone willing to be a design partner. This is what YC weights most after the team.'},
+   {id:'d5b',t:'Lock the validation result + finalize the money chart'},
+   {id:'d5c',t:'Keep outreach flowing (batch 3)'},
+ ]},
+ {id:'d6',n:6,date:'Tue · Jul 21',track:'demo',theme:'Make it a product a marketer feels',items:[
+   {id:'d6a',crit:true,t:'Reframe output: brain heatmap \u2192 attention/emotion arc',h:'With weak-spot callouts ("you lose them at 0:12"). A marketer can\u2019t read a heatmap; they can read an arc.'},
+   {id:'d6b',t:'Wire a clean, screen-recordable demo using a hero clip'},
+   {id:'d6c',t:'More customer calls'},
+ ]},
+ {id:'d7',n:7,date:'Wed · Jul 22',track:'demo',theme:'Record the founder video',items:[
+   {id:'d7a',t:'Polish the demo until it\u2019s clean on screen'},
+   {id:'d7b',t:'Record the ~1-min YC founder video',h:'Who you are, what it does, a real ad in \u2192 arc out, the one true validation sentence. Clear beats polished.'},
+   {id:'d7c',t:'Wrap customer discovery; tally the numbers',h:'X calls, Y said Z, N design-partner leads — for the application.'},
+ ]},
+ {id:'d8',n:8,date:'Thu · Jul 23',track:'application',theme:'Draft the whole application',items:[
+   {id:'d8a',crit:true,t:'Draft every YC answer fully',h:'What you do, why this, why now, what you\u2019ve built, how far along, competitors + why you win, users, revenue, team. (Ask me to draft these in your voice.)'},
+   {id:'d8b',t:'Lead with machine + wedge + customer signal',h:'Be honest about validation state. Claim the machine (real + impressive), not results you don\u2019t have.'},
+ ]},
+ {id:'d9',n:9,date:'Fri · Jul 24',track:'application',theme:'Cut and sharpen',items:[
+   {id:'d9a',t:'Cut ruthlessly — clear, specific, short',h:'Remove every bit of hype; verify every claim is true.'},
+   {id:'d9b',t:'Get outside eyes on the draft',h:'Any YC alum / founder / advisor you can reach.'},
+   {id:'d9c',t:'Tighten the one-liner until a stranger gets it in one read'},
+   {id:'d9d',t:'Finalize + upload the founder video'},
+ ]},
+ {id:'d10',n:10,date:'Sat · Jul 25',track:'interview',theme:'Interview reps',items:[
+   {id:'d10a',t:'Write + rehearse the 4 killer answers',h:'"n of how many?" · "why won\u2019t Realeyes build it?" · "better than prompting GPT?" · "who pays and how much?"'},
+   {id:'d10b',t:'Do a 10-minute rapid-fire mock interview'},
+   {id:'d10c',t:'Final proofread; test every link and the video'},
+ ]},
+ {id:'d11',n:11,date:'Sun · Jul 26',track:'submit',theme:'Submit early',items:[
+   {id:'d11a',t:'Read the whole application out loud one last time'},
+   {id:'d11b',crit:true,t:'Submit today — ahead of the Mon 8 PM PT deadline',h:'Never submit at the buzzer; sites lag and things break at deadlines.'},
+   {id:'d11c',t:'Confirm submission; block August for a possible interview',h:'Decisions land by Aug 28.'},
+ ]},
+];
+
+const HERO_DAYS = new Set(['d2','d3','d4']); // validation critical stretch
+let state = {tasks:{}, collapsed:{}};
+
+async function load(){
+  try{ const r = await window.storage.get('yc_sprint_state');
+       if(r && r.value) state = JSON.parse(r.value);
+  }catch(e){ /* first run: no key yet */ }
+}
+async function save(){
+  try{ await window.storage.set('yc_sprint_state', JSON.stringify(state)); }
+  catch(e){ console.error('save failed', e); }
+}
+
+const check = '<svg viewBox="0 0 12 12"><polyline points="1.5,6.5 4.5,9.5 10.5,2.5"/></svg>';
+
+function renderLegend(){
+  const el = document.getElementById('legend');
+  el.innerHTML = Object.entries(TRACKS).map(([k,v])=>
+    `<span><i style="background:var(--t-${k})"></i>${v}</span>`).join('');
+}
+
+function totalTasks(){ return DAYS.reduce((s,d)=>s+d.items.length,0); }
+function doneCount(){ return DAYS.reduce((s,d)=>s+d.items.filter(i=>state.tasks[i.id]).length,0); }
+
+function updateProgress(){
+  const tot=totalTasks(), done=doneCount(), pct=tot?Math.round(done/tot*100):0;
+  document.getElementById('fill').style.width=pct+'%';
+  document.getElementById('pct').textContent=pct+'%';
+  document.getElementById('sub').textContent=`${done} / ${tot} tasks fired`;
+  DAYS.forEach(d=>{
+    const dn=d.items.filter(i=>state.tasks[i.id]).length;
+    const c=document.querySelector(`[data-cnt="${d.id}"]`);
+    if(c){ c.textContent=`${dn}/${d.items.length}`; c.classList.toggle('full', dn===d.items.length && dn>0); }
+  });
+}
+
+function renderDays(){
+  const root=document.getElementById('days');
+  root.innerHTML = DAYS.map(d=>{
+    const collapsed = state.collapsed[d.id] ? ' collapsed':'';
+    const hero = HERO_DAYS.has(d.id) ? ' hero':'';
+    const items = d.items.map(i=>`
+      <label class="task">
+        <input type="checkbox" data-task="${i.id}" ${state.tasks[i.id]?'checked':''}>
+        <span class="box">${check}</span>
+        <span class="txt">${i.t}${i.h?`<span class="hint">${i.h}</span>`:''}</span>
+        ${i.crit?'<span class="crit">critical path</span>':'<span></span>'}
+      </label>`).join('');
+    return `<section class="day${collapsed}${hero}" data-day="${d.id}">
+      <button class="day-head" aria-expanded="${collapsed?'false':'true'}" data-toggle="${d.id}">
+        <span class="rail" style="--tc:var(--t-${d.track})">
+          <span class="num">${String(d.n).padStart(2,'0')}</span>
+          <span class="date">${d.date}</span>
+        </span>
+        <span class="main">
+          <span class="track" style="--tc:var(--t-${d.track})">${TRACKS[d.track]}</span>
+          <span class="theme">${d.theme}</span>
+        </span>
+        <span class="cnt" data-cnt="${d.id}">0/${d.items.length}</span>
+        <span class="chev">&#9662;</span>
+      </button>
+      <div class="body">${items}</div>
+    </section>`;
+  }).join('');
+
+  root.querySelectorAll('input[data-task]').forEach(cb=>{
+    cb.addEventListener('change', async e=>{
+      state.tasks[e.target.dataset.task]=e.target.checked;
+      updateProgress(); await save();
+    });
+  });
+  root.querySelectorAll('[data-toggle]').forEach(btn=>{
+    btn.addEventListener('click', async e=>{
+      const id=btn.dataset.toggle, sec=document.querySelector(`[data-day="${id}"]`);
+      const now=sec.classList.toggle('collapsed');
+      btn.setAttribute('aria-expanded', String(!now));
+      state.collapsed[id]=now; await save();
+    });
+  });
+}
+
+function startClock(){
+  const target = Date.UTC(2026,6,28,3,0,0); // Jul 27, 8:00 PM PDT
+  const el=document.getElementById('count');
+  function tick(){
+    const diff=target-Date.now();
+    if(diff<=0){ el.textContent='DEADLINE PASSED'; return; }
+    const d=Math.floor(diff/864e5), h=Math.floor(diff/36e5)%24,
+          m=Math.floor(diff/6e4)%60, s=Math.floor(diff/1e3)%60;
+    el.innerHTML=`${d}<span class="u">d</span> ${String(h).padStart(2,'0')}<span class="u">h</span> ${String(m).padStart(2,'0')}<span class="u">m</span> ${String(s).padStart(2,'0')}<span class="u">s</span>`;
+  }
+  tick(); setInterval(tick,1000);
+}
+
+document.getElementById('reset').addEventListener('click', async ()=>{
+  state={tasks:{},collapsed:{}};
+  await save(); renderDays(); updateProgress();
+});
+
+(async function init(){
+  renderLegend();
+  await load();
+  renderDays();
+  updateProgress();
+  startClock();
+})();
+</script>
+</body>
+</html>

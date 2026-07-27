@@ -1,0 +1,78 @@
+{
+  "schema_version": "compare-cuts-1.0",
+  "generated": "2026-07-21",
+  "badge": "PREDICTED \u00b7 RELATIVE \u00b7 WITHIN-ITEM. Rank-orders a brand's OWN cuts of one creative against each other; NOT an absolute performance prediction, NOT validated vs retention/ThruPlay. A hypothesis, not a result.",
+  "attention_source": "a-priori DAN (dorsal-attention) ROI mean |activation| \u2014 TVSum-proxy attention lane, cross-cut comparable magnitude",
+  "head_badge": null,
+  "message_source": null,
+  "message_status": null,
+  "message_note": "message lane requires TRIMODAL preds (audio+video+TEXT) + a language ROI mask (build_roi_mask.py --network language) \u2014 omitted here; not faked.",
+  "weak_spot_rule": "per-cut robust threshold: a lane sitting < median - 1.25*MAD for >= 3s (PREDICTED dip, not measured attention)",
+  "ranking_metric": "attention_hold (higher = predicted to hold attention better)",
+  "note_values_relative": "attention_hold / message_load are RELATIVE within this set only \u2014 compare cuts to each other, not across sets or brands.",
+  "validation_hook": {
+    "status": "not_validated",
+    "outcome": "per-cut ThruPlay% / avg-%-viewed (brand-supplied), matched by variant id",
+    "test": "within-creative rank agreement: Spearman(predicted attention-hold rank, observed ThruPlay rank) across a brand's cuts, permutation-nulled; a future step, not run here",
+    "note": "no held-out retention data is wired in \u2014 this ranking is a prediction only. Do NOT present a validated-vs-ThruPlay number until this hook is filled and passes."
+  },
+  "n_variants": 5,
+  "ranking": [
+    {
+      "rank": 1,
+      "id": "meta_05",
+      "n_sec": 49,
+      "duration_sec": 49.0,
+      "attention_hold": 0.245233,
+      "message_load": null,
+      "weak_spots": [
+        {
+          "lane": "attention",
+          "at_sec": 46.0,
+          "at": "0:46",
+          "end_sec": 49.0,
+          "dur_sec": 3,
+          "drop_sd": 1.83,
+          "text": "attention drops at 0:46 (predicted dip \u2014 hypothesis, not measured; lasts 3s, ~1.8 SD below this cut's own median)"
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "id": "meta_10",
+      "n_sec": 37,
+      "duration_sec": 37.0,
+      "attention_hold": 0.228488,
+      "message_load": null,
+      "weak_spots": []
+    },
+    {
+      "rank": 3,
+      "id": "meta_00",
+      "n_sec": 64,
+      "duration_sec": 64.0,
+      "attention_hold": 0.197965,
+      "message_load": null,
+      "weak_spots": []
+    },
+    {
+      "rank": 4,
+      "id": "meta_20",
+      "n_sec": 19,
+      "duration_sec": 19.0,
+      "attention_hold": 0.184471,
+      "message_load": null,
+      "weak_spots": []
+    },
+    {
+      "rank": 5,
+      "id": "meta_01",
+      "n_sec": 21,
+      "duration_sec": 21.0,
+      "attention_hold": 0.085627,
+      "message_load": null,
+      "weak_spots": []
+    }
+  ],
+  "creative_id": "SAMPLE_dan-lane_different-ads"
+}

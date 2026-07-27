@@ -81,7 +81,14 @@ export default function GenerateStudio({ report, active }: { report: Report; act
             <span className="ml-auto text-[12.5px] text-ink-3">
               <span className="tabular-nums text-ink">{counted}</span> generated
               <span className="mx-1.5 text-line-2">·</span>
-              <span className="tabular-nums text-ink">{culled ? SURVIVORS : "·"}</span> survive
+              {/* Printed from the start, not held back until the cull fires. This used to
+                  render a literal "·" placeholder until p > T_CULL, which is 3.4s into a 5.2s
+                  clock — and the recording settles on this beat ~0.7s in, so the camera held on
+                  "24 generated · · survive": the beat's entire claim as a missing glyph, next
+                  to a second stray dot that read as a rendering fault. The count of survivors is
+                  a fact about the run, not something to reveal; the cull ITSELF is the reveal,
+                  and it still plays out in the bars below. */}
+              <span className="tabular-nums text-ink">{SURVIVORS}</span> survive
             </span>
           </div>
 
@@ -258,7 +265,7 @@ function BrandCard() {
       <div className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-ink text-[14px] font-semibold leading-none text-white"
+          className="rounded-badge flex h-8 w-8 shrink-0 items-center justify-center bg-ink text-[14px] font-semibold leading-none text-white"
         >
           {BRAND.monogram}
         </span>
@@ -368,6 +375,10 @@ function WinnerCard({
           animate={active}
           drawMs={1100}
           height={112}
+          // The lanes were taught at full size in §02. Repeating the explained legend here put
+          // it at half size inside the densest frame in the take, where it was the clearest
+          // thing left to cut.
+          showLegend={false}
         />
       </div>
     </div>

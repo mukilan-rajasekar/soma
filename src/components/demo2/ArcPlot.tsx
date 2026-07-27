@@ -56,6 +56,11 @@ type Props = {
    *  about the hook, where a third curve is clutter rather than information. */
   showComprehension?: boolean;
   showHook?: boolean;
+  /** The explained lane legend under the plot. On by default. Turned OFF for the small arc
+   *  inside §03's candidate card: the lanes are taught once in §02, at full size, and that
+   *  card re-taught them at half size inside the densest frame in the whole take (~15 data
+   *  elements). Once a legend has been read, repeating it is cost with no information. */
+  showLegend?: boolean;
   // A second, faint dorsal curve drawn behind the main one on the SAME time axis — the
   // "before" of an edit. §08 passes the unspliced arc here and the spliced arc as `dorsal`,
   // so the change is a single picture rather than two charts side by side.
@@ -151,6 +156,7 @@ export default function ArcPlot({
   showVentral = true,
   showComprehension = false,
   showHook = true,
+  showLegend = true,
   ghost = null,
   endMarker = null,
 }: Props) {
@@ -521,7 +527,7 @@ export default function ArcPlot({
         className="block w-full rounded-xl border border-line bg-paper"
         style={{ height }}
       />
-      {(showVentral || showHook) && (
+      {showLegend && (showVentral || showHook) && (
         /* The explained legend, ported from /preflight: a rule in the lane's ACTUAL colour
            and dash, the plain word, the region parenthesised, and a second line saying what
            the lane is for. The old one-row version named the anatomy ("ATTENTION · DORSAL")

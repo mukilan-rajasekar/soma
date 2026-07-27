@@ -1,0 +1,8 @@
+[mov,mp4,m4a,3gp,3g2,mj2 @ 0xbdb108780] Referenced QT chapter track not found
+  BMI: 1878s baseline (loudness/cuts/luminance/motion)
+  CHI: 1809s baseline (loudness/cuts/luminance/motion)
+  CRA: 1598s baseline (loudness/cuts/luminance/motion)
+  FNE: 1818s baseline (loudness/cuts/luminance/motion)
+
+[done] baselines in validation/recheck/C-cognimuse-saliency/baseline. Next: incremental_validity.py to test whether the brain arc
+predicts human interest OVER AND ABOVE these dumb features.

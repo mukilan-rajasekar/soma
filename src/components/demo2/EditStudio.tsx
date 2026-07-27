@@ -22,10 +22,26 @@ import {
   resolveOption, type EditOption,
 } from "./studio";
 
-const T_TYPED = 0.34; // instruction finishes typing
-const T_OPTS = 0.5;   // candidate edits land
-const T_APPLY = 0.74; // the winner is applied — filmstrip drops the shot, score re-runs
-const T_MORE = 0.88;  // the second modality strip
+// The payoff of this component — the splice landing and the score counting 62 → 66 against the
+// before-arc — is the single most persuasive frame on the page, and it used to arrive after the
+// camera had already left. Measured on the real take: the recording settles on this beat at
+// t=40.6s and departs at ~47s, while T_APPLY of 0.74 on a 5400ms clock put the splice at 3996ms
+// and the finished state at ~5400ms. That bought roughly four seconds of an EMPTY plot beside a
+// static "62", then about a second and a half of the thing worth recording.
+//
+// So the whole chain is pulled forward and tightened: the typing and the option cards are setup,
+// not payoff, and they were spending more than half the beat. The clock is shorter and T_APPLY
+// is earlier, which lands the splice at ~2640ms and leaves the finished comparison on camera for
+// the remainder of the hold instead of for its last moment.
+//
+// BEAT_MS is exported to AutoScroll through data-beat below. The planner's generic estimate
+// (BEAT_FLOOR + BEAT_PER_PX x height) came out ~1800ms short for this panel, so it sized the
+// hold for an animation shorter than the one that actually runs.
+export const BEAT_MS = 4400;
+const T_TYPED = 0.30; // instruction finishes typing
+const T_OPTS = 0.44;  // candidate edits land
+const T_APPLY = 0.60; // the winner is applied: filmstrip drops the shot, score re-runs
+const T_MORE = 0.80;  // the second modality strip
 
 const KIND_LABEL: Record<EditOption["kind"], string> = {
   splice: "Splice",
@@ -50,7 +66,7 @@ export default function EditStudio({ report, active }: { report: Report; active:
   // the same trap Section.tsx:26-31 documents for sections. The bottom root margin fires
   // every gated element at one screen position whatever it is.
   const [ref, seen] = useReveal<HTMLDivElement>(ON_SCREEN);
-  const p = useAnimeClock(active && seen, 5400);
+  const p = useAnimeClock(active && seen, BEAT_MS);
 
   const diag = report.campaign.shots;
   const source = report.campaign.variants.find((v) => v.id === diag.adId);
@@ -73,7 +89,10 @@ export default function EditStudio({ report, active }: { report: Report; active:
   const after = source && cut ? spliceLane(source, cut.start, cut.end) : { dorsal: [], timestamps: [], duration: 0 };
 
   return (
-    <div ref={ref} className="flex flex-col gap-5">
+    // data-beat tells AutoScroll's planner how long this panel actually animates for. Without
+    // it the planner falls back to a linear fit on element height, which under-read this one by
+    // ~1800ms and therefore scheduled a hold too short to contain its own payoff.
+    <div ref={ref} data-beat={BEAT_MS} className="flex flex-col gap-5">
       {/* ── the instruction ─────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-line-2 bg-paper p-4">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

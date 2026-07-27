@@ -186,7 +186,7 @@ function buildPlan(m: HTMLElement): Stop[] {
     ...m.querySelectorAll("h1,h2"),
   ].map((el) => ({ ...doc(el), paint: paintedAt(el) }));
 
-  const raw = frames.map((f) => {
+  const raw = frames.map((f, fi) => {
     const span = f.bot - f.top;
     const slack = Math.max(PAD_MIN, (usable - span) / 2);
     const want = Math.round(f.top - hdr - slack);
@@ -196,6 +196,21 @@ function buildPlan(m: HTMLElement): Stop[] {
     // When the gate floor and the heading ceiling conflict, THE GATE WINS: a blank figure on
     // camera is much worse than an eyebrow slipping under the header.
     let s = Math.min(Math.max(want, floor), ceil);
+    // ── clear the PREVIOUS beat off the top edge ──────────────────────────────────────
+    // Three constraints above decide where the incoming beat sits. None of them says anything
+    // about the outgoing one, and the recording showed the cost: five of nine stops opened with
+    // the previous beat sliced in half across the header band. The worst was the five-arc
+    // overlay, whose frame was 290px of leftovers above it and 259px of empty paper below, so
+    // the best single visual on the page owned 37% of the frame it was supposed to own.
+    //
+    // Expressed as a floor (raise s until the previous frame's bottom is behind the header) and
+    // capped at `ceil`, so it can only ever tighten the frame inside the band the constraints
+    // above already agreed on: it can never push this beat's own heading under the header, and
+    // it can never drop below the gate floor, because it only raises s.
+    if (fi > 0) {
+      const prevBot = frames[fi - 1].bot;
+      s = Math.max(s, Math.min(ceil, prevBot - hdr + CLEAR));
+    }
     let fix: number | null = null;
     for (const b of straddlers) {
       if (b.paint > s) continue; // not painted yet — at opacity 0 it cannot be "cut"
@@ -242,6 +257,12 @@ function buildPlan(m: HTMLElement): Stop[] {
     const dist = Math.abs(st.s - prev);
     const legMs = i === 0 ? 0 : travelMs(dist);
     let residual = 0;
+    // Whether any figure in this frame DECLARED its beat length rather than being estimated.
+    // A declared length is ground truth, and HOLD_MAX must not truncate it: the cap exists to
+    // stop the height-based estimator running away on a tall panel, not to overrule a component
+    // that knows its own clock. EditStudio is the case that forced this — its real animation is
+    // 4400ms, the estimator read ~3600ms, and the 5200ms cap then clipped what was left.
+    let declaredBeat = false;
     for (const g of figs) {
       if (g.fireAt > st.s || fired.has(g.el)) continue;
       fired.add(g.el);
@@ -252,15 +273,19 @@ function buildPlan(m: HTMLElement): Stop[] {
       // Only the pixels inside THIS frame count, which is what sizes a split panel's two
       // halves correctly.
       const onCam = Math.min(g.bot, st.s + vh) - Math.max(g.top, st.s);
-      const declared = Number((g.el as HTMLElement).dataset?.beat);
-      const beatMs = Number.isFinite(declared) && declared > 0 ? declared : BEAT_FLOOR + BEAT_PER_PX * Math.max(0, onCam);
+      const declared = Number((g.el as HTMLElement).closest("[data-beat]")?.getAttribute("data-beat"));
+      const isDeclared = Number.isFinite(declared) && declared > 0;
+      if (isDeclared) declaredBeat = true;
+      const beatMs = isDeclared ? declared : BEAT_FLOOR + BEAT_PER_PX * Math.max(0, onCam);
       residual = Math.max(residual, fireTime + beatMs - legMs);
     }
     const read = Math.min(READ_MAX, Math.max(READ_MIN, READ_BASE + MS_WORD * wordsIn(st.top, st.bot)));
     const isLast = i === kept.length - 1;
+    const want = residual + SETTLE + read;
     const hold = i === 0 ? LEAD_IN + HERO_BUILD + read
       : isLast ? Math.max(HOLD_MIN, read + CLOSE_EXTRA)
-      : Math.min(HOLD_MAX, Math.max(HOLD_MIN, residual + SETTLE + read));
+      // A declared beat is exempt from the ceiling: see `declaredBeat` above.
+      : Math.max(HOLD_MIN, declaredBeat ? want : Math.min(HOLD_MAX, want));
     return { s: st.s, anchor: st.sec, dy: doc(st.sec).top - st.s, hold, isLast };
   });
 

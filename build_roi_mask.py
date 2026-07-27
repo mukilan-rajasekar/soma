@@ -107,9 +107,50 @@ LANGUAGE_REGIONS = [
     "G_pariet_inf-Angular",       # angular gyrus (inferior parietal semantic hub)
 ]
 
+# The RECALL / MEMORY-ENCODING lane — the a-priori cortical memory system.
+# CRITICAL HONESTY: the hippocampus (the canonical episodic-encoding structure and the
+# home of the "subsequent memory effect") is SUBCORTICAL and is NOT on the fsaverage5
+# cortical surface TRIBE emits — the same limitation this file already notes for arousal.
+# So this mask can only pool the CORTICAL memory-encoding correlates: the medial-temporal
+# CORTEX around the hippocampus (parahippocampal / entorhinal-adjacent), the scene/object
+# ventral stream that feeds encoding (fusiform, lingual/collateral), and the posterior-
+# medial recollection system (retrosplenial/posterior-cingulate, precuneus, angular). The
+# arc read out of this ROI is "predicted CORTICAL memory-encoding engagement" — a
+# HYPOTHESIS and a PROXY for ad recall, never a measured recall/brand-lift claim, and
+# explicitly missing the subcortical hippocampal contribution.
+MEMORY_REGIONS = [
+    "G_oc-temp_med-Parahip",      # parahippocampal gyrus (MTL cortex, scene/context encoding)
+    "S_collat_transv_ant",        # anterior collateral sulcus (perirhinal/entorhinal vicinity)
+    "G_oc-temp_lat-fusifor",      # fusiform (object/face encoding stream)
+    "G_oc-temp_med-Lingual",      # lingual (scene/place encoding)
+    "G_cingul-Post-dorsal",       # posterior cingulate / retrosplenial (recollection hub)
+    "G_precuneus",                # precuneus (posterior-medial memory network)
+    "G_pariet_inf-Angular",       # angular gyrus (recollection / vivid remembering)
+]
+
+# The PURCHASE-INTENT / VALUE lane — the a-priori cortical valuation system.
+# CRITICAL HONESTY: the canonical "buy signal" in consumer neuroscience is the NUCLEUS
+# ACCUMBENS (ventral striatum) — Knutson's neuroforecasting shows NAcc anticipatory
+# activity predicts aggregate purchasing. NAcc is SUBCORTICAL and NOT on the fsaverage5
+# surface, so this mask CANNOT read it. What it CAN pool is the cortical valuation signal:
+# ventromedial PFC / medial OFC, whose activity tracks subjective value and, with NAcc,
+# co-predicts choice. So this arc is "predicted CORTICAL value signal" — a HYPOTHESIS and
+# a PROXY for purchase intent, missing the subcortical reward core. It also OVERLAPS the
+# valence ROI (both live in vmPFC/OFC) — that overlap is real neuroanatomy, not a bug: at
+# the cortical surface, "positive value" and "positive valence" are hard to separate, and
+# we say so rather than implying a clean isolated buy-signal.
+VALUE_REGIONS = [
+    "G_rectus",                   # gyrus rectus (vmPFC — subjective value)
+    "S_suborbital",               # suborbital sulcus (vmPFC)
+    "G_subcallosal",              # subcallosal / subgenual (value + reward-related)
+    "G_orbital",                  # medial orbitofrontal gyri (value coding)
+    "G_front_inf-Orbital",        # ventral/orbital PFC
+]
+
 NETWORKS = {"dmn": DMN_REGIONS, "dan": DORSAL_ATTN_REGIONS,
             "valence": VALENCE_REGIONS, "arousal": AROUSAL_REGIONS,
-            "language": LANGUAGE_REGIONS}
+            "language": LANGUAGE_REGIONS, "memory": MEMORY_REGIONS,
+            "value": VALUE_REGIONS}
 
 # --- Schaefer-1000 / Yeo-7 placeholder mapping (for the --n-units 1000 case) ---
 # The Schaefer 2018 1000-parcel atlas ships with a Yeo-7 network label baked into
@@ -139,6 +180,12 @@ YEO7_FOR_NETWORK = {
     "valence": ["Limbic"],
     "arousal": ["SalVentAttn"],
     "language": ["Default", "Cont"],
+    # memory-encoding cortex splits across Limbic (MTL/parahippocampal, temporal pole) and
+    # Default (posterior-medial recollection: PCC/precuneus/angular). Coarse — the surface
+    # Destrieux path is far better for the memory ROI. Subcortical hippocampus absent either way.
+    "memory": ["Limbic", "Default"],
+    # cortical valuation lives in Yeo Limbic (OFC/vmPFC). NAcc is subcortical -> absent.
+    "value": ["Limbic"],
 }
 
 

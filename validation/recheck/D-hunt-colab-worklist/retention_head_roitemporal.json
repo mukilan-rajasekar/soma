@@ -1,0 +1,20 @@
+{
+  "dataset": "Mr.HiSum",
+  "feature_set": "roi+temporal",
+  "roi": [
+    "dan"
+  ],
+  "n_videos": 38,
+  "min_effect_r": 0.1,
+  "n_perm": 5000,
+  "median_r": 0.0352080912627245,
+  "stouffer_p": 0.22146176392335537,
+  "median_delta_r": -0.03821266889505491,
+  "paired_p": 0.7099145042747863,
+  "leak_check": "pass",
+  "head_real": false,
+  "beats_global": false,
+  "beats_ffmpeg": false,
+  "signal": false,
+  "proxy_note": "most-replayed is a RETENTION PROXY (rewatch != not-leaving)"
+}

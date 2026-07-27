@@ -194,6 +194,47 @@ body {
   }
 }
 
+/* ── G2 corners ───────────────────────────────────────────────────────────────
+   Every corner on this site was a G1 corner: a circular arc, whose curvature jumps
+   discontinuously to zero where it meets the straight edge. The eye reads that break, and it
+   is a large part of why ordinary web UI looks like ordinary web UI. `corner-shape:
+   superellipse()` replaces the arc with a superellipse, which is G2 continuous — curvature
+   varies smoothly all the way into the edge. It is the corner Apple's hardware and OS use.
+
+   Behind @supports on purpose: this ships in Chromium 139+ and Safari 26+, and everywhere else
+   the declarations are dropped and the existing border-radius renders exactly as it does today.
+   Nothing here is load-bearing, so there is no fallback to write.
+
+   The radius GROWS alongside the shape. A superellipse hugs the box more tightly than a
+   circular arc of the same nominal radius, so keeping 16px would read as a *sharpening*. These
+   values were picked by eye at the 640px the demo is actually watched at, not at 1:1.
+
+   Exponent 2.6 rather than Apple's ~4-5: at the small radii this design system uses (12-16px,
+   not a 60px app icon) a high exponent flattens into something almost rectangular. 2.6 is the
+   point where the corner still reads as soft at 12px but the discontinuity is gone. */
+@supports (corner-shape: superellipse(2)) {
+  .rounded-xl {
+    border-radius: 14px;
+    corner-shape: superellipse(2.6);
+  }
+  .rounded-2xl {
+    border-radius: 20px;
+    corner-shape: superellipse(2.6);
+  }
+  /* Small badges and chips: same shape, radius scaled to the box so a 32px badge and a 36px
+     badge are the same corner rather than two accidents. */
+  .rounded-badge {
+    border-radius: 32%;
+    corner-shape: superellipse(2.6);
+  }
+}
+/* The badge radius has to resolve with or without corner-shape, so it is declared outside the
+   @supports too. 32% of the box, which is what keeps the 32px and 36px badges identical in
+   shape — the two used to be 9px and 10px, set independently. */
+.rounded-badge {
+  border-radius: 32%;
+}
+
 /* /demo transport scrubber. Range-input pseudo-elements (track/thumb/progress)
    can't be targeted by inline Tailwind utilities, so the demo console's scrubber
    is styled here. LIGHT surface theme (the /demo is white): a light hairline

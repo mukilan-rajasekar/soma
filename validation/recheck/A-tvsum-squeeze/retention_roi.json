@@ -1,0 +1,23 @@
+{
+  "dataset": "TVSum-as-retention",
+  "feature_set": "roi",
+  "roi": [
+    "arousal",
+    "dan",
+    "dmn",
+    "valence"
+  ],
+  "n_videos": 15,
+  "min_effect_r": 0.1,
+  "n_perm": 2000,
+  "median_r": 0.10967697143518937,
+  "stouffer_p": 6.381418596568267e-05,
+  "median_delta_r": 0.13921500554605998,
+  "paired_p": 0.12530517578125,
+  "leak_check": "pass",
+  "head_real": true,
+  "beats_global": false,
+  "beats_ffmpeg": false,
+  "signal": false,
+  "proxy_note": "most-replayed is a RETENTION PROXY (rewatch != not-leaving)"
+}

@@ -1,0 +1,38 @@
+[preflight] preds=19 arc=15 human_arc=50 annos=50 -> 15 complete
+[preflight]   BMI: lacks arc_BMI.csv, human_arc_BMI.csv -> DROPPED
+[preflight]   CHI: lacks arc_CHI.csv, human_arc_CHI.csv -> DROPPED
+[preflight]   CRA: lacks arc_CRA.csv, human_arc_CRA.csv -> DROPPED
+[preflight]   FNE: lacks arc_FNE.csv, human_arc_FNE.csv -> DROPPED
+[skip] BMI: missing partner file(s) arc_BMI.csv, human_arc_BMI.csv
+[skip] CHI: missing partner file(s) arc_CHI.csv, human_arc_CHI.csv
+[skip] CRA: missing partner file(s) arc_CRA.csv, human_arc_CRA.csv
+[skip] FNE: missing partner file(s) arc_FNE.csv, human_arc_FNE.csv
+==================================================================================
+TRAINED READ-OUT HEAD  (ridge on frozen-TRIBE a-priori ROI features, leave-one-VIDEO-out)
+features (9): mask_arousal|mag, mask_arousal|sgn, mask_dan|mag, mask_dan|sgn, mask_dmn|mag, mask_dmn|sgn, mask_valence|mag, mask_valence|sgn, roi_mag(nested baseline)
+==================================================================================
+video                  n   alpha  r_head  perm_p   r_roi   delta   ceil  r/ceil
+----------------------------------------------------------------------------------
+-esJrBWj2d8           59     0.1   -0.15   0.364    0.18   -0.33   0.19   -0.77
+0tmA_C6XwfM           59     0.1    0.25   0.036   -0.04    0.30   0.18    1.44
+37rzWOQsNIw           60      10    0.20   0.161   -0.03    0.23   0.13    1.50
+3eYKfiOEJNs           59       1    0.43   0.018   -0.07    0.50   0.22    2.00
+4wU_LUjG5Ic           60      10    0.26   0.107    0.10    0.16   0.20    1.30
+91IHQYk1IQM           54       1   -0.02   0.840   -0.12    0.09   0.20   -0.12
+98MoyGZKHXc           59      10    0.34   0.018   -0.16    0.50   0.23    1.49
+AwmHb44_ouw           60     0.1   -0.02   0.786    0.13   -0.15   0.33   -0.07
+Bhxk-O1Y7Ho           60      10    0.20   0.054   -0.11    0.31   0.29    0.70
+E11zDS9XGzg           59     0.1   -0.13   0.327    0.25   -0.38   0.18   -0.73
+EE-bNr36nyA           48       1    0.40   0.023    0.14    0.26   0.35    1.15
+EYqVtI9YWJA           60       1    0.41   0.018   -0.15    0.56   0.36    1.14
+GsAD1KT1xo8           60      10   -0.07   0.554   -0.12    0.05   0.25   -0.28
+HT5vyqe0Xaw           60     0.1   -0.16   0.089    0.04   -0.20   0.27   -0.60
+Hl-__g2gn_A           60       1    0.30   0.018    0.10    0.21   0.34    0.88
+----------------------------------------------------------------------------------
+  HEAD: 15 videos | median r_head = 0.20 | Stouffer p = 0.0003 | Fisher p (omnibus, direction-agnostic) = 0.0000
+  BEATS UNTRAINED ARC: median delta_r = 0.21 | paired sign-flip p = 0.0869   (delta_r = r_head - r_roi_mag)
+----------------------------------------------------------------------------------
+  VERDICT: head tracks human interest AND numerically beats the untrained arc (median delta_r=0.21), but the paired test is p=0.087 — TRENDING, not significant at n=15 videos (underpowered). More videos needed to confirm the incremental win.
+  Reminder: TVSum importance is a PUBLIC PROXY; head output is a learned HYPOTHESIS (activation -> attention), never a validated retention/engagement claim.
+
+[wrote] validation/recheck/A-tvsum-squeeze/head_4mask.csv
