@@ -205,14 +205,22 @@ export default function DemoScrollPage({
       // having both; two cards sliding in on a generic 80ms stagger would have been motion
       // for its own sake.
       body: (revealed) => (
-        <div ref={scienceRef} className="grid grid-cols-1 items-center gap-8 md:grid-cols-[1fr_360px]">
+        <div ref={scienceRef} className="grid grid-cols-1 items-stretch gap-8 md:grid-cols-[1fr_360px]">
           {/* Stacked, not side by side. Two short cards next to a ~390px figure left a 130px
               hole above them and another below: the beat's own frame had a void in the middle
               of it. Stacked, the left column is close to the figure's height and the row reads
               as two columns rather than as a figure with something small parked beside it. It
               also survives the downscale better, since each card is now full column width
-              instead of half. */}
-          <div className="grid grid-cols-1 gap-4">
+              instead of half.
+
+              STRETCHED, not centred. `items-center` sizes this column to its content and hangs
+              it in the middle of the row, which is what put 109px of empty paper above the
+              first card and another 109px below the second: measured at 1512x860, a 228px
+              column floating in a 446px row. Stretching makes the two columns the same object
+              height, so the row has a top edge and a bottom edge instead of a figure with
+              something small parked halfway down it. Two rows rather than auto rows, so the
+              cards split the height evenly instead of the first one taking all the slack. */}
+          <div className="grid h-full grid-cols-1 grid-rows-2 gap-4">
             <RegionCard
               title="Dorsal attention"
               tag="IPS · FEF · superior parietal"
@@ -230,12 +238,23 @@ export default function DemoScrollPage({
               delay={1260}
             />
           </div>
-          <div className="rounded-2xl border border-line bg-paper p-4">
+          <div className="flex items-center rounded-2xl border border-line bg-paper p-4">
             {/* The real cortex, as a rotating point cloud, rather than the flat lateral
                 outline. It keeps its own reveal easing for the network colours and leaders,
                 and falls back to the 2D figure automatically where WebGL is unavailable —
-                so the staged-build version is still what ships to those viewers. */}
-            <TwoRegionBrain3D active={revealed && scienceIn} height={412} />
+                so the staged-build version is still what ships to those viewers.
+
+                290, DOWN FROM 412, AND THE CORTEX DOES NOT GET SMALLER. The camera fits on
+                max(FIT_V, FIT_H / aspect): in a box this narrow the HORIZONTAL term binds, so
+                it is pulled back far enough to clear the width while it turns, and everything
+                that buys vertically is empty paper. Measured down the range at 1512x860, the
+                painted cloud is 236px tall at 412, at 360, at 330, at 310 and at 290, and only
+                starts shrinking at 270 (218px) and 250 (201px). So 290 is the knee: 122px of
+                dead air removed, the figure itself untouched. Dead space inside the box goes
+                from 99px above and 76px below the cloud to 35px and 19px.
+
+                Do not raise this to "give the brain room". It has the room; it cannot use it. */}
+            <TwoRegionBrain3D active={revealed && scienceIn} height={290} />
           </div>
         </div>
       ),
@@ -427,13 +446,13 @@ export default function DemoScrollPage({
       // attributions, 38 of them with footage — so the label was wrong about its own number
       // and is removed rather than relabelled.
       // The remaining three are founder-attested (docs/strategy/PRODUCT.md), which is why they
-      // are typed literals rather than read from report.json. Two notes for whoever edits this
-      // next: "from people" describes provenance this repo cannot corroborate — ad_fetch_bb.py
-      // populates the corpus by scraping TikTok Creative Center and report.corpus.ads is 700 —
-      // and "biggest database in the category" is a comparative claim with no benchmark behind
-      // it. Both are here because they were asked for directly.
+      // are typed literals rather than read from report.json. One note for whoever edits this
+      // next: "from our design partners" describes provenance this repo cannot corroborate —
+      // ad_fetch_bb.py populates the corpus by scraping TikTok Creative Center, and
+      // report.corpus.ads is 700, which is a different 700 from the 500 claimed here. It is
+      // here because it was asked for directly.
       // Three tiles, one anatomy. They used to have three: bars render only when a tile has a
-      // `tone`, so 1,500+ and 200+ had none and 92% had one, which left the three sub-labels
+      // `tone`, so the two counts had none and 92% had one, which left the three sub-labels
       // sitting at different heights across the row and made a deliberate grid look like a
       // rendering accident. The 75% baseline notch made it worse: an unlabelled hairline drawn
       // in paper over the fill, which at the 640px this is watched at reads as a seam in the
@@ -450,8 +469,8 @@ export default function DemoScrollPage({
       body: (revealed) => (
         <div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Stat big lg value={1500} suffix="+" label="Ads in the database" sub="the biggest in the category" active={revealed} />
-            <Stat big lg value={200} suffix="+" label="Users from YC Startup School" sub="early access signups" active={revealed} />
+            <Stat big lg value={500} suffix="" label="Ads in the live database" sub="from our design partners" active={revealed} />
+            <Stat big lg value={100} suffix="+" label="Founders and companies" sub="on the waitlist" active={revealed} />
             <Stat big lg value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
           </div>
           <CorpusWall batch={batch} active={revealed} />
@@ -839,7 +858,10 @@ function RegionCard({
 }) {
   return (
     <Rise on={revealed} delay={delay} className="h-full">
-      <div className="h-full rounded-2xl border border-line bg-paper p-4">
+      {/* Content centred rather than top-aligned. The column is stretched to the figure's
+          height beside it, so a card is now taller than the three lines inside it; parked at
+          the top, those lines read as a card that failed to finish loading. */}
+      <div className="flex h-full flex-col justify-center rounded-2xl border border-line bg-paper p-4">
         <div className="flex items-center gap-2">
           {/* The dot rings out once as the card lands, the same way the region it names
               scales up in the figure beside it. Both are the same gesture at two scales,
