@@ -283,3 +283,25 @@ change and lists only batch_report.json after. The dead file was being bundled i
 in that directory ships with the function whether or not it is read. (2) The backlog said
 12 KB; it is 8842 bytes. Small, but a reminder that the seeded sizes are estimates, so
 "12 KB of dead weight" is not by itself the argument — being unread is.
+
+## 2026-07-27 - Give the repo a discoverable dev loop (typecheck + test npm scripts)
+changed: package.json (two script entries; nothing else in the repo touched)
+why: `dev`/`build`/`start`/`lint` were the whole surface, so the only way to learn how to
+typecheck or how to run the Python suite was to read scripts/verify.sh - a file the loop is
+forbidden from editing and a human has no reason to open. Both commands already ran in the
+gate; this only names them. `npm run typecheck` is 1.1s against ~40s for a full build, which
+makes it the right thing to run between edits, and it exits 2 on a real type error (verified
+with a throwaway `src/__tsc_probe.ts` holding `const x: number = "nope"`, removed in the same
+shell command so loop.sh's `git add -A` could not sweep it in) - so it is a usable check, not
+a decoration. `npm test` runs the 8 head_io tests in 0.2s. Fast gate green.
+surprised: two things. (1) The item's literal prescription, `"test": "pytest -q"`, does not
+work in this checkout. There is no `pytest` on PATH - it is `.venv/bin/pytest` - and the
+system python3 has neither pytest nor numpy, so the bare form would have been a discoverable
+command that always fails, which is worse than no script at all. Shipped
+`.venv/bin/python -m pytest -q`, byte-for-byte the branch verify.sh actually takes. That also
+means verify.sh's `python3 -m pytest -q` fallback is effectively dead on this machine: it only
+fires when .venv is missing, and without .venv there is no pytest to fall back to. (2) Worth
+noting for the next iteration that typecheck adds no gate coverage - next build already runs
+TypeScript ("Finished TypeScript in 2.0s" in the build log), so a type error was always
+caught. The value here is latency and discoverability, not new enforcement; do not write this
+up later as having closed a hole in the gate.

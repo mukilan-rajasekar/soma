@@ -93,12 +93,19 @@ passes and agree with its taste.
       `.next/server/app/preflight/page.js.nft.json`: report.ts builds its path with
       `path.join(...)`, so Next traces the whole directory and was bundling the dead
       file into the /preflight function.
-- [ ] Give the repo a discoverable dev loop. `package.json` exposes only
+- [x] Give the repo a discoverable dev loop. `package.json` exposes only
       `dev`/`build`/`start`/`lint`, so the only way to learn how to typecheck or
       how to run the Python suite is to read `scripts/verify.sh`. Add
       `"typecheck": "tsc --noEmit"` (1s incremental here, against ~40s for a full
       build) and `"test": "pytest -q"`. Do not touch `verify.sh` — this only makes
       the commands it already runs reachable by name.
+      Added as `typecheck` and `test`. Shipped `test` as
+      `.venv/bin/python -m pytest -q`, not the bare `pytest -q` the item asked for:
+      there is no `pytest` on PATH (it lives at `.venv/bin/pytest`) and the system
+      python3 has neither pytest nor numpy, so `pytest -q` would have been a
+      discoverable command that always fails. This is the exact command verify.sh
+      runs. `typecheck` exits 2 on a real type error, so it is a usable pre-build
+      check and not a decoration.
 - [ ] Record that `tests/` is local-only, and stop leaning on an uncommitted file
       to hide it. `.git/info/exclude` lives inside `.git`, so it exists on this
       machine and nowhere else; it hides `/tests/`, `/data/`, `/cloud/`, `/demo/`,

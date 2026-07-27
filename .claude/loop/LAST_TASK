@@ -1,1 +1,1 @@
-Delete the orphaned public/preflight/batch_report_old.json — nothing references it and its five video paths point at the mp4s removed in loop(8)
+Give the repo a discoverable dev loop: add "typecheck" and "test" npm scripts so the two commands scripts/verify.sh already runs are reachable by name
