@@ -214,7 +214,7 @@ Three constraints that apply to all of them:
       misses and `partial_spearman(ones(20), arange(20.), arange(20.))` returns 0.90, and
       `partial_shift_p` then reports p=0.0625 on it. A degenerate arc can score
       "adds signal". Worth its own item; not fixable inside a test-only change.
-- [ ] Add `test_train_head.py` for the leakage-safety of the fit machinery.
+- [x] Add `test_train_head.py` for the leakage-safety of the fit machinery.
       `train_head.py` is what `affect_head.py` reuses wholesale, so a leak here is
       a leak in both. Three verified properties. (1) `_standardize` is per-video
       and uses ONLY `good` shots: standardize X, then set a masked-out row to 1e6
@@ -227,6 +227,24 @@ Three constraints that apply to all of them:
       only the all-+ and all-- sign vectors reach the observed mean, so it returns
       p = 2/32 = 0.0625 exactly, median 0.2. Assert both, and assert n<3 returns
       NaN rather than a p-value.
+      Shipped as 19 tests; all three properties held exactly as measured (good rows
+      bit-identical after a masked-out row is set to 1e6, `[mag, sgn]` per mask with
+      the ValueError on a length mismatch, p == 2/32 with median 0.2 and NaN for n<3).
+      Added six the item did not name. Three close leakage holes the item leaves open:
+      `_ztarget` is the same per-video good-shots-only rule on the TARGET side and was
+      equally unexecuted (a leak in y is as bad as one in X); and both `_standardize`
+      and `_ztarget` have an `sd > 1e-9` fallback that turns a dead feature into a
+      column of zeros instead of inf, which nothing asserted. Two pin `ridge_fit`'s
+      "intercept unpenalized" docstring claim, which is what makes an over-regularized
+      head predict mean(y) rather than 0: alpha~0 recovers OLS to 1e-6, alpha=1e9
+      drives every weight to 0 while the intercept stays at `y.mean()`. One pins
+      `_diff_pair`'s contiguity rule and its floor — a punched interior shot drops 11
+      diffs to 9 (not 10) with no bridged step, and `score_r` returns NaN at 7 usable
+      diffs but a real number at 8. Also asserted `feature_names` against what
+      `pool_features` actually emits, so changing the pooling breaks the names test
+      rather than shipping stale labels, and that the magnitude column of an
+      all-negative ROI is positive while its signed column is negative — the swap that
+      would silently invert every direction feature.
 - [ ] Add `test_build_roi_mask.py` — offline, via a monkeypatched atlas. The
       mask-shaping logic is pure and currently unexecuted; only the fetch is
       heavy. Monkeypatch `nilearn.datasets.fetch_atlas_surf_destrieux` (the

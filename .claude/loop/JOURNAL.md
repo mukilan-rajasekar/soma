@@ -449,3 +449,43 @@ p=0.0625, so a degenerate arc can print "adds signal". I did not write a test fo
 asserting 0.90 would enshrine the bug and asserting NaN would ship a red gate, and this
 run's item is test-only. Recorded under the item in BACKLOG.md so the next critique pass
 can promote it to a fix.
+
+## 2026-07-27 — Add test_train_head.py
+changed: test_train_head.py (new, 19 tests), BACKLOG.md
+why: train_head.py is the fit half of the pipeline and affect_head.py reuses it
+wholesale — pool_features, _standardize, ridge_fit and paired_sign_perm are all
+imported there — so a leak in this file is a leak in both, and none of it was
+executed. All three properties the item measured held exactly. (1) _standardize's
+leakage claim: set a masked-out row to 1e6, restandardize, and every good row comes
+back bit-identical, because mu/sd are computed from X[good] alone. Asserted with
+array_equal rather than allclose, and paired with an assertion that the poisoned row
+itself DID move, so the test cannot pass on a no-op. (2) pool_features emits exactly
+2 columns per mask in [mean|preds|, mean signed preds] order; built the fixture so
+mask a's magnitude is positive while its signed mean is negative, which makes a
+transposition of the pair change the numbers and not just the labels. (3)
+paired_sign_perm returns exactly 2/32 for five equal positive deltas — an identity
+(only all-+ and all-- reach the observed mean), so it is seed-invariant, and I
+asserted that too. Added six the item did not name. _ztarget is the same per-video
+good-shots-only rule on the TARGET side and was equally untested; both it and
+_standardize have an `sd > 1e-9` fallback that turns a dead feature into zeros
+instead of inf. ridge_fit's "intercept unpenalized" docstring claim is now executed
+at both ends of the grid: alpha~0 recovers OLS to 1e-6, alpha=1e9 zeroes every
+weight while the intercept stays at y.mean() — which is what makes an
+over-regularized head predict the mean rather than 0. And _diff_pair's contiguity
+rule plus its floor: a punched interior shot takes 11 diffs to 9, not 10, with no
+bridged step of 2, and score_r is NaN at 7 usable diffs but real at 8. Fixtures
+inline, per the constraint that a fresh clone has no tests/. Fast gate green: 54
+pytest in 0.57s.
+surprised: two things, both about writing fixtures for rank statistics rather than
+about the code under test. (1) My first score_r fixture was pred = arange(12),
+human = 2*arange(12) — a perfect linear relationship, which I expected to score 1.0
+and which returns NaN. score_r correlates the FIRST DIFFERENCES, and the diffs of a
+linear ramp are constant, so spearman hits its zero-variance guard. A test arc needs
+curvature (I used a cumsum of gaussian noise) or the strongest possible signal reads
+as no signal. Worth knowing before someone writes a "sanity check" fixture anywhere
+downstream of first_diff. (2) The 1e-9 standard-deviation fallback in _standardize
+and _ztarget is a genuinely different guard from the exact `std() == 0` in
+honest_corr_timeseries.pearson that the previous iteration found leaking. Same
+repo, same concern, two thresholds — the tolerant one is in the fit path and the
+exact one is in the scoring path, which is the wrong way round if either should be
+strict.

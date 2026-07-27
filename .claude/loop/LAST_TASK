@@ -1,1 +1,1 @@
-Add test_incremental_validity.py: pin the partial-correlation collapse, _residualize orthogonality, and _align across mismatched timebases
+Add test_train_head.py: pin _standardize leakage-safety, pool_features column contract, and paired_sign_perm exactness

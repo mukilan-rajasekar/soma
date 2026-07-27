@@ -20,3 +20,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - nilearn is installed, but its `fetch_atlas_*` download: monkeypatch them in tests.
 - Write/Edit under `.claude/` is refused as sensitive; go through Bash `tee`/`perl` instead.
 - `pearson`'s zero-variance guard is exact `std()==0`; residualized constants slip through.
+- Constant first-diffs make score_r NaN: linear test arcs need curvature.
