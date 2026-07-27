@@ -1,1 +1,1 @@
-Document the Python bootstrap in README.md and make the gate reachable by name (npm run verify)
+Make `npm test` fail with the fix instead of a raw shell error: guard the script on a missing .venv and print the create-and-install command

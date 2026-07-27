@@ -720,3 +720,8 @@ in the README rather than leaving a reader to wonder. And `SKIP_SMOKE=1 npm run 
 works unchanged: npm forwards the env to the script, so the fast path is one command and
 did not need a second package.json entry (`verify:fast`) that would have had to be kept in
 sync with the gate's own variable name.
+
+## 2026-07-27 — Make `npm test` fail with the fix instead of a raw shell error
+changed: package.json (test script guard), .claude/loop/BACKLOG.md, .claude/loop/LAST_TASK, AGENTS.md
+why: on a fresh clone `npm test` exited 127 with `sh: .venv/bin/python: No such file or directory` — names the missing path but not the cause, the fix, or that a venv is expected at all; now it prints the create-and-install command to stderr and exits 1.
+surprised: the gate deliberately does NOT get this message — verify.sh's pytest step has its own `elif [[ -x .venv/bin/python ]] ... else python3 -m pytest -q` fallback, so on a fresh clone the gate reaches for system python while `npm test` refuses. Left the divergence: `npm test` is the human-facing command and system python3 here has neither pytest nor numpy, so its failure is the confusing one. Also: npm echoes the full script body before running it, so the guard is now visible in every `npm test` invocation — noisier than the old one-liner, but that is npm's default for any script and the guidance line still lands last.

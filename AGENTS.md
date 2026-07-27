@@ -27,3 +27,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - resample_to_grid pools with nanmean: only an all-NaN shot reaches the lane as NaN.
 - `npm run lint` is bare eslint (83 files); the gate lints only src/.
 - A loop commit can name a backlog item without doing it — check the diff.
+- verify.sh's pytest step falls back to system python3 when `.venv` is absent.

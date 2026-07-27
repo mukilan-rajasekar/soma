@@ -457,7 +457,7 @@ first would pin the build to a numpy nobody actually runs.
       does not need a second npm entry. Note loop(1) committed this item's text to
       LAST_TASK and nothing else — the commit named the item but touched no source, so
       the item was still open.
-- [ ] Make `npm test` fail with the fix instead of a raw shell error. With no
+- [x] Make `npm test` fail with the fix instead of a raw shell error. With no
       `.venv` — i.e. every fresh clone — `.venv/bin/python -m pytest -q` exits
       **127** with `sh: .venv/bin/python: No such file or directory` and no
       further output. Verified by running it in an empty directory. That is the
@@ -467,6 +467,16 @@ first would pin the build to a numpy nobody actually runs.
       `[ -x .venv/bin/python ] || { echo "no .venv — run: python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt"; exit 1; }`
       before the pytest call. Keep the `.venv/bin/python -m pytest -q` body
       byte-identical to the branch `verify.sh` takes.
+      Shipped in the `test` script in `package.json`; the pytest body is byte-identical to
+      the branch verify.sh takes. Verified both branches: in a scratch dir with no `.venv`
+      it prints the create-and-install command to stderr and exits 1 (was exit 127 with
+      `sh: .venv/bin/python: No such file or directory` and nothing else), and here it
+      still runs the 158 tests and exits 0. One thing worth knowing: the GATE does not get
+      this message and should not. verify.sh's pytest step falls back to
+      `python3 -m pytest -q` when `.venv/bin/python` is not executable, so on a fresh clone
+      the gate reaches for system python while `npm test` now refuses with guidance. That
+      divergence is deliberate — `npm test` is the human-facing command, and system python3
+      here has neither pytest nor numpy, so its failure would be the confusing one.
 - [ ] Fix `requirements.txt`'s numpy pin — it excludes the numpy the gate
       actually passes under. Declared: `numpy>=1.26,<2.1` (line 26). Installed in
       `.venv`: **2.5.1**. Verified against the specifier: not satisfied. So a
