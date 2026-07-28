@@ -161,8 +161,72 @@ try {
   /* nothing to clean up */
 }
 
+// ── the beta gate ─────────────────────────────────────────────────────────────
+//
+// /api/{generate,edit}/{run,create} each spawn a Python process that runs for minutes.
+// Unguarded they are a remote process-spawner, so the thing worth asserting is not that
+// they work — on this machine they cannot — but that a caller without the secret cannot
+// reach the part that spends CPU.
+//
+// Only meaningful when SOMA_BETA_TOKEN is set: unset, the gate deliberately allows
+// localhost so the betas stay usable in development, and there would be nothing to test.
+// The run is SKIPPED rather than passed in that case, because a check that silently
+// tests nothing is worse than no check.
+
+const BETA_ROUTES = [
+  '/api/generate/run',
+  '/api/generate/create',
+  '/api/edit/run',
+  '/api/edit/create',
+];
+
+const betaSecret = process.env.SOMA_BETA_TOKEN?.trim();
+let betaChecked = 0;
+
+if (!betaSecret) {
+  console.log('\nskip beta gate — set SOMA_BETA_TOKEN on the server to exercise it');
+} else {
+  console.log('');
+  for (const path of BETA_ROUTES) {
+    const post = (headers) =>
+      fetch(BASE + path, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...headers },
+        body: '{}',
+      });
+
+    // No secret, and a wrong one, must be indistinguishable from "no such route".
+    for (const [label, headers] of [
+      ['no secret', {}],
+      ['wrong secret', { 'x-soma-beta': `${betaSecret}-wrong` }],
+    ]) {
+      const res = await post(headers);
+      if (res.status !== 404) {
+        failures.push({ route: path, problems: [`${label}: expected 404, got ${res.status}`] });
+        console.log(`FAIL ${path} (${label}) -> ${res.status}`);
+      } else {
+        betaChecked += 1;
+      }
+    }
+
+    // The right secret must get PAST the gate. It will still fail further in (no model on
+    // this machine) — anything other than 404 proves the gate opened, which is the claim.
+    const res = await post({ 'x-soma-beta': betaSecret });
+    if (res.status === 404) {
+      failures.push({ route: path, problems: ['correct secret was refused with 404'] });
+      console.log(`FAIL ${path} (correct secret) -> 404`);
+    } else {
+      betaChecked += 1;
+      console.log(`ok   ${path.padEnd(24)} gate closed to strangers, open with the secret`);
+    }
+  }
+}
+
 if (failures.length) {
-  console.log(`\nsmoke: ${failures.length}/${ROUTES.length} route(s) failed`);
+  console.log(`\nsmoke: ${failures.length} check(s) failed`);
   process.exit(1);
 }
-console.log(`\nsmoke: all ${ROUTES.length} routes ok`);
+console.log(
+  `\nsmoke: all ${ROUTES.length} routes ok` +
+    (betaChecked ? `, ${betaChecked} beta-gate assertions ok` : ''),
+);

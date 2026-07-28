@@ -30,7 +30,16 @@ from pathlib import Path
 import pytest
 
 from tools.generate.directions import DIRECTIONS, build_prompt, plan
-from tools.generate.provider import ClipSpec, StubProvider, _stable_index, get_provider
+from tools.generate.provider import (
+    PROVIDERS,
+    ClipSpec,
+    StubProvider,
+    _stable_index,
+    get_provider,
+    veo_duration,
+    veo_request,
+    veo_video_uri,
+)
 
 BRIEF = {
     "brand_name": "Kova",
@@ -183,5 +192,103 @@ def test_get_provider_returns_the_stub():
 
 def test_unknown_provider_fails_with_instructions():
     with pytest.raises(SystemExit) as e:
-        get_provider("veo")
+        get_provider("nonesuch")
     assert "stub" in str(e.value)
+
+
+def test_veo_is_registered():
+    """It used to be the example of an UNKNOWN provider. It is a real one now, and that
+    test would have kept passing by coincidence — _veo_from_env also raises SystemExit —
+    while silently testing nothing."""
+    assert "veo" in PROVIDERS
+
+
+def test_veo_without_a_key_says_what_to_do_and_what_it_costs(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    with pytest.raises(SystemExit) as e:
+        get_provider("veo")
+    msg = str(e.value)
+    assert "GEMINI_API_KEY" in msg
+    # Nobody should discover a six-generation bill by running the default sweep.
+    assert "PAID" in msg
+    assert "stub" in msg
+
+
+# ── veo: the places its constraints do not match a ClipSpec ─────────────────────
+#
+# Network calls are not tested here — a mocked HTTP round trip only proves the mock
+# matches my reading of the docs. What IS worth pinning is every point where Veo's shape
+# differs from ClipSpec's, because those are where a silent mismatch would put an
+# uncomparable clip into a batch and nothing downstream would notice.
+
+def test_duration_snaps_to_what_veo_actually_offers():
+    """ClipSpec defaults to 15s. Veo takes "4", "6" or "8" — as strings. Asking for 15
+    does not get a shorter clip, it gets an error."""
+    assert veo_duration(15.0) == "8"
+    assert veo_duration(4.2) == "4"
+    assert veo_duration(6.0) == "6"
+    assert veo_duration(0.5) == "4"
+
+
+def test_a_tie_rounds_down():
+    """5s is equidistant from 4 and 6. The hook is the first three seconds and carries 40%
+    of the score, so the shorter clip wastes less on material the score barely weighs."""
+    assert veo_duration(5.0) == "4"
+    assert veo_duration(7.0) == "6"
+
+
+def test_the_body_matches_the_documented_shape():
+    spec = ClipSpec(id="ad_01", label="x", prompt="a thing", duration_s=8, aspect="9:16")
+    body = veo_request(spec)
+    assert body["instances"] == [{"prompt": "a thing"}]
+    assert body["parameters"]["aspectRatio"] == "9:16"
+    assert body["parameters"]["durationSeconds"] == "8"     # a string, not a number
+    assert body["parameters"]["resolution"] == "720p"
+
+
+def test_an_unsupported_aspect_is_refused_rather_than_substituted():
+    """Veo has no 1:1. Quietly returning 16:9 would put a clip in the batch that cannot be
+    compared with the rest of it, which is the failure this whole pipeline exists to avoid."""
+    spec = ClipSpec(id="ad_01", label="x", prompt="y", aspect="1:1")
+    with pytest.raises(RuntimeError) as e:
+        veo_request(spec)
+    assert "1:1" in str(e.value)
+
+
+def test_vendor_hints_pass_through_without_inventing_dialect():
+    spec = ClipSpec(id="ad_01", label="x", prompt="y", aspect="16:9",
+                    extra={"negativePrompt": "no text", "seed": 7, "ignored": "x"})
+    params = veo_request(spec)["parameters"]
+    assert params["negativePrompt"] == "no text" and params["seed"] == 7
+    assert "ignored" not in params
+
+
+def test_a_finished_operation_yields_the_file_uri():
+    op = {"done": True, "response": {"generateVideoResponse": {
+        "generatedSamples": [{"video": {"uri": "https://example/v.mp4"}}]}}}
+    assert veo_video_uri(op) == "https://example/v.mp4"
+
+
+def test_a_safety_refusal_is_reported_as_one():
+    """A done operation with no samples is the normal shape of a filtered generation.
+    Calling it 'no video' would send someone debugging the pipeline for a rejected prompt."""
+    op = {"done": True, "response": {"generateVideoResponse": {
+        "generatedSamples": [], "raiMediaFilteredCount": 2,
+        "raiMediaFilteredReasons": ["prompt violated policy"]}}}
+    with pytest.raises(RuntimeError) as e:
+        veo_video_uri(op)
+    assert "filtered" in str(e.value)
+    assert "retrying it will not" in str(e.value)
+
+
+def test_an_operation_error_carries_the_vendors_own_words():
+    op = {"done": True, "error": {"message": "model not found"}}
+    with pytest.raises(RuntimeError) as e:
+        veo_video_uri(op)
+    assert "model not found" in str(e.value)
+
+
+def test_an_empty_response_is_not_silently_a_success():
+    with pytest.raises(RuntimeError):
+        veo_video_uri({"done": True, "response": {}})
