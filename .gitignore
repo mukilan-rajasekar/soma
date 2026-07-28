@@ -94,3 +94,10 @@ colab_upload/
 # gstack browse/audit session logs. Unanchored: they appear at the repo root and
 # under demo/ depending on where the tool was invoked.
 .gstack/
+
+# Run outputs from the concierge / edit / generate tooling. Local artifacts of a
+# run, never source: tools/concierge/run_batch.py, tools/edit/search.py and
+# tools/generate/pipeline.py all write here by default.
+concierge-runs/
+edits/
+generated/

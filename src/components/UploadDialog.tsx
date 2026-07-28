@@ -7,6 +7,7 @@ import {
   isValidEmail,
   looksLikeMp4,
 } from "@/lib/upload";
+import { putWithProgress } from "@/lib/upload-client";
 
 type Props = {
   open: boolean;
@@ -23,33 +24,10 @@ function formatSize(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-// PUT the file straight to Supabase Storage using the token embedded in the signed
-// URL — no apikey/Authorization header needed. XMLHttpRequest (not fetch) so we can
-// report real upload progress. The 150 MB flows here, NOT through our function.
-function putWithProgress(
-  url: string,
-  file: File,
-  onProgress: (pct: number) => void,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", url);
-    xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
-    xhr.setRequestHeader("x-upsert", "false");
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
-      }
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error("Upload failed."));
-    };
-    xhr.onerror = () => reject(new Error("Upload failed."));
-    xhr.onabort = () => reject(new Error("Upload cancelled."));
-    xhr.send(file);
-  });
-}
+// putWithProgress moved to src/lib/upload-client.ts when /upload arrived and needed the
+// same uploader. It is imported rather than duplicated on purpose: the retry behaviour,
+// the header set and the progress contract are exactly what drifts apart between two
+// copies and then has to be debugged twice. Behaviour here is unchanged.
 
 export default function UploadDialog({ open, onClose, initialEmail }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);

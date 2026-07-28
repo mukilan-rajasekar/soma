@@ -55,7 +55,16 @@ export type PreflightAd = {
   title: string;
   rank: number;
   durationS: number;
-  /** public-relative, always begins with a single "/". Validated on load. */
+  /** TWO PRODUCERS, two shapes, and PlayerPanel takes either because it only ever does
+   *  `src={ad.video}`.
+   *    /preflight   public-relative, always begins with a single "/". Validated on load
+   *                 by report.ts's safeVideoPath — that check is what keeps a committed
+   *                 artifact from pointing the player at an off-site URL.
+   *    /r/<token>   an absolute, short-lived Supabase signed URL, minted per request by
+   *                 the result page. The customer's footage lives in a PRIVATE bucket,
+   *                 so there is no public path it could be given instead.
+   *  report.ts's validator is deliberately not in the second path: it loads a committed
+   *  file, and signing is what authorizes the second. */
   video: string | null;
   poster?: string | null;
   timestamps: number[];

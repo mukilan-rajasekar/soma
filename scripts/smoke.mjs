@@ -16,11 +16,27 @@ const BASE = process.env.SMOKE_URL || 'http://localhost:3099';
 const ROUTES = [
   // observed: text 240, canvas 1, scroll 900
   { path: '/', minText: 150, minCanvas: 1, minScroll: 600, needsH1: true },
-  // observed: text 4729, canvas 7, scroll 6220. The short cut moved onto /demo, so these
-  // are its numbers, not the retired long page's (text 11100, scroll 11277).
-  { path: '/demo', minText: 3500, minCanvas: 5, minScroll: 4500, needsH1: true },
-  // observed: text 3603, canvas 4, scroll 4521
+  // observed: text 7282, canvas 8, scroll 8783 — up from 4729/7/6220 when the
+  // comprehension beat was restored to this route (it renders ComprehensionPanel and
+  // MessageTrack, which the batch chart above it cannot supply). The short cut moved
+  // onto /demo, so these are its numbers, not the retired long page's.
+  { path: '/demo', minText: 5400, minCanvas: 6, minScroll: 6500, needsH1: true },
+  // observed: text 3579, canvas 4, scroll 4098
   { path: '/preflight', minText: 2500, minCanvas: 3, minScroll: 3200, needsH1: true },
+  // The batch intake. observed: text 2148, canvas 0, scroll 2301. No canvas on this
+  // route by design — it is a form, and asserting a floor of 0 documents that rather
+  // than leaving the next person to wonder whether one went missing.
+  { path: '/upload', minText: 1600, minCanvas: 0, minScroll: 1700, needsH1: true },
+  // A well-formed token that cannot exist MUST 404, and this is the assertion that keeps
+  // the capability-URL model honest: /r/<token> has no login in front of it, so the only
+  // thing standing between a stranger and a customer's unreleased creative is that an
+  // unknown token is indistinguishable from a malformed one. If this ever returns 200 —
+  // a loosened guard, a debug branch, an error page rendering a row — the gate stops the
+  // build. 32 zeros is shape-valid (isShareToken passes) and vanishingly unlikely to be
+  // minted, so this exercises the lookup rather than the regex.
+  { path: '/r/' + '0'.repeat(32), expectStatus: 404 },
+  // ...and a malformed one, which must be refused before it reaches a query at all.
+  { path: '/r/not-a-token', expectStatus: 404 },
 ];
 
 // A cancelled media preload is normal browser behaviour, not a defect.
@@ -60,7 +76,20 @@ async function checkRoute(route) {
   try {
     const resp = await page.goto(BASE + route.path, { waitUntil: 'networkidle', timeout: 45000 });
     const status = resp?.status();
-    if (status !== 200) problems.push(`status ${status} (want 200)`);
+    const want = route.expectStatus ?? 200;
+    if (status !== want) problems.push(`status ${status} (want ${want})`);
+
+    // A route asserted to be a non-200 has nothing else worth measuring: it renders the
+    // not-found page, whose text and height are Next's, not ours. Checking the status IS
+    // the check, so return before the content floors run.
+    if (want !== 200) {
+      try {
+        await ctx.close();
+      } catch {
+        /* already gone */
+      }
+      return { problems, info: { textLen: 0, canvases: 0, scrollH: 0, status } };
+    }
 
     // let fonts, webgl and the opening animation settle
     await page.waitForTimeout(3000);
