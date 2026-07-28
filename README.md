@@ -18,6 +18,11 @@ Geist font). Routes live under `src/app/` — `/` (landing), `/demo` (arc player
 (`src/components/BrainField.tsx`, `src/components/brainlab/*`) renders the fsaverage cortical
 surface from `public/brain/*.bin`.
 
+The live product paths now sit beside the marketing routes: `/upload` queues a scored batch and
+delivers it at `/r/<token>`, `/generate` creates persisted generation runs at `/g/<token>`, and
+`/edit` searches re-cuts either from the shipped demo campaign or directly from a delivered
+customer batch via `/edit?batch=<token>&ad=<id>`.
+
 Run it locally:
 
 ```bash
@@ -29,6 +34,11 @@ No configuration is needed for that: every environment variable in the repo is o
 the site builds and renders with none of them set. `.env.example` names all eight — what reads
 each one, and what you give up by leaving it blank — and `cp .env.example .env` is the starting
 point when you do want live arcs or the ad-ingestion scripts.
+
+For the delivery and beta flows to work end to end you also need the Supabase schema from
+`supabase/migrations/0003_batches.sql` through `0006_edit_run_sources.sql`, plus server-side
+Supabase env (`NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SECRET_KEY`). The customer-facing Python
+features additionally need `ffmpeg`; see `tools/concierge/README.md`.
 
 > Note: this is Next.js 16, which has breaking changes vs. earlier majors. See `AGENTS.md`.
 

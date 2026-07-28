@@ -1,39 +1,85 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type Variant = {
   id: string;
   title: string;
 };
 
+type BatchOption = {
+  id: string;
+  title: string;
+  score: number;
+};
+
+type BatchPreset = {
+  token: string;
+  batchName: string;
+  options: BatchOption[];
+  defaultAdId: string;
+};
+
 type Phase = "idle" | "running" | "error";
 
 export default function EditBeta({
-  variants,
-  defaultAdId,
+  demoVariants,
+  defaultDemoAdId,
+  batchPreset,
 }: {
-  variants: Variant[];
-  defaultAdId: string;
+  demoVariants: Variant[];
+  defaultDemoAdId: string;
+  batchPreset?: BatchPreset | null;
 }) {
   const router = useRouter();
-  const [ad, setAd] = useState(defaultAdId);
+  const [sourceKind, setSourceKind] = useState<"demo" | "batch">(
+    batchPreset ? "batch" : "demo",
+  );
+  const [demoAd, setDemoAd] = useState(defaultDemoAdId);
+  const [batchAd, setBatchAd] = useState(batchPreset?.defaultAdId ?? "");
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
 
   const busy = phase === "running";
+  const options = useMemo(
+    () =>
+      sourceKind === "batch"
+        ? (batchPreset?.options ?? []).map((option) => ({
+            value: option.id,
+            label: `${option.title} · ${Math.round(option.score)}`,
+          }))
+        : demoVariants.map((variant) => ({
+            value: variant.id,
+            label: variant.title,
+          })),
+    [batchPreset?.options, demoVariants, sourceKind],
+  );
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPhase("running");
     setMessage("");
 
+    const ad = sourceKind === "batch" ? batchAd : demoAd;
+    if (!ad) {
+      setPhase("error");
+      setMessage(
+        sourceKind === "batch" ? "Pick a customer cut to edit." : "Pick a demo cut to edit.",
+      );
+      return;
+    }
+
     try {
       const res = await fetch("/api/edit/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ad, top: 3 }),
+        body: JSON.stringify({
+          ad,
+          top: 3,
+          sourceKind,
+          batchToken: sourceKind === "batch" ? batchPreset?.token ?? "" : undefined,
+        }),
       });
       const body = (await res.json().catch(() => null)) as
         | ({ error?: string; detail?: string; token?: string })
@@ -71,24 +117,54 @@ export default function EditBeta({
           <h2 className="text-section text-ink">Pick the source cut</h2>
         </div>
 
-        <label className="flex max-w-[380px] flex-col">
+        {batchPreset ? (
+          <div className="mb-6 flex flex-wrap gap-2">
+            {[
+              { id: "batch", label: "Customer batch" },
+              { id: "demo", label: "Demo campaign" },
+            ].map((mode) => {
+              const active = sourceKind === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setSourceKind(mode.id as "demo" | "batch")}
+                  className={`cursor-pointer rounded-xl border px-4 py-[10px] text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    active
+                      ? "border-ink bg-fill font-medium text-ink"
+                      : "border-line bg-paper text-ink-2 hover:border-line-2"
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
+        <label className="flex max-w-[460px] flex-col">
           <span className="text-[12px] uppercase tracking-[0.07em] text-ink-3">
-            Demo campaign cut
+            {sourceKind === "batch" ? "Scored customer cut" : "Demo campaign cut"}
           </span>
           <select
-            value={ad}
-            onChange={(e) => setAd(e.target.value)}
-            disabled={busy}
+            value={sourceKind === "batch" ? batchAd : demoAd}
+            onChange={(e) =>
+              sourceKind === "batch" ? setBatchAd(e.target.value) : setDemoAd(e.target.value)
+            }
+            disabled={busy || options.length === 0}
             className="mt-2 w-full cursor-pointer rounded-xl border border-line bg-paper px-[15px] py-[12px] text-[15px] text-ink outline-none transition-colors focus:border-ink-3 disabled:opacity-60"
           >
-            {variants.map((variant) => (
-              <option key={variant.id} value={variant.id}>
-                {variant.title}
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
           <span className="mt-1.5 text-[12.5px] leading-[1.5] text-ink-3">
-            This beta runs on the shipped demo campaign first. Customer-upload editing is the next layer.
+            {sourceKind === "batch"
+              ? `Pulled from ${batchPreset?.batchName}. These are the real cuts you already scored.`
+              : "Falls back to the shipped demo campaign when you are not coming from a customer run."}
           </span>
         </label>
 

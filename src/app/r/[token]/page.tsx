@@ -157,6 +157,7 @@ export default async function ResultPage({
           report={report}
           batchName={name}
           generatedAt={batch.completed_at ?? report.generatedAt ?? null}
+          batchToken={token}
         />
       </main>
     );

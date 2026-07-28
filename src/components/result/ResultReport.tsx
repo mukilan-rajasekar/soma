@@ -38,7 +38,9 @@
 // Copy rule, same as demo2: NO em dashes. Commas, colons, full stops, parentheses.
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 
+import BatchEditPreview from "./BatchEditPreview";
 import AdList from "../preflight/AdList";
 import HookCompare from "../preflight/HookCompare";
 import OverlayPanel from "../preflight/OverlayPanel";
@@ -77,10 +79,12 @@ export default function ResultReport({
   report,
   batchName,
   generatedAt,
+  batchToken,
 }: {
   report: PreflightReport;
   batchName: string;
   generatedAt: string | null;
+  batchToken: string;
 }) {
   const [selectedId, setSelectedId] = useState(report.bestId);
   const selected = report.ads.find((a) => a.id === selectedId) ?? report.ads[0];
@@ -238,6 +242,49 @@ export default function ResultReport({
         )}
       </Block>
 
+      <Block
+        title="Per-shot edit diagnosis"
+        n="05"
+        lede="For the selected cut, Soma now estimates which removable beat is dragging most before you commit to a full edit run."
+      >
+        <BatchEditPreview
+          key={selected.id}
+          batchToken={batchToken}
+          adId={selected.id}
+          adTitle={selected.title}
+        />
+      </Block>
+
+      <Block
+        title="Search the best re-cut"
+        n="06"
+        lede="Any delivered cut can now hand off directly into edit search. Start from the winner, or from the cut with the clearest drag."
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {ordered.map((ad) => (
+            <div key={ad.id} className="rounded-2xl border border-line bg-fill p-4">
+              <div className="flex items-baseline gap-3">
+                <div className="text-ui font-medium text-ink">{ad.title}</div>
+                <div className="ml-auto text-[13px] tabular-nums text-ink-3">
+                  {Math.round(ad.scores.preflight)}
+                </div>
+              </div>
+              <p className="mt-2 text-[13px] leading-[1.55] text-ink-2">
+                {ad.weakSpots.length
+                  ? `${ad.weakSpots.length} weak spot${ad.weakSpots.length > 1 ? "s" : ""} already flagged in this cut.`
+                  : "No weak spot was long enough to flag, but the edit search can still test alternate openings and trims."}
+              </p>
+              <Link
+                href={`/edit?batch=${batchToken}&ad=${ad.id}`}
+                className="mt-4 inline-flex rounded-xl border border-line-2 px-4 py-[10px] text-[13px] font-medium text-ink transition-colors hover:border-ink"
+              >
+                Search edits for this cut
+              </Link>
+            </div>
+          ))}
+        </div>
+      </Block>
+
       {/* ── the brief ─────────────────────────────────────────────────────────
           Echoed back verbatim. Clarity is 25% of the score and is computed against
           exactly these strings, so a customer who typed the wrong product name has
@@ -246,7 +293,7 @@ export default function ResultReport({
       {message ? (
         <Block
           title="What we scored the message against"
-          n="05"
+          n="07"
           lede="Comprehension is checked against these words, on screen and out loud. If any of this is wrong, that part of the score is measuring the wrong thing, and it is worth telling us."
         >
           <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2">
@@ -292,7 +339,7 @@ export default function ResultReport({
           line here is a specific, checkable statement about THIS run. */}
       <Block
         title="What this run can and cannot tell you"
-        n="06"
+        n="08"
         lede="Every line below is about this batch specifically, read straight out of the file the pipeline produced."
       >
         <div className="flex flex-col gap-3">

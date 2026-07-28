@@ -13,9 +13,15 @@ Everything below the form is one command.
 
 ## One-time setup
 
-**1. Apply the migration.** `supabase/migrations/0003_batches.sql` creates the `batches`
-table, links `uploads` to it, and is idempotent — paste it into the Supabase SQL editor
-and run it. Nothing works until this exists.
+**1. Apply the migrations.** Run these in order:
+
+- `supabase/migrations/0003_batches.sql` for the batch intake + delivered read-out flow
+- `supabase/migrations/0004_generation_runs.sql` for persisted generation beta runs
+- `supabase/migrations/0005_edit_runs.sql` for persisted edit beta runs
+- `supabase/migrations/0006_edit_run_sources.sql` so edit runs can point back at customer batches
+
+They are idempotent. Nothing in `/upload`, `/generate`, `/edit`, `/g/<token>`, `/e/<token>`,
+or the batch-to-edit handoff is fully wired until these exist.
 
 **2. Env.** The runner reads `.env` from the repo root (the Next app reads `.env.local`
 then `.env` — see AGENTS.md). Either naming scheme works:
@@ -117,6 +123,11 @@ nothing in the database goes stale.
 If `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are present, the runner also sends lifecycle
 emails when a batch starts, finishes, or fails. The body always points back at `/r/<token>`,
 which stays the source of truth.
+
+The create and edit betas do not need a separate worker today: their Next routes run the
+Python tools inline on the machine serving the request. They still need the same Python
+environment plus `ffmpeg`, and edit runs launched from `/r/<token>` fetch the original cut
+back out of the private `uploads` bucket through a short-lived signed URL.
 
 ---
 

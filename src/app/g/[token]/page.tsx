@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import RunStatus from "@/components/result/RunStatus";
 import SiteHeader from "@/components/site/SiteHeader";
 import { isShareToken } from "@/lib/batch";
 import { serviceClient } from "@/lib/supabase/server";
@@ -136,9 +137,18 @@ export default async function GenerationRunPage({
             ) : null}
           </>
         ) : (
-          <p className="mt-5 max-w-[60ch] text-pretty text-body text-ink-2">
-            This run is still processing.
-          </p>
+          <>
+            <p className="mt-5 max-w-[60ch] text-pretty text-body text-ink-2">
+              This run is still processing.
+            </p>
+            <RunStatus
+              endpoint={`/api/generate/${token}/status`}
+              initialStatus={run.status}
+              startedAtMs={new Date(run.created_at).getTime()}
+              queuedLabel="Queued"
+              processingLabel="Generating"
+            />
+          </>
         )}
       </div>
     </main>

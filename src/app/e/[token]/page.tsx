@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import RunStatus from "@/components/result/RunStatus";
 import SiteHeader from "@/components/site/SiteHeader";
 import { loadDemoReport } from "@/lib/demo-report";
 import { isShareToken } from "@/lib/batch";
@@ -28,6 +30,9 @@ type EditResult = {
 type RunRow = {
   share_token: string;
   ad_id: string;
+  source_kind: "demo" | "batch";
+  source_title: string | null;
+  batch_share_token: string | null;
   status: "queued" | "processing" | "done" | "failed";
   result: EditResult | null;
   error: string | null;
@@ -42,7 +47,7 @@ async function loadRun(token: string): Promise<RunRow | null> {
 
   const { data, error } = await supabase
     .from("edit_runs")
-    .select("share_token, ad_id, status, result, error, created_at, completed_at")
+    .select("share_token, ad_id, source_kind, source_title, batch_share_token, status, result, error, created_at, completed_at")
     .eq("share_token", token)
     .maybeSingle();
 
@@ -58,7 +63,7 @@ export async function generateMetadata({
   const { token } = await params;
   const run = await loadRun(token);
   return {
-    title: `soma · ${run?.ad_id ?? "edit beta"} edit`,
+    title: `soma · ${run?.source_title ?? run?.ad_id ?? "edit beta"} edit`,
     description: "A Soma edit beta run.",
     robots: { index: false, follow: false, nocache: true },
   };
@@ -73,9 +78,11 @@ export default async function EditRunPage({
   const run = await loadRun(token);
   if (!run) notFound();
 
-  const report = loadDemoReport();
+  const demoReport = run.source_kind === "demo" ? loadDemoReport() : null;
   const adTitle =
-    report.campaign.variants.find((variant) => variant.id === run.ad_id)?.title ?? run.ad_id;
+    run.source_title
+    ?? demoReport?.campaign.variants.find((variant) => variant.id === run.ad_id)?.title
+    ?? run.ad_id;
   const result = run.result;
 
   return (
@@ -133,6 +140,19 @@ export default async function EditRunPage({
                 </article>
               ))}
             </div>
+            {run.source_kind === "batch" && run.batch_share_token ? (
+              <p className="mt-8 max-w-[60ch] text-[13.5px] leading-[1.6] text-ink-3">
+                This run started from a delivered customer batch.
+                {" "}
+                <Link
+                  href={`/r/${run.batch_share_token}`}
+                  className="text-ink-2 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
+                >
+                  Back to the original read-out
+                </Link>
+                .
+              </p>
+            ) : null}
           </>
         ) : run.status === "failed" ? (
           <>
@@ -149,9 +169,18 @@ export default async function EditRunPage({
             ) : null}
           </>
         ) : (
-          <p className="mt-5 max-w-[60ch] text-pretty text-body text-ink-2">
-            This run is still processing.
-          </p>
+          <>
+            <p className="mt-5 max-w-[60ch] text-pretty text-body text-ink-2">
+              This run is still processing.
+            </p>
+            <RunStatus
+              endpoint={`/api/edit/${token}/status`}
+              initialStatus={run.status}
+              startedAtMs={new Date(run.created_at).getTime()}
+              queuedLabel="Queued"
+              processingLabel="Searching"
+            />
+          </>
         )}
       </div>
     </main>
