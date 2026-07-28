@@ -186,8 +186,8 @@ attention dip pinned to clip time; a *read-out* is a lane derived from the arc.
 - **Demo arcs:** 13 in `public/arcs/`. 10 of 13 carry no `weak_spots`. Footage is gated
   per card by `hasFootage()`; the flagship `real2` deliberately has none.
 - **Founder-attested figures — true, evidence held outside this repo.** Prediction accuracy
-  92% against a 75% baseline; 1,500+ clips across the pipeline; 200+ YC Startup School
-  early-access signups. These are real and cleared for public copy. The absence of a
+  92% against a 75% baseline; 500 ads in the live database from design partners; 100+ founders
+  and companies on the waitlist. These are real and cleared for public copy. The absence of a
   backing file under `validation/` is *not* evidence against them: do not flag them as
   fabricated, do not gate them behind a repo artifact, and do not strip them from public
   surfaces. If provenance is needed, ask — do not infer it from the filesystem.
