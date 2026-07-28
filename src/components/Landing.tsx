@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import BrainField from "./BrainField";
 import UploadDialog from "./UploadDialog";
@@ -45,8 +46,26 @@ export default function Landing() {
     <main className="fixed inset-0 overflow-hidden bg-paper">
       <BrainField />
 
-      <div className="absolute left-11 top-[34px] z-[2] text-[23px] font-medium tracking-[-0.01em]">
-        soma
+      {/* The wordmark and the demo link are ONE flex row, not two absolutely-positioned
+          boxes. Two absolute elements at 23px and 13px do not share a centre line unless
+          someone works the offset out by hand, and that number goes stale the moment either
+          type size moves. Inset symmetrically on left-11, which is the wordmark's own margin
+          and the only gutter this page has established.
+
+          pointer-events-none on the row, auto on the link. The row spans the full width now,
+          and BrainField's canvas takes pointerdown/pointermove drags underneath it — left
+          solid, this strip would quietly kill the drag along the whole top of the page. */}
+      <div className="pointer-events-none absolute inset-x-11 top-[34px] z-[2] flex items-center justify-between">
+        <span className="text-[23px] font-medium tracking-[-0.01em]">soma</span>
+        {/* Same treatment as "Upload an MP4" below: a text link, underlined, ink to #333 on
+            hover. A button or a pill would read as a second call to action next to the
+            waitlist form, and this is a side door, not the thing the page is asking for. */}
+        <Link
+          href="/demo-short"
+          className="pointer-events-auto text-[13px] font-medium text-[#0a0a0a] underline underline-offset-2 transition-colors hover:text-[#333]"
+        >
+          Demo
+        </Link>
       </div>
 
       <div className="absolute right-[6vw] top-1/2 z-[2] w-[min(400px,42vw)] -translate-y-1/2">

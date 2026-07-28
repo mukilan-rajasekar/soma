@@ -128,13 +128,13 @@ export default function OverlayPanel({
           ariaLabel={`${lane.label} arcs for all ${ordered.length} ads in the batch, on one shared axis`}
         />
         {report.comparability?.crossAdLevelsTrustworthy === false ? (
-          <p className="mt-3 max-w-[64ch] text-[11.5px] leading-[1.6] text-ink-2">
+          <p className="mt-3 max-w-[64ch] text-[12.5px] leading-[1.6] text-ink-2">
             Levels are not directly comparable in this run, so read the shapes rather than
             the heights.
           </p>
         ) : null}
         {missing.length ? (
-          <p className="mt-2 text-[11.5px] text-ink-3">
+          <p className="mt-2 text-[12.5px] text-ink-3">
             No {lane.label.toLowerCase()} curve for{" "}
             {missing.map((a) => a.title).join(", ")} — the timing check failed, so the
             curve is withheld. The score still stands.

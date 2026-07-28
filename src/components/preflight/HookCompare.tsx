@@ -110,7 +110,7 @@ export default function HookCompare({ report, active }: Props) {
         ariaLabel={`Ventral surprise response of the batch's best and worst cut, on one axis`}
       />
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-2.5 text-[11.5px] leading-[1.5] text-ink-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-2.5 text-[12.5px] leading-[1.5] text-ink-3 sm:grid-cols-2">
         {pair.map((p) => (
           <div key={p.ad.id} className="flex items-start gap-2">
             <span

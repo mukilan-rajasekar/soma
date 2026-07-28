@@ -27,7 +27,14 @@ import type { Ad, Report } from "./types";
 const T_SPAWN = 0.03;
 const T_SCORE = 0.4;
 const T_CULL = 0.66;
-const T_BOARD = 0.84;
+// There is no T_BOARD any more, and it could not be fixed by lowering one. The clock is
+// easeOutCubic, so it spends its first third of real time covering two thirds of `p` and then
+// crawls: the cull lands at ~1.6s of a 5.2s run and p only travels 0.66 → 1.0 over the
+// remaining 3.6 seconds. T_BOARD 0.84 therefore fired at ~2.4s, nearly a second of dead air
+// after the argument above it had finished, and any value low enough to fix that lands the
+// board on top of the cull it is supposed to be the payoff for. The board now runs off its
+// own arrival instead (see `boardSeen` below), which is what every other figure on the page
+// does and is the only version that does not depend on how fast the page is being scrolled.
 
 // The cull chart. PASS_MARK is where the hairline sits, in the same 0–100 units as a
 // candidate's score: above the best rejected candidate (48) and below the weakest
@@ -62,10 +69,27 @@ export default function GenerateStudio({ report, active }: { report: Report; act
   const ranked = rankedDirections(report);
   const [sel, setSel] = useState(0);
 
+  // The board's own gate, and deliberately NOT ON_SCREEN. That preset asks for a fixed 40% of
+  // the viewport at minimum, so the board's top had to climb past the middle of the screen
+  // before anything started: you watched it arrive from the bottom edge and sit blank for the
+  // whole second half of that travel, then fade for another 0.6s. ON_SCREEN exists to stop a
+  // long BUILD playing off camera (the 5.2s cull above it is exactly that case). This is a
+  // fade and a rise, so there is nothing to miss, and it should start as the board enters.
+  // -14% fires when its top crosses 86% of the screen, i.e. as it clears the bottom edge, and
+  // the fade then runs while it travels up into frame instead of after it gets there.
+  const [boardRef, boardSeen] = useReveal<HTMLDivElement>({ threshold: 0, rootMargin: "0px 0px -14% 0px" });
+
   const spawned = p > T_SPAWN;
   const scored = p > T_SCORE;
   const culled = p > T_CULL;
-  const board = p > T_BOARD;
+  // Gated on `scored`, not on `culled`. Something has to stop a board headed "the five that
+  // cleared" from arriving before there is a bar to clear, and `scored` is that: it is the
+  // moment the pass mark drops across the chart, at ~816ms of the clock. `culled` was the
+  // obvious choice and it was the wrong one — it lands at ~1.57s, which on any brisk scroll is
+  // later than the board's own arrival, so the gate that was supposed to be a safety net
+  // became the thing holding the board back. The cull still plays out above; it just no longer
+  // has to finish before the payoff is allowed on screen.
+  const board = boardSeen && scored;
 
   // Count-up that lands exactly on GENERATED as the lattice finishes filling.
   const counted = Math.round(Math.min(1, p / T_SCORE) * GENERATED);
@@ -181,6 +205,7 @@ export default function GenerateStudio({ report, active }: { report: Report; act
 
       {/* ── the survivors, ranked by their real measured score ──────────── */}
       <div
+        ref={boardRef}
         className="grid grid-cols-1 gap-4 md:grid-cols-[1.1fr_1fr]"
         style={{ opacity: board ? 1 : 0, transform: board ? "none" : "translateY(8px)", transition: "opacity .6s, transform .6s" }}
       >

@@ -14,11 +14,19 @@
 //                                 narrated live at about three minutes, so what is missing
 //                                 from it is missing for being repetitive, not for time.
 //
-// Sections live in one ordered array (`defs`) and the short route is that array with the
-// `fullOnly` entries filtered out. Section numbers, background tint alternation and the
+// Sections live in one ordered array (`defs`), and each route is that array with the entries
+// it does not want filtered out. Section numbers, background tint alternation and the
 // act-strip targets are all derived from whatever survives the filter — nothing is typed
 // twice, so the two routes cannot drift apart or contradict themselves. Copying this file
 // to make the second page would have guaranteed both.
+//
+// TWO filters, because there are two different situations. `fullOnly` drops a beat from the
+// walkthrough that the long page keeps. `show` is for the slots where both routes make the
+// same argument with a DIFFERENT figure, so both versions have to sit in the list side by
+// side: the walkthrough now runs /preflight's own instruments through the middle of the page
+// (hook comparison, the per-cut read-out, the batch comparison), and the beats they replace
+// stay in the array for /demo and for the case where the preflight artifact is missing. See
+// `spine` in the component body.
 //
 // The page tells one three-act story — measure, generate, edit — and the acts are in that
 // order on purpose: generation only means anything after a reader believes the measurement.
@@ -31,11 +39,15 @@
 //
 // Short-only omissions, now that time is not the constraint. Each one is dropped because
 // putting it in the walkthrough would say something the walkthrough already said:
-//   novoice     its figure is the one comprehension just used, back to back
-//   readout     three metrics the page has already shown being measured and then used
-//   tiers       how to buy, which is the founder's line to deliver, not a slide to read out
-//   checklist   the best diligence asset on the site and the worst thing to read aloud
-// The last three are for the reader who clicks the link, and /demo is where they live.
+//   novoice        its figure is the one comprehension just used, back to back
+//   readout        three metrics the page has already shown being measured and then used
+//   tiers          how to buy, the founder's line to deliver, not a slide to read out
+//   checklist      the best diligence asset on the site and the worst thing to read aloud
+//   comprehension  the batch comparison answers its heading on screen, with a lane picker
+//   live           the read-out beat is a player over the whole batch, three beats earlier
+// The middle three are for the reader who clicks the link, and /demo is where they live. The
+// last two come back on the short route if the preflight artifact is missing, because then
+// the sections that superseded them are not there either.
 //
 // Two pieces of chrome go the other way and appear only on the SHORT route: the beta marquee
 // (asked for there, and the long page has diligence material instead of social proof) and,
@@ -74,6 +86,14 @@ import { englishBatch } from "./corpus";
 import EditStudio from "./EditStudio";
 import { BRAND } from "./studio";
 import { fmtT, type Ad, type Report } from "./types";
+// /preflight's own figures, rendered inside this shell on the short route. Explicit
+// "../preflight/…" paths on every one of them: demo2/ and preflight/ each have a `tokens`
+// and a `lanes` module, so a bare relative import here resolves to the wrong file.
+import AdList from "../preflight/AdList";
+import HookCompare from "../preflight/HookCompare";
+import OverlayPanel from "../preflight/OverlayPanel";
+import PlayerPanel from "../preflight/PlayerPanel";
+import { HOOK_SECONDS } from "../preflight/lanes";
 import type { PreflightReport } from "../preflight/types";
 
 // "full" is /demo — the long-form page a cold reader lands on. "short" is /demo-short, the
@@ -109,9 +129,14 @@ type SectionDef = {
   key: string;
   anchor?: string;
   eyebrow: string;
-  heading: React.ReactNode;
-  lede: string;
+  heading?: React.ReactNode;
+  lede?: React.ReactNode;
   fullOnly?: boolean;
+  /** Rendered only when this is true. `fullOnly` still covers the common case (a beat the
+   *  long page keeps and the walkthrough drops); this is for the beats that swap, where the
+   *  same slot in the narrative is filled by a different figure on each route. Set it and
+   *  the section is dropped everywhere else, whatever `fullOnly` says. */
+  show?: boolean;
   unnumbered?: boolean;
   /** Set this heading at hero size. For a line that is the ARGUMENT rather than a label for
    *  the figure under it: the founder asks it out loud and then answers it, and at section
@@ -186,6 +211,29 @@ export default function DemoScrollPage({
     { t: 22, src: stillFor(heroAd, 22), caption: "held steady, brand on screen" },
   ];
 
+  // ── the spliced spine ───────────────────────────────────────────────
+  //
+  // /demo-short runs /preflight's instruments for three beats in the middle of the page:
+  // the hook comparison, the per-cut read-out (clip beside its three lanes) and the batch
+  // comparison. They are the same components /preflight renders, with /preflight's copy,
+  // inside this page's numbered section shell.
+  //
+  // It is conditional on the artifact because public/preflight/batch_report.json is a
+  // different file from report.json and can legitimately be absent on a fresh clone. Without
+  // it the short route falls back to the beats it had before (demo2's own hook arc, the
+  // comprehension panels, the live player), so a missing artifact costs the page nothing.
+  const pf = preflight;
+  const spine = variant === "short" && Boolean(pf);
+
+  // The one piece of state the spliced sections share, and the reason the pair of them is
+  // worth more than either alone: a click in the batch comparison's list re-reads the
+  // player two beats above it. /preflight owns this for the same reason.
+  const [selectedId, setSelectedId] = useState(pf?.bestId ?? pf?.order[0] ?? "");
+  const preflightAd = pf ? pf.ads.find((a) => a.id === selectedId) ?? pf.ads[0] : null;
+  const preflightOrdered = pf
+    ? (pf.order.map((id) => pf.ads.find((a) => a.id === id)).filter(Boolean) as PreflightReport["ads"])
+    : [];
+
   const [heroRef, heroIn] = useReveal<HTMLDivElement>({ threshold: 0.2 });
   // The hero build is replayed for the recording. useReveal latches `revealed` permanently —
   // correct for a reader, wrong for a take, because the hero fires at hydration and a click a
@@ -248,81 +296,111 @@ export default function DemoScrollPage({
       key: "science",
       anchor: "science",
       eyebrow: "The science",
-      heading: <>Attention isn&rsquo;t one thing. Different regions do <span className="font-serif font-normal italic">different</span> jobs.</>,
-      // Two, not three. This briefly said "three networks" to cover the comprehension lane that
-      // §02 draws and §03 is entirely about — but the count was then wrong about its own beat,
-      // which shows two cards, a two-region cortex and a split figure reading two lanes. It says
-      // two because two is what is on screen; §03 introduces the third where the third lives.
-      // "Once a second" is the part worth keeping: it is the fact the split figure demonstrates
-      // and the one §02 otherwise assumes you already know.
-      lede: "Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself: two networks, measured separately, once a second for the whole runtime.",
-      // The two cards are timed against the figure beside them, not against each other: the
-      // dorsal card arrives as the dorsal region lights (TwoRegionBrain's STAGE.dorsal opens
-      // at 0.42 of a 2100ms build ≈ 880ms) and the ventral card as the ventral one does
-      // (0.60 ≈ 1260ms). Reading the name while the region appears is the whole point of
-      // having both; two cards sliding in on a generic 80ms stagger would have been motion
-      // for its own sake.
+      // No `heading` or `lede` here, and that is what lifts the figure. Section stacks its text
+      // block full width and puts the body underneath, which parked ~180px of heading and lede
+      // directly above the cortex and left the whole right-hand side of that block empty. The
+      // heading and lede are rendered INSIDE the body's left column instead, so the figure
+      // top-aligns with the heading and rises into the space that was already there. The beat
+      // loses about 110px of height and the brain moves up roughly 180px, without the figure
+      // getting any smaller or the type changing size.
+      //
+      // Set in Section's own classes, not new ones. If Section's heading or lede styling
+      // changes, this has to change with it — the alternative was a `headingInBody` flag on
+      // every section for the sake of one, which is more machinery than the duplication costs.
+      //
+      // WHY THE CARDS ARRIVE THIS FAST NOW. The delays used to be 880ms and 1260ms, timed
+      // against TwoRegionBrain's staged build (STAGE.dorsal at 0.42 of 2100ms, STAGE.ventral
+      // at 0.60) so each card landed as the region it names lit up. That figure is the 2D
+      // FALLBACK. What almost everyone actually sees is TwoRegionBrain3D, which has no stages
+      // at all: both networks fade up together on one exponential ease (REVEAL_RATE 2.2/s, so
+      // half the colour is in at ~310ms and it is essentially done by ~750ms). The cards were
+      // pacing themselves against a build that is not on screen, and the second one sat blank
+      // for well over a second after the figure had finished. 180/360 keeps the dorsal-then-
+      // ventral order, which is the reading order of the sentence above them, against the
+      // reveal that is actually running.
       body: (revealed) => (
         <div>
-        {/* The provenance, three chips, at the top of the beat that asks to be believed. Every
-            one of these is checkable and none of them was on this route: the strongest
-            credibility facts the company owns lived on /science, which most people watching a
-            three-minute walkthrough will never open. Sourced, in order:
-            docs/strategy/VISION.md and SiteFooter (TRIBE v2, Meta, benchmarked vs real fMRI),
-            docs/GTM/YC-APPLICATION.md (1st of 263 teams, Algonauts 2025) and
-            docs/science/PREREGISTRATION.md (20,484 vertices, the 1 Hz arc).
-            NOT "3T": the scanner field strength is a property of the Algonauts dataset that
-            this repository nowhere states, and the chips are only worth having if every one of
-            them survives being looked up. */}
-        <div className="mb-7 flex flex-wrap gap-2">
-          {PROVENANCE.map((c, i) => (
-            <span
-              key={c}
-              className="rounded-badge border border-line-2 px-3 py-[7px] text-[12px] leading-none text-ink-2"
-              style={{
-                opacity: revealed ? 1 : 0,
-                transform: revealed ? "none" : "translateY(6px)",
-                transition: `opacity .5s ${120 + i * 90}ms, transform .5s ${120 + i * 90}ms`,
-              }}
+        {/* items-start, and NOT the items-stretch this beat carried on main. Both were aimed at
+            the same 109px of empty paper above the first card, and the difference is which
+            column is taller. Stretching assumed the FIGURE was, so it grew the text column to
+            match and split the slack between two cards. Once the heading and the lede moved
+            into this column it is the taller of the two, so stretching would grow the FIGURE
+            box instead and centre the cortex in it, which is the void this beat started with,
+            moved to the other side of the row. Top-aligned, the heading and the figure begin on
+            the same line and the ragged edge falls at the bottom, where a two-column layout is
+            expected to have one. */}
+        <div ref={scienceRef} className="grid grid-cols-1 items-start gap-8 md:grid-cols-[1fr_360px]">
+          <div>
+            <h2
+              className="max-w-[20ch] text-balance text-section text-ink"
+              style={{ opacity: revealed ? 1 : 0, transform: revealed ? "none" : "translateY(8px)", transition: "opacity .6s .05s, transform .6s .05s" }}
             >
-              {c}
-            </span>
-          ))}
-        </div>
-        <div ref={scienceRef} className="grid grid-cols-1 items-stretch gap-8 md:grid-cols-[1fr_360px]">
-          {/* Stacked, not side by side. Two short cards next to a ~390px figure left a 130px
-              hole above them and another below: the beat's own frame had a void in the middle
-              of it. Stacked, the left column is close to the figure's height and the row reads
-              as two columns rather than as a figure with something small parked beside it. It
-              also survives the downscale better, since each card is now full column width
-              instead of half.
-
-              STRETCHED, not centred. `items-center` sizes this column to its content and hangs
-              it in the middle of the row, which is what put 109px of empty paper above the
-              first card and another 109px below the second: measured at 1512x860, a 228px
-              column floating in a 446px row. Stretching makes the two columns the same object
-              height, so the row has a top edge and a bottom edge instead of a figure with
-              something small parked halfway down it. Two rows rather than auto rows, so the
-              cards split the height evenly instead of the first one taking all the slack. */}
-          <div className="grid h-full grid-cols-1 grid-rows-2 gap-4">
-            <RegionCard
-              title="Dorsal attention"
-              tag="IPS · FEF · superior parietal"
-              body="Decides what the viewer looks at, and holds on."
-              tone="ink"
-              revealed={revealed && scienceIn}
-              delay={880}
-            />
-            <RegionCard
-              title="Ventral · surprise"
-              tag="anterior insula · ACC"
-              body="Fires on the unexpected. That jolt is what a hook actually is."
-              tone="accent"
-              revealed={revealed && scienceIn}
-              delay={1260}
-            />
+              Attention isn&rsquo;t one thing. Different regions do{" "}
+              <span className="font-serif font-normal italic">different</span> jobs.
+            </h2>
+            <p
+              className="mt-4 max-w-[62ch] text-pretty text-body text-ink-2"
+              style={{ opacity: revealed ? 1 : 0, transition: "opacity .6s .15s" }}
+            >
+              Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself:
+              two networks, measured separately, once a second for the whole runtime.
+            </p>
+            {/* The provenance, three chips, at the top of the beat that asks to be believed.
+                Every one of these is checkable and none of them was on either demo route: the
+                strongest credibility facts the company owns lived on /science, which almost
+                nobody watching a three-minute walkthrough ever opens. Sourced, in order:
+                docs/strategy/VISION.md and SiteFooter (TRIBE v2, Meta, benchmarked vs real
+                fMRI), docs/GTM/YC-APPLICATION.md (1st of 263 teams, Algonauts 2025) and
+                docs/science/PREREGISTRATION.md (20,484 vertices, the 1 Hz arc).
+                NOT "3T": the scanner field strength is a property of the Algonauts dataset that
+                this repository nowhere states, and a chip is only worth its space if every word
+                of it survives being looked up.
+                In the left column rather than above the grid, so the figure still top-aligns
+                with the heading — putting them full width above the row was what the heading
+                and lede moving in here was done to stop. */}
+            <div className="mt-6 flex flex-wrap gap-2">
+              {PROVENANCE.map((c, i) => (
+                <span
+                  key={c}
+                  className="rounded-badge border border-line-2 px-3 py-[7px] text-[12px] leading-none text-ink-2"
+                  style={{
+                    opacity: revealed ? 1 : 0,
+                    transform: revealed ? "none" : "translateY(6px)",
+                    transition: `opacity .5s ${120 + i * 90}ms, transform .5s ${120 + i * 90}ms`,
+                  }}
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+            {/* Stacked, not side by side. Two short cards next to the figure left a hole above
+                them and another below: the beat's own frame had a void in the middle of it.
+                Stacked, the column reads as a column rather than as a figure with something
+                small parked beside it, and each card survives the downscale better at full
+                column width instead of half. */}
+            <div className="mt-7 grid grid-cols-1 gap-4">
+              <RegionCard
+                title="Dorsal attention"
+                tag="IPS · FEF · superior parietal"
+                body="Decides what the viewer looks at, and holds on."
+                tone="ink"
+                revealed={revealed && scienceIn}
+                delay={180}
+              />
+              <RegionCard
+                title="Ventral · surprise"
+                tag="anterior insula · ACC"
+                body="Fires on the unexpected. That jolt is what a hook actually is."
+                tone="accent"
+                revealed={revealed && scienceIn}
+                delay={360}
+              />
+            </div>
           </div>
-          <div className="flex items-center rounded-2xl border border-line bg-paper p-4">
+          {/* No `flex items-center` here, which is what this box carried on main. It centred
+              the cortex in a box that items-stretch had grown to the row height; nothing
+              stretches it now, so the box hugs the figure and centring has nothing to centre. */}
+          <div className="rounded-2xl border border-line bg-paper p-4">
             {/* The real cortex, as a rotating point cloud, rather than the flat lateral
                 outline. It keeps its own reveal easing for the network colours and leaders,
                 and falls back to the 2D figure automatically where WebGL is unavailable —
@@ -337,24 +415,32 @@ export default function DemoScrollPage({
                 dead air removed, the figure itself untouched. Dead space inside the box goes
                 from 99px above and 76px below the cloud to 35px and 19px.
 
-                Do not raise this to "give the brain room". It has the room; it cannot use it. */}
+                Do not raise this to "give the brain room". It has the room; it cannot use it.
+
+                The measurement still holds after the heading and the lede moved into the
+                column beside this one: that changed the row's HEIGHT, not this column's width,
+                and width is the term the camera is binding on. */}
             <TwoRegionBrain3D active={revealed && scienceIn} height={290} />
           </div>
         </div>
 
-        {/* A dimmed third "Comprehension · read in 03" row sat here, to establish the triad
-            before §02 draws three arcs. Removed: this beat is about two networks and shows two
-            — two cards, a two-region cortex, and a split figure reading two lanes — so a third
-            entry was the one object in the section that pointed at something not on screen, and
-            it read as a row that had failed to load rather than as one that was queued. §03 has
-            a hero-sized heading of its own and introduces the lane perfectly well when it gets
-            there. The lede below the heading no longer counts networks either. */}
+        {/* Full width, under the row rather than inside the text column: it is two cards of its
+            own and the left column is already carrying a heading, a lede, three chips and two
+            region cards.
+            A dimmed third "Comprehension · read in 03" row also sat here once, to establish the
+            triad before the hook beat draws three arcs. Removed: this beat is about two networks
+            and shows two in every object it has, so a third entry pointed at something not on
+            screen and read as a row that had failed to load rather than as one that was queued. */}
         <LaneSplit ad={heroAd} moments={splitMoments} active={revealed} />
         </div>
       ),
     },
     {
       key: "hook",
+      // The long route's hook beat, and the short route's only when the preflight artifact is
+      // missing. Same claim as the section below it, argued from report.json's own footage:
+      // one cut's three lanes with the surprise peak ringed, against a second cut's hook score.
+      show: !spine,
       eyebrow: "Hook scoring",
       heading: <>The first three seconds are <span className="font-serif font-normal italic">everything</span>.</>,
       lede: "The first 3 seconds are scored separately, about 45% of the total. Surprise is what measures them.",
@@ -398,7 +484,97 @@ export default function DemoScrollPage({
       ),
     },
     {
+      key: "hook-preflight",
+      // /preflight's hook beat, verbatim: the batch's best cut against its worst on the
+      // ventral lane alone, with the hook window shaded and both hook scores under it. It
+      // replaces the arc above on the walkthrough because everything that follows it is now
+      // drawn from the same batch, and a hook argument made on other footage would have the
+      // page introduce two sets of cuts before the reader has seen either measured.
+      //
+      // HOOK_SECONDS and report.weights.hook come from the preflight side: those are the
+      // numbers this figure is actually computed from. report.hookSeconds is report.json's,
+      // and quoting it over a chart drawn from the other artifact is how the two drift.
+      show: spine,
+      eyebrow: "Hook scoring",
+      heading: <>The first three seconds are <span className="font-serif font-normal italic">everything</span>.</>,
+      lede: pf ? (
+        <>
+          Every ad&rsquo;s first {HOOK_SECONDS} seconds are scored as its hook, separately
+          from the full video, and worth {Math.round(pf.weights.hook * 100)}% of the total.
+          The ventral surprise signal is what measures it: a hook works by being unexpected,
+          and the salience network is what registers the unexpected.
+        </>
+      ) : undefined,
+      body: (revealed) => (pf ? <HookCompare report={pf} active={revealed} /> : null),
+    },
+    {
+      // Not "readout": the long route already has a section under that key (its closing recap
+      // of the three scores), and two entries sharing one key would collide as React children
+      // the first time a change made both routes render both.
+      key: "player",
+      // The clip on the left, its three lanes on the right, one clock between them, and the
+      // batch under it to choose from. /preflight carries this with no heading at all ("the
+      // player IS the statement"), and that holds here: the only thing a heading could say is
+      // what the reader is about to press play on. It keeps the numbered eyebrow because this
+      // page numbers its beats and a hole in the count reads as a rendering fault.
+      //
+      // This is the beat the old "watch it live" section was, done better: LivePlayer scored
+      // one ad against report.json, this one plays any cut in the batch and the selection is
+      // shared with the comparison below, so the same click drives both.
+      show: spine,
+      eyebrow: "The read-out",
+      body: (revealed) =>
+        pf && preflightAd ? (
+          <div className="flex flex-col gap-8">
+            {/* Keyed on the ad: switching cuts remounts the panel, the <video> and the video
+                clock together, so no playhead, buffer or error state leaks across. */}
+            <PlayerPanel key={preflightAd.id} ad={preflightAd} report={pf} active={revealed} />
+            <AdList
+              ads={preflightOrdered}
+              report={pf}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              orientation="row"
+              active={revealed}
+            />
+          </div>
+        ) : null,
+    },
+    {
+      key: "batch",
+      // Directly under the player, as on /preflight: the cut just watched, now against the
+      // four it is being judged with. The metric picker is what makes it three questions
+      // rather than one — which cut held the eye, which surprised, which actually registered.
+      //
+      // ONE THING TO KNOW BEFORE RECORDING, and it is a one-prop fix either way. The list
+      // beside the chart carries each cut's score, as it does on /preflight, and those scores
+      // come from batch_report.json. The generation board two beats later scores THE SAME FIVE
+      // CLIPS off report.json, on a different scale: Product First is 80 here and 73 there, and
+      // ranks 4 and 5 come out in the opposite order (Weak Open is last here, Urgency First is
+      // last there). On camera that is the page disagreeing with itself about its own footage.
+      // /demo's copy of this figure passes showScore={false} for exactly this reason and lets
+      // the list be a legend. Add that here too if the contradiction is worse than losing the
+      // ranking; leaving it on is a deliberate choice, not an oversight.
+      show: spine,
+      eyebrow: "The batch",
+      heading: <>Compare across the <span className="font-serif font-normal italic">batch</span>.</>,
+      body: (revealed) =>
+        pf ? (
+          <OverlayPanel
+            report={pf}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            active={revealed}
+          />
+        ) : null,
+    },
+    {
       key: "comprehension",
+      // Dropped from the walkthrough now that the batch comparison above answers this heading
+      // on screen with a lane picker: "comprehension" is one of its three metrics, and asking
+      // the question a second time under its own heading would be the page making the same
+      // point twice. Still the long page's beat, where the reader has no founder to ask it.
+      show: !spine,
       // The heading is the line this beat was kept for, so it is set at hero size: it is the
       // question the founder asks out loud and then answers, not a caption for the figure.
       feature: true,
@@ -506,11 +682,13 @@ export default function DemoScrollPage({
     },
     {
       key: "live",
-      // Back on the recording route, and the single strongest addition the extra time buys.
-      // It is the only real footage on the page: everything before it is charts ABOUT an ad,
-      // and this is the ad, playing, with the score moving against the frames on screen. It
-      // was cut at 55 seconds for costing ~4s to re-prove the measurement; narrated, it is
-      // the shot where a viewer stops reading the page and believes it.
+      // The argument for this beat was that it is the only real footage on the page. On the
+      // spliced walkthrough that is no longer true: the read-out beat plays any cut in the
+      // batch against its own lanes, three sections earlier and with the batch to switch
+      // between, so this would be the second video player on one page showing less. It stays
+      // on the long route, which has no other footage, and on the short route whenever the
+      // preflight artifact is missing and the read-out beat therefore isn't there.
+      show: !spine,
       eyebrow: "Watch it live",
       heading: <>The ad and its score, <span className="font-serif font-normal italic">side by side</span>.</>,
       lede: "The clip is the clock. Attention, surprise and the score track the frames on screen.",
@@ -599,7 +777,7 @@ export default function DemoScrollPage({
 
   let counter = 0;
   const sections = defs
-    .filter((d) => variant === "full" || !d.fullOnly)
+    .filter((d) => (variant === "full" || !d.fullOnly) && d.show !== false)
     .map((d) => ({ ...d, n: d.unnumbered ? "–" : String(++counter).padStart(2, "0") }));
   const numberOf = (key: string) => sections.find((s) => s.key === key)?.n ?? "";
 
@@ -667,12 +845,12 @@ export default function DemoScrollPage({
               className="mt-7 flex flex-wrap items-center gap-3"
               style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity .7s .3s") }}
             >
+              {/* One button, not two. The second was "Open the live console", pointing at
+                  /console — the route still exists and still works, it is just no longer
+                  something the page sends anyone to. */}
               <a href="#science" className="rounded-xl bg-ink px-5 py-[12px] text-ui font-medium text-white transition-colors hover:bg-ink/85">
                 See how it works
               </a>
-              <Link href="/console" className="rounded-xl border border-line-2 px-5 py-[12px] text-ui font-medium text-ink-2 transition-colors hover:border-ink hover:text-ink">
-                Open the live console
-              </Link>
             </div>
           </div>
 
@@ -771,12 +949,12 @@ export default function DemoScrollPage({
           <p className="mx-auto mt-3 max-w-[46ch] text-[13.5px] leading-[1.6] text-ink-3">
             An mp4 per cut is the whole intake. Turnaround in hours, not a research cycle.
           </p>
+          {/* One button. The closing frame used to offer "Explore the live console" beside
+              it, which split the last ask on the page in two; /console is still built and
+              still reachable, it just is not where this page points anyone. */}
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link href="/" className="rounded-xl bg-ink px-6 py-[15px] text-ui font-medium text-white transition-colors hover:bg-ink/85">
               Request access
-            </Link>
-            <Link href="/console" className="rounded-xl border border-line-2 px-6 py-[15px] text-ui font-medium text-ink-2 transition-colors hover:border-ink hover:text-ink">
-              Explore the live console
             </Link>
           </div>
           {/* A closing frame with no address is a closing frame a viewer cannot act on. This is

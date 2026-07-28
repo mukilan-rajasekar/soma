@@ -143,7 +143,7 @@ export default function PlayerPanel({ ad, report, active }: Props) {
             everything below the panel jump when you switch cuts. */}
         <div className="mt-2 h-[34px] overflow-hidden">
           {clock.error ? (
-            <p className="text-[11.5px] leading-[1.5] text-ink-3">
+            <p className="text-[12.5px] leading-[1.5] text-ink-3">
               {clock.error} The arc is still real.
             </p>
           ) : null}
@@ -178,7 +178,7 @@ export default function PlayerPanel({ ad, report, active }: Props) {
         {/* A fixed three-column grid, not a wrapping row: an ad missing a lane drops an
             entry, and on a flex row that re-wraps the rest and shifts everything below the
             panel when you switch cuts. */}
-        <div className="mt-3.5 grid min-h-[52px] grid-cols-1 gap-x-5 gap-y-2.5 text-[11px] leading-[1.45] text-ink-3 sm:grid-cols-3">
+        <div className="mt-3.5 grid min-h-[52px] grid-cols-1 gap-x-5 gap-y-2.5 text-[12px] leading-[1.45] text-ink-3 sm:grid-cols-3">
           {shown.map((l) => (
             <div key={l.key} className="flex items-start gap-2">
               <span
@@ -199,7 +199,7 @@ export default function PlayerPanel({ ad, report, active }: Props) {
         {/* The shaded bands are the most striking thing on this chart and nothing else on
             the page says what they are. Only rendered when this cut actually has one. */}
         {bands.length ? (
-          <div className="mt-1 flex items-start gap-2 text-[11px] leading-[1.45] text-ink-3">
+          <div className="mt-1 flex items-start gap-2 text-[12px] leading-[1.45] text-ink-3">
             <span
               aria-hidden
               className="mt-[3px] inline-block h-3 w-5 shrink-0 rounded-[3px]"
