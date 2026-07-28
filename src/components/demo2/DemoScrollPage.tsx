@@ -80,7 +80,6 @@ import VendorChecklist from "./VendorChecklist";
 import GenerateStudio from "./GenerateStudio";
 import CorpusWall from "./CorpusWall";
 import BatchOverlay from "./BatchOverlay";
-import LaneSplit, { type SplitMoment } from "./LaneSplit";
 import HeroReadout from "./HeroReadout";
 import { englishBatch } from "./corpus";
 import EditStudio from "./EditStudio";
@@ -198,20 +197,6 @@ export default function DemoScrollPage({
     for (let i = 1; i < Math.min(n, v.length); i++) if (v[i] > v[best]) best = i;
     return hookAd.timestamps[best] ?? 0;
   })();
-
-  // The two seconds §01's split figure reads. Chosen by looking at heroAd's lanes: 0:05 is
-  // where the surprise network runs furthest ahead of the attention network in this cut, and
-  // 0:22 is where that reverses hardest. They are FIXED here rather than recomputed on every
-  // render for one reason — the stills have to exist on disk, and a moment derived at render
-  // time would point at a frame nobody cut. The numbers printed beside them are read from the
-  // lanes every time (see LaneSplit), and the figure removes itself if a rebuilt report ever
-  // stops the two moments disagreeing, so the pairing cannot go quietly false either way.
-  // The stills are pulled from heroAd's own video path, so promoting a different cut to the
-  // hero cannot leave this pointing at the old ad's frames.
-  const splitMoments: [SplitMoment, SplitMoment] = [
-    { t: 5, src: stillFor(heroAd, 5), caption: "the hood comes out of the box" },
-    { t: 22, src: stillFor(heroAd, 22), caption: "held steady, brand on screen" },
-  ];
 
   // ── the spliced spine ───────────────────────────────────────────────
   //
@@ -378,7 +363,23 @@ export default function DemoScrollPage({
               {PROVENANCE.map((c, i) => (
                 <span
                   key={c}
-                  className="rounded-badge border border-line-2 px-3 py-[7px] text-[12px] leading-none text-ink-2"
+                  // The house button, not a badge. rounded-badge is a 32% radius, which on a
+                  // wide short box resolves to a stadium — two half-circles and a straight
+                  // middle, the one shape on the page that reads as a tag rather than as a
+                  // control. Every other bordered box a viewer sees (the hero pair, the closing
+                  // CTA, the landing Demo link, the metric picker) is rounded-xl, and that is
+                  // also where globals.css hangs the quintic superellipse, so matching it buys
+                  // the house corner as well as the house radius. Geometry to the pixel with
+                  // SiteHeader's button: px-[15px] py-[9px].
+                  // SHAPE matches the house button; SIZE cannot. A real button holds one or two
+                  // words and these hold sentences, and they sit in the left column of a
+                  // [1fr_360px] row — 788px at a 1440 viewport, not the 1180 the row is. At the
+                  // button's own 14px/px-[15px] the three of them measure past that and the
+                  // third drops to a second line, which is a worse look than a slightly smaller
+                  // control: a wrapped row of buttons reads as a layout that ran out of room.
+                  // 12.5px and 13px of side padding is the largest that keeps them on one line
+                  // down to the md breakpoint, where the column goes full width anyway.
+                  className="rounded-xl border border-line-2 px-[13px] py-[8px] text-[12.5px] font-medium leading-none tracking-[-0.01em] text-ink-2"
                   style={{
                     opacity: revealed ? 1 : 0,
                     transform: revealed ? "none" : "translateY(6px)",
@@ -448,14 +449,40 @@ export default function DemoScrollPage({
           </div>
         </div>
 
-        {/* Full width, under the row rather than inside the text column: it is two cards of its
-            own and the left column is already carrying a heading, a lede, three chips and two
-            region cards.
-            A dimmed third "Comprehension · read in 03" row also sat here once, to establish the
-            triad before the hook beat draws three arcs. Removed: this beat is about two networks
-            and shows two in every object it has, so a third entry pointed at something not on
-            screen and read as a row that had failed to load rather than as one that was queued. */}
-        <LaneSplit ad={heroAd} moments={splitMoments} active={revealed} />
+        {/* TWO THINGS HAVE BEEN CUT FROM UNDER THIS ROW, in order, and the second is worth
+            knowing about before anyone adds a third.
+
+            A dimmed "Comprehension · read in 03" row, to establish the triad before the hook
+            beat draws three arcs. It pointed at something not on screen and read as a row that
+            had failed to load rather than as one that was queued.
+
+            Then LaneSplit: two stills off the hero cut at 0:05 and 0:22, each with both networks
+            read at that second (surprise 91 / attention 31, then attention 100 / surprise 30),
+            under a line saying the same ad reads opposite ways seventeen seconds apart. It was
+            built to answer a specific criticism — that this was the only beat making a claim
+            with no proof object under it, and the only one with no clock on it while the rest of
+            the page is indexed to the second. Cut at the founder's call: the beat now runs
+            heading, lede, chips, two region cards and the cortex, and the founder makes the
+            per-second point out loud instead.
+
+            LaneSplit.tsx and its stills under public/demo/split both stay on disk, and the
+            component still derives every number from the lanes at render time and removes
+            itself if the two moments ever stop disagreeing. To restore it, three things come
+            back together — the import, the moments, and the element:
+
+              import LaneSplit, { type SplitMoment } from "./LaneSplit";
+
+              const splitMoments: [SplitMoment, SplitMoment] = [
+                { t: 5,  src: stillFor(heroAd, 5),  caption: "the hood comes out of the box" },
+                { t: 22, src: stillFor(heroAd, 22), caption: "held steady, brand on screen" },
+              ];
+
+              <LaneSplit ad={heroAd} moments={splitMoments} active={revealed} />
+
+            The seconds are not arbitrary and should not be re-picked casually: 0:05 is where
+            the surprise lane runs furthest ahead of attention in this cut and 0:22 is where
+            that reverses hardest, and the two stills on disk are cut at exactly those seconds.
+            `stillFor` survives here regardless — the hero's poster frame uses it. */}
         </div>
       ),
     },
