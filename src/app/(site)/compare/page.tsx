@@ -79,8 +79,14 @@ const ROWS: { label: string; cells: [Cell, Cell, Cell, Cell] }[] = [
       { mark: "y", sub: "none" },
     ],
   },
+  // HOURS, NOT MINUTES, and the row is still won. The comparison that matters here is
+  // against a recruited panel's DAYS, and the honest turnaround is what ServiceTiers and
+  // /demo's closing frame both already print ("turnaround in hours", "hours, not a research
+  // cycle"). A minutes claim on this page put the site in disagreement with itself on the one
+  // number a buyer schedules around. Restore "minutes" only when a run actually returns in
+  // minutes — that is a runner change, not a copy change.
   {
-    label: "Result in minutes",
+    label: "Result in hours",
     cells: [
       { mark: "n", sub: "days" },
       { mark: "y" },
@@ -114,7 +120,7 @@ const HEADTOHEAD = [
       <>
         We read from the{" "}
         <strong className="font-semibold text-ink">file</strong>. No webcam,
-        no recruited panel, no scheduling, in minutes at a fraction of the cost, so
+        no recruited panel, no scheduling, in hours at a fraction of the cost, so
         you test every variant. Their read is a facial proxy for an internal state;
         ours is the cortical state itself.
       </>
@@ -342,7 +348,7 @@ export default function ComparePage() {
         </div>
         <p className="mt-[14px] max-w-[70ch] text-[13px] leading-[1.6] text-ink-3">
           Soma competes on source, speed, and cost: the actual cortical response,
-          read from the file, in minutes, cheap enough for every cut. Figures for
+          read from the file, in hours, cheap enough for every cut. Figures for
           named competitors are from their own material; verify before quoting.
         </p>
       </section>
@@ -411,7 +417,7 @@ export default function ComparePage() {
           </h2>
           <p className="mt-[14px] max-w-[66ch] text-pretty text-[16px] leading-[1.6] text-ink-2">
             Soma reads how an ad earns attention, holds comprehension, and lands
-            in the brain, straight from the file, in minutes, at a fraction of
+            in the brain, straight from the file, in hours, at a fraction of
             panel cost, so you test every cut.
           </p>
           <ul className="mt-4 grid gap-[11px]">
@@ -425,7 +431,7 @@ export default function ComparePage() {
               </>,
               <>
                 A result in{" "}
-                <strong className="font-semibold text-ink">minutes</strong>, not
+                <strong className="font-semibold text-ink">hours</strong>, not
                 days, and cheap enough to run on every variant.
               </>,
               <>

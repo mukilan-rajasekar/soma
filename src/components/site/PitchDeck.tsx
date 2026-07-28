@@ -72,7 +72,7 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
           (fMRI) activation from video, benchmarked against real human scans. We
           don&rsquo;t reinvent the brain; we build the last mile on top of it:
           upload an ad, get the{" "}
-          <strong className="text-ink">cortical response</strong> in minutes,
+          <strong className="text-ink">cortical response</strong> in hours,
           from the file &mdash; no panel, no webcam,
           no survey. Our edge is turning that public brain model into the handful
           of signals advertisers actually act on. Competitors sell an opaque score
@@ -110,7 +110,7 @@ const SLIDES: { kick: string; title: ReactNode; body: ReactNode }[] = [
           <strong className="text-ink">2D affect</strong> read (valence =
           feels good/bad, arousal = calm/excited). It flags weak spots in plain
           language: &ldquo;attention drops at 0:07 &mdash; two
-          seconds before your logo lands.&rdquo; Repeatable, per-file, in minutes.
+          seconds before your logo lands.&rdquo; Repeatable, per-file, in hours.
           A pre-flight check before spend, not a research project after it.
         </p>
         <Viz>
