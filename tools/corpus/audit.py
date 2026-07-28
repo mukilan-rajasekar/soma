@@ -29,6 +29,15 @@ WHAT IT CHECKS
   range        does the label span the failure end? This is the one that decides whether
                more of the SAME source helps. If every ad in the corpus is a winner,
                scraping ten thousand more winners changes nothing.
+  failures     how many ads actually FAILED, counted rather than assumed. This is the
+               measure the first run of this audit was missing: it could say the corpus
+               was winners-only, but once a loser-bearing source was added it had no way
+               to notice. An audit that cannot see its own recommendation being followed
+               is not much of an audit.
+  pairing      how many advertisers appear more than once. A same-advertiser pair holds
+               brand, budget and audience roughly constant so only the creative moved —
+               a much stronger comparison than ranking across advertisers, and the one
+               this corpus should be used for first.
   power        with this much usable data, what effect size could a test even detect?
                A corpus too small to detect a real effect will return a null that means
                "we could not tell", which is very different from "there is nothing there"
@@ -44,6 +53,7 @@ import argparse
 import csv
 import json
 import math
+import re
 import statistics
 import sys
 from pathlib import Path
@@ -57,6 +67,18 @@ MIN_CV = 0.05
 # The corpus is a winners showcase if almost everything sits in the top of the label range.
 # Not a law of nature — a threshold chosen to make the shape visible.
 WINNER_QUANTILE = 0.5
+
+# An ad that ran two weeks or less and then STOPPED is the closest thing this data has to
+# a failure. Advertisers keep paying for what works, so a short completed run is a proxy
+# for "they stopped believing in it" — not proof, and tools/corpus/meta_ads.py spells out
+# why (a short run can also be a dated promo that always had an end date). It is only
+# meaningful for ads that have actually ended; a live ad's duration is a partial
+# measurement and meta_ads.py refuses to collect those at all.
+FAILURE_DAYS = 14
+
+# Sources that are curated showcases by construction. No amount of collection from these
+# produces a failed ad, so their rows are counted separately from the failure measure.
+CURATED_SOURCES = {"tiktok"}
 
 
 def load(path: Path) -> list[dict]:
@@ -91,11 +113,26 @@ def detectable_r(n: int, alpha: float = 0.05, power: float = 0.80) -> float:
     return math.tanh((z_alpha + z_beta) / math.sqrt(n - 3))
 
 
+def advertisers(manifest) -> dict:
+    """ad_id -> advertiser, read out of the manifest's own note field.
+
+    meta_ads.py records `page_<name>` there. Nothing else in the corpus carries an
+    advertiser, which is precisely why the within-advertiser comparison was not available
+    before and is now."""
+    out = {}
+    for row in manifest:
+        m = re.search(r"page_([A-Za-z0-9_]+)", row.get("note") or "")
+        if m and row.get("ad_id"):
+            out[row["ad_id"]] = m.group(1)
+    return out
+
+
 def audit(data_dir: Path) -> dict:
     perf = load(data_dir / "ad_performance.csv")
     manifest = load(data_dir / "ad_manifest.csv")
 
     with_video = {r.get("ad_id") for r in manifest if r.get("ad_id")}
+    by_advertiser = advertisers(manifest)
     findings = []
     platforms = {}
 
@@ -138,19 +175,66 @@ def audit(data_dir: Path) -> dict:
                     f"{platform}: {field} barely varies (cv={entry['cv']}). Effectively "
                     f"a constant, so it has no discriminative power.")
 
+        # ── the failure end, counted rather than assumed ──────────────────────
+        # Only meaningful where the label IS a completed duration. A ctr index has no
+        # notion of "stopped", so a curated source is marked as such instead of being
+        # scored zero, which would read as a finding when it is a property of the source.
+        if platform in CURATED_SOURCES:
+            entry["curated"] = True
+            entry["failures"] = None
+        elif field == "days_running" and vals:
+            fails = [v for v in vals if v <= FAILURE_DAYS]
+            entry["curated"] = False
+            entry["failures"] = len(fails)
+            entry["failureFraction"] = round(len(fails) / len(vals), 3)
+
+        # ── within-advertiser pairs ───────────────────────────────────────────
+        seen = {}
+        for r in trainable:
+            adv = by_advertiser.get(r.get("ad_id"))
+            if adv:
+                seen.setdefault(adv, []).append(r)
+        entry["advertisers"] = len(seen)
+        entry["pairedAdvertisers"] = sum(1 for v in seen.values() if len(v) > 1)
+        entry["adsInPairs"] = sum(len(v) for v in seen.values() if len(v) > 1)
+
         entry["detectableR"] = round(detectable_r(entry["withVideo"]), 3) if entry["withVideo"] >= 6 else None
         platforms[platform] = entry
 
     total_trainable = sum(p["withVideo"] for p in platforms.values())
 
     # ── the finding that decides the next collection run ─────────────────────
-    tk = platforms.get("tiktok")
-    if tk and tk.get("fractionAboveMidRange", 0) is not None and tk["rows"]:
+    total_failures = sum(p.get("failures") or 0 for p in platforms.values())
+    total_paired = sum(p.get("adsInPairs") or 0 for p in platforms.values())
+
+    curated_rows = sum(p["rows"] for p in platforms.values() if p.get("curated"))
+    if curated_rows:
         findings.append(
-            "The TikTok rows come from Top Ads, which is a curated showcase of strong "
-            "performers. Whatever their spread, none of them is a FAILED ad, so a model "
-            "fit here learns 'how strong among strong' and cannot be asked whether an ad "
-            "will work. More of the same source does not fix this."
+            f"{curated_rows} rows come from a curated showcase (TikTok Top Ads). None of "
+            "them is a FAILED ad, so on their own they teach 'how strong among strong' "
+            "and cannot be asked whether an ad will work. More of that source does not "
+            "fix this."
+        )
+
+    if total_failures:
+        findings.append(
+            f"{total_failures} ads ran {FAILURE_DAYS} days or less and then STOPPED. That "
+            "is the failure end a curated source structurally cannot contain, so the "
+            "winner/loser question is now askable of this corpus rather than only the "
+            "rank-among-winners one. Still a proxy: a short completed run can also be a "
+            "dated promo that always had an end date."
+        )
+    elif curated_rows:
+        findings.append(
+            "No ads in this corpus failed. Until some do, any model fit here can only "
+            "rank winners among winners — run tools/corpus/meta_ads.py."
+        )
+
+    if total_paired:
+        findings.append(
+            f"{total_paired} ads come from advertisers with more than one ad in the "
+            "corpus. Those are the comparisons to trust first: same brand, similar "
+            "budget and audience, so the creative is close to the only thing that moved."
         )
 
     if total_trainable:
@@ -193,11 +277,14 @@ def main():
     print(f"trainable  {t['trainable']} ads carry BOTH\n")
 
     print(f"{'platform':<10} {'label':<14} {'n':>5} {'video':>6} {'distinct':>9} "
-          f"{'cv':>7} {'range':>18}")
+          f"{'cv':>7} {'range':>18} {'failed':>8} {'paired':>7}")
     for p in result["platforms"].values():
         rng = (f"{p['min']:.2f}..{p['max']:.2f}" if "min" in p else "-")
+        fails = ("curated" if p.get("curated")
+                 else (f"{p['failures']}" if p.get("failures") is not None else "-"))
         print(f"{p['platform']:<10} {p['labelField']:<14} {p['rows']:>5} {p['withVideo']:>6} "
-              f"{p.get('distinctValues', 0):>9} {p.get('cv', 0):>7.3f} {rng:>18}")
+              f"{p.get('distinctValues', 0):>9} {p.get('cv', 0):>7.3f} {rng:>18} "
+              f"{fails:>8} {p.get('adsInPairs', 0):>7}")
 
     print("\nfindings")
     for f in result["findings"]:
