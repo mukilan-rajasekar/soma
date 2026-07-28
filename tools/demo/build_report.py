@@ -51,10 +51,25 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # THE SCORE — the one place weights live. Retune here and re-run; nothing else changes.
 # ======================================================================================
 
+# ALIGNED TO demo/process_batch.py, DELIBERATELY. These three used to be .45/.35/.20 while
+# the preflight pipeline scored its own batches at .40/.35/.25 (hook / processing / clarity),
+# so the site had two scorers that disagreed about what a hook is worth. /demo renders the
+# preflight artifact's figure ("worth 40% of the total") in the hook beat and report.json's
+# variants everywhere else, which meant the same page was quoting 40% over one set of numbers
+# and computing 45% into another. The components are not identical across the two pipelines
+# (hold is sustained attention; processing is higher-order vs occipital) but the SHAPE now is:
+# hook 40, middle 35, message 25, whichever scorer produced the number.
+#
+# Changing these changes every score in public/demo/report.json. Three places downstream hold
+# literals derived from them and must be re-derived in the same commit — the build prints what
+# they should be:
+#   studio.ts  LATTICE          the five `survives: true` scores ARE the five variant scores
+#   studio.ts  EDIT_OPTIONS     the predicted reorder sits between the measured splices
+#   GenerateStudio PASS_MARK    the hairline between best rejected and weakest survivor
 WEIGHTS = {
-    "hook": 0.45,          # first HOOK_SECONDS of the ad
+    "hook": 0.40,          # first HOOK_SECONDS of the ad
     "hold": 0.35,          # sustained attention across the rest
-    "comprehension": 0.20,  # did the message land, and was the brand named
+    "comprehension": 0.25,  # did the message land, and was the brand named
 }
 
 HOOK_SECONDS = 3.0

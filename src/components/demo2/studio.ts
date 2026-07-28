@@ -10,7 +10,15 @@
 //   TRIBE output over the five actual 30s cuts in public/campaign. "Cut the 1.7–4.9s
 //   beat and the score goes 62 → 66" is a measured number, not a guess. The five cuts
 //   really are five different edits of one direct-response campaign, and they really do
-//   score 73 / 62 / 62 / 59 / 51.
+//   score 72 / 64 / 62 / 59 / 52.
+//
+//   Those five moved when the hook weight was aligned to the preflight pipeline's
+//   (.45/.35/.20 → .40/.35/.25 in tools/demo/build_report.py — see the note over WEIGHTS
+//   there). They are re-read from report.json on every render, so nothing in this file had
+//   to move with them EXCEPT the LATTICE survivors below, which are a hand-kept copy of the
+//   same five numbers. If you retune the weights again, that array is the thing that goes
+//   stale silently: the board will re-rank itself correctly while the cull chart above it
+//   keeps showing the old scores crossing the line.
 //
 //   SCRIPTED — the interaction around those numbers: the brief someone types, the names
 //   of the generator directions, the natural-language edit instructions, the candidate
@@ -129,11 +137,11 @@ export const DIRECTIONS: Direction[] = [
 // marked `survives` are the five that become the real cards below, so the lattice and the
 // board are visibly the same set of candidates.
 export const LATTICE: { score: number; survives: boolean }[] = [
-  { score: 38, survives: false }, { score: 51, survives: true }, { score: 29, survives: false },
-  { score: 44, survives: false }, { score: 33, survives: false }, { score: 62, survives: true },
+  { score: 38, survives: false }, { score: 52, survives: true }, { score: 29, survives: false },
+  { score: 44, survives: false }, { score: 33, survives: false }, { score: 64, survives: true },
   { score: 41, survives: false }, { score: 27, survives: false }, { score: 47, survives: false },
   { score: 59, survives: true }, { score: 31, survives: false }, { score: 43, survives: false },
-  { score: 36, survives: false }, { score: 48, survives: false }, { score: 73, survives: true },
+  { score: 36, survives: false }, { score: 48, survives: false }, { score: 72, survives: true },
   { score: 25, survives: false }, { score: 40, survives: false }, { score: 46, survives: false },
   { score: 34, survives: false }, { score: 62, survives: true }, { score: 30, survives: false },
   { score: 45, survives: false }, { score: 39, survives: false }, { score: 28, survives: false },

@@ -73,7 +73,20 @@ else
   python3 -m pytest -q || fail "pytest"
 fi
 
-# ---- 4. smoke ---------------------------------------------------------------
+# ---- 4. demo artifact coherence ---------------------------------------------
+# A handful of figures on /demo are hand-kept TS literals transcribed from a build
+# of report.json (the cull chart's candidates, the pass line, the predicted edit).
+# They go stale SILENTLY on a weight retune: the board re-ranks itself correctly
+# while the chart above it keeps showing the old scores. Pure arithmetic over two
+# committed JSONs — no GPU, no network, no build — so it costs nothing to always run.
+step "demo artifact coherence"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python tools/demo/check_coherence.py || fail "demo artifact coherence"
+else
+  python3 tools/demo/check_coherence.py || fail "demo artifact coherence"
+fi
+
+# ---- 5. smoke ---------------------------------------------------------------
 if [[ "$BUILD_OK" == "0" ]]; then
   step "smoke (skipped — build failed, smoke would only echo it)"
 elif [[ "${SKIP_SMOKE:-0}" == "1" ]]; then

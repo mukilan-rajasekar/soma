@@ -38,8 +38,11 @@ const T_CULL = 0.66;
 
 // The cull chart. PASS_MARK is where the hairline sits, in the same 0–100 units as a
 // candidate's score: above the best rejected candidate (48) and below the weakest
-// survivor (51), so the line is what separates them rather than a decoration drawn near
-// them. Change LATTICE and this has to move with it.
+// survivor (52), so the line is what separates them rather than a decoration drawn near
+// them. Change LATTICE and this has to move with it — the weakest survivor moved 51 → 52
+// when the weights were aligned to the preflight pipeline, which 50 still clears, but the
+// next retune may not leave that gap open. The invariant to hold: every `survives: false`
+// score strictly below PASS_MARK, every `survives: true` score strictly above it.
 // 118 originally. Two reasons it grew. The frame this panel owns measured 485px of subject in
 // an 832px camera band, the thinnest composition in the take, and the empty space was all below
 // the panel. And at the 640px the recording is actually watched at, a 118px plot of 24 columns
@@ -96,7 +99,7 @@ export default function GenerateStudio({ report, active }: { report: Report; act
 
   // The best of the REAL ads the database beat puts on screen as a wall of frames with their
   // scores under them. It is here because a score out of 100 with nothing to compare it against
-  // is not a reading: a reader has no way to know whether 73 is good. The two sets are directly
+  // is not a reading: a reader has no way to know whether 72 is good. The two sets are directly
   // comparable and it matters that the page says so out loud — build_report.py's score_ad() is
   // the one place the weights live, and every ad on this page, generated or scraped, goes
   // through it. So the same reader who notices that the generated spread sits above the real one
