@@ -23,7 +23,7 @@ export default function SiteHeader() {
   // three minutes, over every figure the page is trying to get looked at. The page already ends
   // on "Request access" at full size with the address under it, which is the ask, made once,
   // where a viewer is ready for it. Every other route keeps the bar exactly as it was.
-  const recording = pathname === "/demo-short";
+  const recording = pathname === "/demo";
   const links = recording ? [] : LINKS;
   // bg-paper/85 let 34px section headlines smear through the bar as grey ghosts as they
   // scrolled under it — very visible in a screen recording. /95 keeps the blurred depth

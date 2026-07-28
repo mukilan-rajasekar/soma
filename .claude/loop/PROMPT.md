@@ -17,7 +17,7 @@ and append 3–7 concrete, small, individually-shippable items to BACKLOG.md:
 
 - `/health` — code quality and dead weight
 - `/design-review` on `src/app` — visual inconsistency, hierarchy, AI-slop patterns
-- `/qa-only` — behavioural defects on /demo, /demo-short, /preflight
+- `/qa-only` — behavioural defects on /demo, /preflight
 - `/devex-review` — the build and dev loop itself
 - test coverage — the Python pipeline (`affect_head.py`, `head_apply.py`,
   `build_roi_mask.py`, `incremental_validity.py`) has **zero** tests today.
@@ -61,9 +61,10 @@ Write `critique pass: <lens>` to `.claude/loop/LAST_TASK`.
 - Next.js **16.2.11**, App Router, routes in `src/app`. `AGENTS.md` says to read
   `node_modules/next/dist/docs/` before writing Next code — it is not the
   Next.js in your training data.
-- Site routes: `/`, `/demo`, `/demo-short`, `/preflight`, `/story`, `/pitch`,
-  `/science`, `/compare`, `/console`, `/brain-lab`.
-- `/demo-short` is the 60-second YC recording cut. It is load-bearing and
+- Site routes: `/`, `/demo`, `/preflight`, `/story`, `/pitch`, `/science`,
+  `/compare`, `/console`, `/brain-lab`. `/demo-short` is retired: its cut is
+  what `/demo` renders now.
+- `/demo` is the YC recording cut. It is load-bearing and
   visually tuned by hand — treat changes there as high-risk and prefer leaving
   it alone unless the backlog item is explicitly about it.
 - Lint is `npx eslint src`, never `eslint .` (the flat config drops eslint's

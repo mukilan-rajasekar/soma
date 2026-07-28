@@ -3,42 +3,46 @@ import DemoScrollPage from "@/components/demo2/DemoScrollPage";
 import { loadDemoReport } from "@/lib/demo-report";
 import { loadPreflightReport } from "@/components/preflight/report";
 
-// /demo is the LONG-FORM product narrative — the link pasted into a YC application, and the
-// page someone in diligence reads with no video to guide them. It renders every section,
-// including the service ladder and the buyer's checklist, which are the two most useful
-// things here for a sceptical reader and the two worst things to put in a 60-second video.
-// The recordable six-beat cut is a separate route, /demo-short; both render the same
-// component with a different `variant`, so nothing can drift between them.
+// /demo is the recording surface: seven beats, scrolled by hand and narrated live at about
+// three minutes. Hero → the science → hook scoring → "Did the brand actually land?" →
+// generation → editing → watch it live → the database → CTA. This cut lived at /demo-short
+// until it took this URL over; the long-form twelve-beat page that was here is still in the
+// component behind `fullOnly`, one word on the last line of this file away.
 //
-// Server Component so it can read the report and export metadata; renders server-side, so a
-// reader with JS disabled still gets the whole page. The old interactive console is /console.
-// This route is the link that gets pasted into a YC application, a DM and a deck, so the
-// social card matters as much as the page. It previously had only a title + description:
-// no OG tags, no Twitter card, no canonical and no metadataBase, which meant every share
-// of the product link previewed as a bare URL. opengraph-image.tsx in this folder generates
-// the card; metadataBase is what lets Next resolve it to an absolute URL.
+// The page does not scroll itself and has no start control. The take begins on the click
+// that navigates here from the landing page; after that every figure fires on its own
+// arrival in frame, at whatever pace the voiceover wants. Pausing on a beat, scrolling
+// back, or moving fast through a section cannot desynchronise anything.
+//
+// It is NOT a trimmed copy of the component. It renders DemoScrollPage with variant="short",
+// which filters the `fullOnly` sections out of the single section list. Section numbers and
+// the act-strip targets are derived from what survives, so nothing is maintained twice.
+//
+// What the long cut has and this does not: the silent-ad message track, the read-out recap,
+// the service ladder, the buyer's checklist. None of them is cut for time — each would
+// repeat something the walkthrough has already shown or already said out loud.
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.usesoma.work"),
-  title: "soma — find the ad that wins",
+  title: "soma · the walkthrough",
   description:
-    "Anyone can make a hundred ads; nobody knows which one wins. Soma reads how a brain watches each cut — hook, attention, comprehension — and finds the winner.",
+    "The short cut: how a brain watches an ad (hook, attention, comprehension), then generation and editing scored against that read.",
   alternates: { canonical: "/demo" },
   openGraph: {
     type: "website",
     url: "/demo",
     siteName: "soma",
-    title: "soma — find the ad that wins",
+    title: "soma · the walkthrough",
     description:
-      "Soma reads how a brain watches each cut — hook, attention, comprehension — then builds and edits against that read.",
+      "Seven beats: measure the cut, rank the batch, generate against the read, edit in a sentence, watch it score real frames.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "soma — find the ad that wins",
+    title: "soma · the walkthrough",
     description:
-      "Soma reads how a brain watches each cut — hook, attention, comprehension — then builds and edits against that read.",
+      "Seven beats: measure the cut, rank the batch, generate against the read, edit in a sentence, watch it score real frames.",
   },
 };
 
 export default function DemoPage() {
-  return <DemoScrollPage report={loadDemoReport()} preflight={loadPreflightReport()} variant="full" />;
+  return <DemoScrollPage report={loadDemoReport()} preflight={loadPreflightReport()} variant="short" />;
 }

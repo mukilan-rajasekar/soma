@@ -16,10 +16,9 @@ const BASE = process.env.SMOKE_URL || 'http://localhost:3099';
 const ROUTES = [
   // observed: text 240, canvas 1, scroll 900
   { path: '/', minText: 150, minCanvas: 1, minScroll: 600, needsH1: true },
-  // observed: text 11100, canvas 8, scroll 11277
-  { path: '/demo', minText: 8000, minCanvas: 6, minScroll: 8000, needsH1: true },
-  // observed: text 4729, canvas 7, scroll 6220
-  { path: '/demo-short', minText: 3500, minCanvas: 5, minScroll: 4500, needsH1: true },
+  // observed: text 4729, canvas 7, scroll 6220. The short cut moved onto /demo, so these
+  // are its numbers, not the retired long page's (text 11100, scroll 11277).
+  { path: '/demo', minText: 3500, minCanvas: 5, minScroll: 4500, needsH1: true },
   // observed: text 3603, canvas 4, scroll 4521
   { path: '/preflight', minText: 2500, minCanvas: 3, minScroll: 3200, needsH1: true },
 ];

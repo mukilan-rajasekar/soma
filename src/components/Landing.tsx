@@ -73,7 +73,7 @@ export default function Landing() {
             this one, and on bare transparency the points drift through the label and the
             hairline border reads as part of the cloud. */}
         <Link
-          href="/demo-short"
+          href="/demo"
           className="pointer-events-auto rounded-xl border border-line-2 bg-paper/80 px-[15px] py-[9px] text-[14px] font-medium tracking-[-0.01em] text-ink backdrop-blur-sm transition-colors hover:border-ink hover:bg-paper"
         >
           Demo
