@@ -14,6 +14,7 @@
 // forged path cannot satisfy the second gate.
 
 import { serviceClient } from "@/lib/supabase/server";
+import { sendSingleUploadQueuedEmail } from "@/lib/notify";
 import { isStoragePath, isValidEmail } from "@/lib/upload";
 
 export async function POST(request: Request) {
@@ -62,6 +63,15 @@ export async function POST(request: Request) {
   // Ignore duplicate storage_path (23505), mirroring the waitlist route.
   if (error && error.code !== "23505") {
     return Response.json({ error: "Could not queue upload." }, { status: 500 });
+  }
+
+  try {
+    await sendSingleUploadQueuedEmail({
+      email: email.trim().toLowerCase(),
+      filename: typeof filename === "string" && filename ? filename : null,
+    });
+  } catch (err) {
+    console.error("single upload queued email failed", err);
   }
 
   return Response.json({ ok: true });

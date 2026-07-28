@@ -74,6 +74,12 @@ BUCKET = "uploads"
 # the Next runtime. Python names win when both are set: this IS the pipeline.
 URL_VARS = ("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL")
 KEY_VARS = ("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY")
+RESEND_KEY_VARS = ("RESEND_API_KEY",)
+RESEND_FROM_VARS = ("RESEND_FROM_EMAIL", "NOTIFY_FROM_EMAIL")
+RESEND_REPLY_TO_VARS = ("RESEND_REPLY_TO_EMAIL", "NOTIFY_REPLY_TO_EMAIL")
+APP_URL_VARS = ("PUBLIC_APP_URL", "APP_URL", "SITE_URL")
+DEFAULT_APP_URL = "https://www.usesoma.work"
+DEFAULT_POLL_SECONDS = 60
 
 # How much of the run log to keep on the row. The full log stays on the box; this is the
 # tail a person reads when asking "what happened", and it has to fit in a jsonb-adjacent
@@ -117,6 +123,10 @@ def load_dotenv():
         except OSError:
             pass
         break
+
+
+def app_url():
+    return env_any(APP_URL_VARS, DEFAULT_APP_URL).rstrip("/")
 
 
 # ==============================================================================
@@ -267,6 +277,108 @@ def gate(report, log):
 
 
 # ==============================================================================
+# notifications
+# ==============================================================================
+
+def result_url(token):
+    return f"{app_url()}/r/{token}"
+
+
+def build_batch_email(kind, batch, *, reason=None):
+    """Subject + plain-text body for customer lifecycle emails.
+
+    Returns None when the batch lacks the fields needed to address the customer or to link
+    them back to the run.
+    """
+    email = (batch.get("email") or "").strip()
+    token = (batch.get("share_token") or "").strip()
+    if not email or not token:
+        return None
+
+    name = (batch.get("batch_name") or "your batch").strip()
+    url = result_url(token)
+
+    if kind == "processing":
+        return {
+            "to": email,
+            "subject": f"Soma is scoring {name}",
+            "text": (
+                f"Soma has started scoring {name}.\n\n"
+                f"Track the run here:\n{url}\n\n"
+                "The page updates itself as the run moves from queued to processing to ready."
+            ),
+        }
+    if kind == "done":
+        return {
+            "to": email,
+            "subject": f"Soma read-out ready: {name}",
+            "text": (
+                f"Your Soma read-out is ready for {name}.\n\n"
+                f"Open it here:\n{url}\n\n"
+                "This link is the run's live address and keeps working after the result lands."
+            ),
+        }
+    if kind == "failed":
+        why = reason or "The run stopped before Soma could publish a result."
+        return {
+            "to": email,
+            "subject": f"Soma run stopped: {name}",
+            "text": (
+                f"Soma could not finish scoring {name}.\n\n"
+                f"What stopped the run:\n{why}\n\n"
+                f"Track the run here:\n{url}"
+            ),
+        }
+    return None
+
+
+def send_email(message):
+    """Best-effort Resend delivery. Never raises when email is merely unconfigured."""
+    api_key = env_any(RESEND_KEY_VARS)
+    sender = env_any(RESEND_FROM_VARS)
+    if not api_key or not sender or not message:
+        return False, "not configured"
+
+    payload = {
+        "from": sender,
+        "to": [message["to"]],
+        "subject": message["subject"],
+        "text": message["text"],
+    }
+    reply_to = env_any(RESEND_REPLY_TO_VARS)
+    if reply_to:
+        payload["reply_to"] = reply_to
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            resp.read()
+            return True, f"sent ({resp.status})"
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "replace")[:400]
+        return False, f"http {e.code}: {detail}"
+    except urllib.error.URLError as e:
+        return False, f"unreachable: {e.reason}"
+
+
+def notify_batch(kind, batch, log, *, reason=None):
+    message = build_batch_email(kind, batch, reason=reason)
+    ok, detail = send_email(message)
+    if ok:
+        log(f"email     {kind} -> {message['to']}")
+    elif detail != "not configured":
+        log(f"email     {kind} skipped: {detail}")
+
+
+# ==============================================================================
 # the run
 # ==============================================================================
 
@@ -285,59 +397,35 @@ def find_batch(sb, ident):
     return rows[0] if rows else None
 
 
-def main():
-    ap = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("batch", nargs="?", help="batch id (uuid) or share token")
-    ap.add_argument("--list", action="store_true", help="show waiting batches and exit")
-    ap.add_argument("--workdir", default=None,
-                    help="scratch dir (default: ./concierge-runs/<batch_id>)")
-    ap.add_argument("--keep-workdir", action="store_true",
-                    help="do not delete the scratch dir on success")
-    ap.add_argument("--skip-tribe", action="store_true",
-                    help="re-score from the preds cache; no GPU (see demo/README.md)")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="do everything except mutate the row or upload artifacts")
-    ap.add_argument("--force", action="store_true",
-                    help="run a batch that is not queued (re-run a done or failed one)")
-    ap.add_argument("--python", default=sys.executable,
-                    help="interpreter for process_batch.py (default: this one)")
-    ap.add_argument("--modality", choices=["av", "video"], default="av")
-    args = ap.parse_args()
+def list_batches(sb, *, statuses=None, limit=25, ascending=False):
+    statuses = statuses or []
+    query = "select=id,share_token,batch_name,status,email,created_at,manifest"
+    if statuses:
+        query += "&status=in.(" + ",".join(statuses) + ")"
+    query += f"&order=created_at.{ 'asc' if ascending else 'desc' }&limit={int(limit)}"
+    return sb.select("batches", query) or []
 
-    load_dotenv()
-    url, key = env_any(URL_VARS), env_any(KEY_VARS)
-    if not url or not key:
-        sys.exit("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or the NEXT_PUBLIC_/"
-                 "SECRET_KEY names) in the environment or .env.")
-    sb = Supabase(url, key)
 
-    # ---- --list ------------------------------------------------------------
-    if args.list:
-        rows = sb.select(
+def claim_oldest_queued(sb):
+    """Pick and atomically claim the oldest queued batch.
+
+    Two workers may read the same candidate row; the conditional PATCH on status=queued is
+    what makes the claim real. A worker that loses the race gets an empty response and tries
+    the next row.
+    """
+    for batch in list_batches(sb, statuses=["queued"], limit=10, ascending=True):
+        claimed = sb.patch(
             "batches",
-            "select=id,share_token,batch_name,status,created_at&order=created_at.desc&limit=25",
-        ) or []
-        if not rows:
-            print("nothing in the queue.")
-            return 0
-        print(f"{'status':<11} {'created':<21} {'id':<38} name")
-        for r in rows:
-            print(f"{r['status']:<11} {r['created_at'][:19]:<21} {r['id']:<38} "
-                  f"{r.get('batch_name') or ''}")
-        return 0
+            f"id=eq.{batch['id']}&status=eq.queued",
+            {"status": "processing", "started_at": now_iso(), "error": None},
+        )
+        if claimed:
+            return claimed[0]
+    return None
 
-    if not args.batch:
-        ap.error("give a batch id or share token, or --list")
 
-    batch = find_batch(sb, args.batch)
-    if not batch:
-        sys.exit(f"No batch matches {args.batch!r}.")
-
+def run_batch(sb, batch, args):
     batch_id = batch["id"]
-    status = batch["status"]
-    if status != "queued" and not args.force:
-        sys.exit(f"Batch {batch_id} is {status!r}, not 'queued'. Pass --force to run it anyway.")
 
     workdir = Path(args.workdir) if args.workdir else (ROOT / "concierge-runs" / batch_id)
     videos_dir = workdir / "batch"
@@ -369,6 +457,7 @@ def main():
                 "run_log": "\n".join(log_lines)[-RUN_LOG_TAIL_CHARS:],
                 "completed_at": now_iso(),
             })
+            notify_batch("failed", batch, log, reason=reason)
         return 1
 
     started = time.time()
@@ -380,10 +469,11 @@ def main():
         # ---- 1 · claim -----------------------------------------------------
         # Marks the row before any long work, so a second operator running --list sees
         # it is taken rather than starting the same GPU job twice.
-        if not args.dry_run:
+        if not args.dry_run and batch.get("status") != "processing":
             sb.patch("batches", f"id=eq.{batch_id}",
                      {"status": "processing", "started_at": now_iso(), "error": None})
         log("claimed   status -> processing")
+        notify_batch("processing", batch, log)
 
         # ---- 2 · the ads ---------------------------------------------------
         uploads = sb.select(
@@ -505,6 +595,7 @@ def main():
             "completed_at": now_iso(),
             "error": None,
         })
+        notify_batch("done", batch, log)
 
         token = batch.get("share_token")
         log(f"\ndone in {time.time() - started:.0f}s")
@@ -520,6 +611,93 @@ def main():
         return fail(str(e))
     except KeyboardInterrupt:
         return fail("The run was interrupted by the operator.")
+
+
+def run_watch(sb, args):
+    print(f"watching   queued batches every {args.poll_seconds}s", flush=True)
+    while True:
+        batch = claim_oldest_queued(sb)
+        if batch:
+            print("", flush=True)
+            rc = run_batch(sb, batch, args)
+            if rc and rc != 1:
+                return rc
+            continue
+        print(f"{now_iso()}  idle", flush=True)
+        time.sleep(args.poll_seconds)
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("batch", nargs="?", help="batch id (uuid) or share token")
+    ap.add_argument("--list", action="store_true", help="show waiting batches and exit")
+    ap.add_argument("--next", dest="claim_next", action="store_true",
+                    help="claim and run the oldest queued batch, then exit")
+    ap.add_argument("--watch", action="store_true",
+                    help="keep polling for queued batches and run them continuously")
+    ap.add_argument("--poll-seconds", type=int, default=DEFAULT_POLL_SECONDS,
+                    help=f"watch-mode poll interval in seconds (default: {DEFAULT_POLL_SECONDS})")
+    ap.add_argument("--workdir", default=None,
+                    help="scratch dir (default: ./concierge-runs/<batch_id>)")
+    ap.add_argument("--keep-workdir", action="store_true",
+                    help="do not delete the scratch dir on success")
+    ap.add_argument("--skip-tribe", action="store_true",
+                    help="re-score from the preds cache; no GPU (see demo/README.md)")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="do everything except mutate the row or upload artifacts")
+    ap.add_argument("--force", action="store_true",
+                    help="run a batch that is not queued (re-run a done or failed one)")
+    ap.add_argument("--python", default=sys.executable,
+                    help="interpreter for process_batch.py (default: this one)")
+    ap.add_argument("--modality", choices=["av", "video"], default="av")
+    args = ap.parse_args()
+
+    if args.poll_seconds < 1:
+        ap.error("--poll-seconds must be at least 1")
+
+    load_dotenv()
+    url, key = env_any(URL_VARS), env_any(KEY_VARS)
+    if not url or not key:
+        sys.exit("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or the NEXT_PUBLIC_/"
+                 "SECRET_KEY names) in the environment or .env.")
+    sb = Supabase(url, key)
+
+    # ---- --list ------------------------------------------------------------
+    if args.list:
+        rows = list_batches(sb, limit=25) or []
+        if not rows:
+            print("nothing in the queue.")
+            return 0
+        print(f"{'status':<11} {'created':<21} {'id':<38} name")
+        for r in rows:
+            print(f"{r['status']:<11} {r['created_at'][:19]:<21} {r['id']:<38} "
+                  f"{r.get('batch_name') or ''}")
+        return 0
+
+    if args.watch:
+        return run_watch(sb, args)
+
+    if args.claim_next:
+        batch = claim_oldest_queued(sb)
+        if not batch:
+            print("nothing queued.")
+            return 0
+        return run_batch(sb, batch, args)
+
+    if not args.batch:
+        ap.error("give a batch id or share token, or use --list, --next, or --watch")
+
+    batch = find_batch(sb, args.batch)
+    if not batch:
+        sys.exit(f"No batch matches {args.batch!r}.")
+
+    batch_id = batch["id"]
+    status = batch["status"]
+    if status != "queued" and status != "processing" and not args.force:
+        sys.exit(f"Batch {batch_id} is {status!r}, not 'queued'. Pass --force to run it anyway.")
+
+    return run_batch(sb, batch, args)
 
 
 def now_iso():

@@ -34,6 +34,7 @@ import {
   type BatchAd,
   type Brief,
 } from "@/lib/batch";
+import { sendBatchQueuedEmail } from "@/lib/notify";
 import { isStoragePath, isValidEmail } from "@/lib/upload";
 
 type Incoming = {
@@ -171,6 +172,19 @@ export async function POST(request: Request) {
     // leaving a half-written run for someone to diagnose later.
     await supabase.from("batches").delete().eq("id", batch.id);
     return Response.json({ error: "Could not queue this batch." }, { status: 500 });
+  }
+
+  // Queueing the batch is the main side effect. Email is best-effort: if delivery is
+  // unconfigured or the provider errors, the batch still exists and the browser already
+  // has the capability URL to watch it.
+  try {
+    await sendBatchQueuedEmail({
+      email,
+      batchName: manifest.batch_name,
+      token: batch.share_token,
+    });
+  } catch (err) {
+    console.error("batch queued email failed", err);
   }
 
   return Response.json({ ok: true, token: batch.share_token, adCount: ads.length });

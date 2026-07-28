@@ -52,10 +52,21 @@ python tools/concierge/run_batch.py 9f3c8a12-... --force --skip-tribe
 
 # everything except the writes
 python tools/concierge/run_batch.py 9f3c8a12-... --dry-run
+
+# claim the oldest queued batch and run it once
+python tools/concierge/run_batch.py --next
+
+# stay up and work the queue continuously
+python tools/concierge/run_batch.py --watch --poll-seconds 60
 ```
 
 The runner claims the row (`queued → processing`) before doing any long work, so a second
 operator running `--list` sees it is taken rather than starting the same GPU job twice.
+
+`--next` is the one-shot worker mode: take the oldest queued batch, run it, exit.
+
+`--watch` is the overnight mode: poll the queue, claim work atomically, and keep going
+until interrupted. It is meant to be launched once on the scoring box and left alone.
 
 On success it prints the customer's address. On failure the row goes to `failed` with a
 sentence written for the customer, and **nothing is published**.
@@ -103,6 +114,10 @@ Media is stored in the **private** `uploads` bucket under `results/<batch_id>/` 
 as one-hour signed URLs minted per request. The report stores object keys, not URLs, so
 nothing in the database goes stale.
 
+If `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are present, the runner also sends lifecycle
+emails when a batch starts, finishes, or fails. The body always points back at `/r/<token>`,
+which stays the source of truth.
+
 ---
 
 ## Design notes worth knowing before changing something
@@ -127,10 +142,9 @@ and `/upload` (a batch) are deliberately separate products, but both go through
 
 ---
 
-## Not built yet
+## Still not built yet
 
-- **Email.** The link is returned on submit and the page updates itself, so the loop is
-  complete without it. When it's wanted, the trigger point is step 8 of the runner and the
-  intake response — two places, both obvious.
-- **A polling worker.** `run_batch.py` is invoked by hand. Making it autonomous is a
-  `while` loop over `--list` output; don't build that until the manual version is boring.
+- **Queue-started confirmation from the site itself.** The runner emails on processing /
+  done / failed. The instant "we received your batch" email still belongs at intake time.
+- **A managed process wrapper.** `--watch` gives the box a real worker mode; running it
+  under launchd, systemd, tmux, or another supervisor is still an operator choice.
