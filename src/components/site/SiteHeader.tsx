@@ -16,8 +16,15 @@ const LINKS = [
 export default function SiteHeader() {
   const pathname = usePathname();
   // /demo-short is the recording surface, and a link labelled "Demo" on it points at a second
-  // copy of the page you are already reading. The bar there is wordmark plus the one ask.
-  const links = pathname === "/demo-short" ? [] : LINKS;
+  // copy of the page you are already reading.
+  //
+  // The CTA goes too, and only there. This bar is sticky, so on the recording it is not one
+  // frame with a button in it — it is a black pill in the top-right corner of EVERY frame, for
+  // three minutes, over every figure the page is trying to get looked at. The page already ends
+  // on "Request access" at full size with the address under it, which is the ask, made once,
+  // where a viewer is ready for it. Every other route keeps the bar exactly as it was.
+  const recording = pathname === "/demo-short";
+  const links = recording ? [] : LINKS;
   // bg-paper/85 let 34px section headlines smear through the bar as grey ghosts as they
   // scrolled under it — very visible in a screen recording. /95 keeps the blurred depth
   // without the text bleeding through.
@@ -53,12 +60,14 @@ export default function SiteHeader() {
             );
           })}
         </div>
-        <Link
-          href="/"
-          className="rounded-xl bg-ink px-[15px] py-[9px] text-[14px] font-medium tracking-[-0.01em] text-paper transition-colors hover:bg-ink/85"
-        >
-          Request access
-        </Link>
+        {recording ? null : (
+          <Link
+            href="/"
+            className="rounded-xl bg-ink px-[15px] py-[9px] text-[14px] font-medium tracking-[-0.01em] text-paper transition-colors hover:bg-ink/85"
+          >
+            Request access
+          </Link>
+        )}
       </nav>
     </header>
   );

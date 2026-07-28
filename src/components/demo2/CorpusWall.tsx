@@ -63,8 +63,8 @@ export default function CorpusWall({ batch, active }: { batch: Ad[]; active: boo
           >
             {/* Plain img, like every other frame on this page: fixed 300px-wide stills served
                 from public/, so next/image would add a loader round trip to deliver the same
-                bytes. Five across a 1180px row renders them at ~226px, inside their native
-                width, so nothing here is being upscaled. */}
+                bytes. Seven across a 1180px row renders them at ~160px, well inside their
+                native width, so nothing here is being upscaled. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={a.video.replace("/ad-videos/", "/demo/corpus/").replace(/\.mp4$/, ".jpg")}

@@ -342,6 +342,13 @@ export default function DemoScrollPage({
               className="mt-4 max-w-[62ch] text-pretty text-body text-ink-2"
               style={{ opacity: revealed ? 1 : 0, transition: "opacity .6s .15s" }}
             >
+              {/* TWO, NOT THREE, and it briefly said three. The count was meant to cover the
+                  comprehension lane that the hook arc draws and the comprehension beat is
+                  entirely about — but it was then wrong about its own beat, which shows two
+                  cards, a two-region cortex and a split figure reading two lanes. It says two
+                  because two is what is on screen; the third lane gets introduced where it
+                  lives. "Once a second" is the clause worth keeping: it is the fact the split
+                  figure below demonstrates, and the one every later chart assumes you know. */}
               Generic eye-tracking tells you where a gaze lands. Soma reads the cortex itself:
               two networks, measured separately, once a second for the whole runtime.
             </p>
@@ -399,8 +406,16 @@ export default function DemoScrollPage({
           </div>
           {/* No `flex items-center` here, which is what this box carried on main. It centred
               the cortex in a box that items-stretch had grown to the row height; nothing
-              stretches it now, so the box hugs the figure and centring has nothing to centre. */}
-          <div className="rounded-2xl border border-line bg-paper p-4">
+              stretches it now, so the box hugs the figure and centring has nothing to centre.
+
+              self-end, against the row's items-start. The two are not in tension: items-start is
+              what lets the LEFT column set the row height and start at the heading, and this
+              overrides it for the one child that should not. Top-aligned, the 324px figure ended
+              163px above the bottom of the 487px text column, so the row had a ragged edge on
+              the right and the cortex floated opposite the middle of the two region cards. Ended,
+              its bottom edge meets theirs and the beat closes on one line. Measured at 1512x860:
+              left column 487px tall, cards ending at the row's bottom edge, figure box 324px. */}
+          <div className="self-end rounded-2xl border border-line bg-paper p-4">
             {/* The real cortex, as a rotating point cloud, rather than the flat lateral
                 outline. It keeps its own reveal easing for the network colours and leaders,
                 and falls back to the 2D figure automatically where WebGL is unavailable —

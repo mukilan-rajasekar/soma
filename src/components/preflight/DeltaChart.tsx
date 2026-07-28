@@ -253,15 +253,22 @@ export default function DeltaChart({
       ctx.fillText(fmtDelta(v, step), x0 - 6, y);
     }
 
-    if (zeroLabel && lo <= 0 && hi >= 0) {
-      ctx.fillStyle = tok.ink3;
-      ctx.font = `10.5px ${tok.fontFamily}`;
-      ctx.textAlign = "left";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(zeroLabel, x0 + 5, yAt(0) - 4);
-    }
-
-    // hook zone
+    // Hook zone FIRST, then the zero label, and the zero label starts where the band ends.
+    //
+    // These two collided. Both were drawn from x0 + 5 — HOOK pinned to the top of the plot,
+    // BASELINE to the zero line — so they overlapped whenever the zero line sat high in the
+    // domain, which on a batch of mostly-positive deltas is most of the time. It was survivable
+    // at 8px and stopped being survivable when both went up for legibility, which is a fair
+    // trade only if the collision gets fixed rather than enlarged.
+    //
+    // Order matters as much as position: the band's translucent fill used to be painted AFTER
+    // the zero label, so BASELINE was sitting under a tint as well as under the caption. Drawn
+    // first, the band is background for everything that follows.
+    //
+    // The label then starts just past the band instead of inside it, so the two cannot meet at
+    // any zero position and BASELINE lands on paper. Falls back to x0 + 5 when there is no hook
+    // band to clear, which is what every chart without one already did.
+    let zeroX = x0 + 5;
     if (hookSeconds && hookSeconds > 0) {
       const hx = xAt(hookSeconds);
       ctx.fillStyle = hexToRgba(tok.accent, 0.05);
@@ -280,6 +287,21 @@ export default function DeltaChart({
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillText(`HOOK · 0–${hookSeconds}s`, x0 + 5, y0 + 2);
+      zeroX = hx + 6;
+    }
+
+    if (zeroLabel && lo <= 0 && hi >= 0) {
+      ctx.fillStyle = tok.ink3;
+      ctx.font = `10.5px ${tok.fontFamily}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "bottom";
+      // Paper halo, the same 3px trick ArcPlot's peak marker uses. Past the band the label is
+      // over open plot, which is where the curves are: without it BASELINE reads as broken
+      // wherever a series happens to cross the zero line under it.
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = tok.paper;
+      ctx.strokeText(zeroLabel, zeroX, yAt(0) - 4);
+      ctx.fillText(zeroLabel, zeroX, yAt(0) - 4);
     }
 
     // weak-spot bands
