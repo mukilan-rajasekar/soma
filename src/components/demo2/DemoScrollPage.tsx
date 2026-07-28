@@ -64,9 +64,8 @@
 
 import Link from "next/link";
 import SiteHeader from "@/components/site/SiteHeader";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { ON_SCREEN, useAnimeClock, useReveal } from "./useReveal";
-import IntroCue from "./IntroCue";
 import Section from "./Section";
 import TwoRegionBrain3D from "./TwoRegionBrain3D";
 import ArcPlot from "./ArcPlot";
@@ -222,42 +221,30 @@ export default function DemoScrollPage({
     : [];
 
   const [heroRef, heroIn] = useReveal<HTMLDivElement>({ threshold: 0.2 });
-  // The hero build is replayed for the recording. useReveal latches `revealed` permanently —
-  // correct for a reader, wrong for a take, because the hero fires at hydration and a click a
-  // minute later would open the recording on an already-finished page. Rather than make the
-  // latch resettable (it is depended on by every other consumer), the hero gates on the latch
-  // AND a local arm flag that IntroCue drops and raises around its pause: blank while the
-  // recorder is being started, then built on cue, so the take opens on the headline arriving.
-  // Three states, not two, and the middle one is the whole point. "rest" is a finished hero
-  // with every transition suppressed: nothing has animated, but nothing is missing either, so
-  // anyone opening the link sees a page rather than a white void. "blank" is the recorder
-  // window the intro control opens, and it is a cut, not a fade. "build" is the arrival.
-  // /demo never leaves "build": it has no intro control and should behave like any other page.
-  const [heroPhase, setHeroPhase] = useState<"rest" | "blank" | "build">(variant === "full" ? "build" : "rest");
-  const heroOn = heroIn && heroPhase !== "blank";
-  // Everything below the header is keyed on this, so a click on the intro control remounts the
-  // whole narrative and every reveal latch inside it goes back to false. That is the only way
-  // to get a genuinely COLD page for a retake: the latches are permanent by design (a figure
-  // must not re-animate when you scroll back past it mid-take), so the second take would
-  // otherwise open on a page that had already spent half its animations. A remount is cheap
-  // here — the page is a static document, and the scroll is pinned to the top when it happens.
-  const [takeId, setTakeId] = useState(0);
-  const introCue = useCallback((cue: "reset" | "build") => {
-    if (cue === "build") { setHeroPhase("build"); return; }
-    setHeroPhase("blank");
-    setTakeId((n) => n + 1);
-    // The remount cannot reach this one. `selectedId` is declared ABOVE the keyed Fragment
-    // because two sections share it (the player reads what the batch list selects), so it
-    // survives exactly the reset that is supposed to make the page cold. Click "Deal First" in
-    // the batch beat, scroll back, press Start, and take two opens with the player and the
-    // comparison both still on Deal First instead of the cut the report ranks first — which is
-    // the cut every other beat on the page follows. Reset it with the rest of the take.
-    setSelectedId(pf?.bestId ?? pf?.order[0] ?? "");
-  }, [pf]);
-  // Transitions run in BOTH directions, so sharing one would fade the hero out over a second
-  // before rebuilding it — the recording would open on the page dissolving. Only "build" gets
-  // a transition, which makes the blanking a cut and leaves "rest" completely still.
-  const heroT = (t: string) => (heroPhase === "build" ? t : "none");
+  // NAVIGATION IS THE CUE NOW, so both routes behave like any other page: the hero builds on
+  // arrival and the clip starts with it.
+  //
+  // What used to be here was a three-state machine — rest / blank / build — driven by an intro
+  // control in the corner of /demo-short, plus a `takeId` that remounted everything below the
+  // header for a cold retake. It existed to answer one question: WHEN does the first animation
+  // happen, given the founder needs a moment to start the screen recorder after opening the
+  // page. The take is now started from the landing page instead, so the recorder is already
+  // rolling when the Demo button is clicked and the navigation itself is the cue. A control that
+  // asks "ready?" on a page you have just deliberately navigated to is asking a question that
+  // has already been answered — and it was a pill sitting in the bottom-right of the opening
+  // frame while it did.
+  //
+  // Retakes are a reload now, which is strictly colder than the remount ever was: the remount
+  // could only reset what lived inside the keyed subtree, and the two reveal gates declared
+  // above it (and `selectedId`) had to be reset by hand, which is a bug this file has already
+  // had once. Nothing has to be reset by hand any more.
+  //
+  // IntroCue.tsx stays on disk. Restoring it is the import, the state machine, and one render:
+  //   {variant === "short" ? <IntroCue scrollRef={scrollRef} onCue={introCue} /> : null}
+  // Its header records why the hero holds a finished "rest" state rather than a blank one, which
+  // is the part worth reading before anyone builds this again.
+  const heroPhase = "build" as const;
+  const heroOn = heroIn;
 
   // §01's body, gated on its own arrival rather than on the section's. The two region cards
   // are timed against TwoRegionBrain's internal stages (880ms and 1260ms against the frames
@@ -847,17 +834,6 @@ export default function DemoScrollPage({
     >
       <SiteHeader />
 
-      {/* The page does not scroll itself. It is narrated live, by hand, and the only thing
-          this control owns is WHEN the first animation happens: it resets the page cold,
-          fades itself out of shot, and builds the hero after a short deliberate pause so the
-          recording opens on the headline arriving instead of on a page that finished
-          animating during hydration. Everything after it is arrival-gated (see useReveal).
-          Short route only: /demo is a page to read, and a control that resets it to blank is
-          chrome there, not a feature. */}
-      {variant === "short" ? <IntroCue scrollRef={scrollRef} onCue={introCue} /> : null}
-
-      {/* Keyed so the intro control can hand back a cold page for a retake: see `takeId`. */}
-      <Fragment key={takeId}>
       {/* ── 0 · the problem ─────────────────────────────────────────── */}
       <section
         ref={heroRef}
@@ -867,13 +843,13 @@ export default function DemoScrollPage({
           <div>
             <div
               className="mb-4 text-[12px] uppercase tracking-[0.07em] text-ink-3"
-              style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity .6s") }}
+              style={{ opacity: heroOn ? 1 : 0, transition: "opacity .6s" }}
             >
               Soma · a brain read-out for ads
             </div>
             <h1
               className="max-w-[16ch] text-balance text-hero text-ink"
-              style={{ opacity: heroOn ? 1 : 0, transform: heroOn ? "none" : "translateY(10px)", transition: heroT("opacity .7s .05s, transform .7s .05s") }}
+              style={{ opacity: heroOn ? 1 : 0, transform: heroOn ? "none" : "translateY(10px)", transition: "opacity .7s .05s, transform .7s .05s" }}
             >
               Anyone can make a hundred ads. Nobody knows which one{" "}
               <span className="font-serif font-normal italic">wins</span>.
@@ -887,14 +863,14 @@ export default function DemoScrollPage({
                 original, and the two clauses that carry the thesis are the first and third. */}
             <p
               className="mt-5 max-w-[48ch] text-body text-pretty text-ink-2"
-              style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity .7s .2s") }}
+              style={{ opacity: heroOn ? 1 : 0, transition: "opacity .7s .2s" }}
             >
               Soma reads how a brain watches each cut, then builds and edits against that
               read. Scored before you spend a dollar.
             </p>
             <div
               className="mt-7 flex flex-wrap items-center gap-3"
-              style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity .7s .3s") }}
+              style={{ opacity: heroOn ? 1 : 0, transition: "opacity .7s .3s" }}
             >
               {/* One button, not two. The second was "Open the live console", pointing at
                   /console — the route still exists and still works, it is just no longer
@@ -905,7 +881,7 @@ export default function DemoScrollPage({
             </div>
           </div>
 
-          <div style={{ opacity: heroOn ? 1 : 0, transition: heroT("opacity 1s .2s") }}>
+          <div style={{ opacity: heroOn ? 1 : 0, transition: "opacity 1s .2s" }}>
             <div className="rounded-2xl border border-line bg-fill p-4">
               <div className="mb-2 flex items-center justify-between text-[12px] uppercase tracking-[0.08em] text-ink-3">
                 {/* The account name, not the internal campaign slug. §04 introduces this
@@ -1013,7 +989,6 @@ export default function DemoScrollPage({
           <div className="mt-12 text-[13px] tracking-[0.02em] text-ink-3">usesoma.work</div>
         </div>
       </section>
-      </Fragment>
     </main>
   );
 }
