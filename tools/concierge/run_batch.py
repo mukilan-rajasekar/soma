@@ -57,6 +57,7 @@ import argparse
 import json
 import mimetypes
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -201,6 +202,57 @@ class Supabase:
 # ==============================================================================
 # the gate
 # ==============================================================================
+
+# Anything carrying one of these is written for whoever runs the box, not for whoever
+# uploaded the ads. `batches.error` is rendered verbatim on /r/<token>, so a line that
+# says "pip install" or "huggingface-cli login" is an install guide on a customer's page.
+OPERATOR_ONLY = (
+    "pip ", "install", "huggingface", "cuda", "torch", "numpy", "segfault",
+    "traceback", "--force", "--skip-tribe", ".py", "python", "conda", "venv",
+    "import ", "module", "gpu", "weights",
+)
+
+# Failures the customer's own batch caused, and can act on. These are the only scorer
+# messages worth passing through, and even then the operator's instructions are stripped.
+CUSTOMER_ACTIONABLE = (
+    "duration categor", "length category", "length-match", "batch size",
+    "too few", "no audio", "could not read", "corrupt", "zero-length",
+)
+
+GENERIC_SCORER_FAILURE = (
+    "Soma's scorer could not finish this run. This is a problem on our side rather than "
+    "anything about your footage, and the full log is already with the team."
+)
+
+
+def customer_reason(raw):
+    """Turn the scorer's output into a sentence a customer should actually read.
+
+    THE SPLIT THIS ENFORCES. The runner logs everything — the raw tail lands in
+    `batches.run_log`, which no public route exposes. But `batches.error` IS rendered on
+    the capability URL, so it has to be written for the person who uploaded the ads.
+    Verified the hard way: before this existed, a run on a box without the model published
+    "pip install 'numpy>=1.26,<2.1' ... huggingface-cli login" to a customer's result page.
+
+    A batch-shape problem is the customer's to fix and passes through, minus the operator
+    instruction that usually trails it. Everything else gets one honest sentence.
+    """
+    text = " ".join((raw or "").split())
+    if not text:
+        return GENERIC_SCORER_FAILURE
+
+    # Sentence-level, so a usable message is not thrown away because an operator hint was
+    # appended to it — the hint is dropped and the message survives.
+    keep = []
+    for part in re.split(r"(?<=[.!?])\s+", text):
+        low = part.lower()
+        if any(k in low for k in CUSTOMER_ACTIONABLE) and not any(
+                k in low for k in OPERATOR_ONLY):
+            keep.append(part.strip())
+    if keep:
+        return " ".join(keep)[:400]
+    return GENERIC_SCORER_FAILURE
+
 
 def gate(report, log):
     """The conditions under which these numbers may be shown to a customer.
@@ -542,8 +594,13 @@ def run_batch(sb, batch, args):
         for line in (proc.stdout or "").splitlines():
             log(f"  | {line}")
         if proc.returncode != 0:
-            tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-6:]
-            return fail("The scorer stopped: " + " ".join(tail)[:600])
+            raw = (proc.stderr or proc.stdout or "").strip()
+            # The whole tail goes to the run log, which is operator-only. What reaches
+            # `error` — and therefore the customer's page — is filtered.
+            log("\nscorer output (operator detail; not shown to the customer)")
+            for line in raw.splitlines()[-25:]:
+                log(f"  ! {line}")
+            return fail(customer_reason(raw))
 
         # ---- 6 · gate ------------------------------------------------------
         report_path = out_dir / "batch.json"

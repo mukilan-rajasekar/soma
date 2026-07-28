@@ -86,3 +86,56 @@ def test_claim_oldest_queued_skips_lost_race():
 def test_claim_oldest_queued_returns_none_when_queue_empty():
     sb = FakeSupabase(rows=[])
     assert runner.claim_oldest_queued(sb) is None
+
+
+# ── what a failure is allowed to say to a customer ──────────────────────────────
+#
+# `batches.error` is rendered verbatim on /r/<token>, which is a capability URL a
+# customer opens. Both strings below are REAL scorer output captured from live runs
+# against Supabase, which is how the leak was found in the first place.
+
+INSTALL_FAILURE = """  pip install 'numpy>=1.26,<2.1'   # HARD pin; >=2.1 segfaults neuralset
+  pip install torch --index-url <matching the box's CUDA>
+  pip install neuralset tribev2 huggingface_hub transformers nibabel
+  huggingface-cli login            # facebook/tribev2 weights are gated"""
+
+BUCKET_FAILURE = ("Ads span multiple duration categories: ad_01.mp4=>60s, "
+                  "ad_02.mp4=21-35s. Length is a confound; length-match the batch. "
+                  "Pass --force to downgrade this to a warning.")
+
+
+def test_install_instructions_never_reach_the_customer():
+    """The regression this function exists for: a box without the model published an
+    install guide to a customer's result page."""
+    msg = runner.customer_reason(INSTALL_FAILURE)
+    for leak in ("pip install", "huggingface", "CUDA", "segfault", "numpy", "torch"):
+        assert leak.lower() not in msg.lower(), f"{leak!r} leaked into {msg!r}"
+    assert msg == runner.GENERIC_SCORER_FAILURE
+
+
+def test_a_batch_shape_problem_is_passed_through():
+    """This one the customer caused and can fix, so hiding it would be unhelpful."""
+    msg = runner.customer_reason(BUCKET_FAILURE)
+    assert "duration categories" in msg
+    assert "length-match" in msg
+
+
+def test_the_operator_instruction_is_stripped_from_a_passed_through_message():
+    """`--force` is a flag only whoever runs the box has. Keeping the useful sentence
+    while dropping the one addressed to an operator is the whole point of splitting on
+    sentences rather than filtering the blob as a unit."""
+    msg = runner.customer_reason(BUCKET_FAILURE)
+    assert "--force" not in msg
+    assert "downgrade this to a warning" not in msg
+
+
+def test_empty_scorer_output_still_says_something_honest():
+    for blank in ("", "   ", "\n\n"):
+        assert runner.customer_reason(blank) == runner.GENERIC_SCORER_FAILURE
+
+
+def test_generic_failure_does_not_blame_the_customers_footage():
+    """A run that died on our infrastructure must not read as 'your ads were bad'."""
+    msg = runner.GENERIC_SCORER_FAILURE.lower()
+    assert "on our side" in msg
+    assert "your footage" in msg
