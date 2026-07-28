@@ -43,11 +43,18 @@
 //   readout        three metrics the page has already shown being measured and then used
 //   tiers          how to buy, the founder's line to deliver, not a slide to read out
 //   checklist      the best diligence asset on the site and the worst thing to read aloud
-//   comprehension  the batch comparison answers its heading on screen, with a lane picker
 //   live           the read-out beat is a player over the whole batch, three beats earlier
-// The middle three are for the reader who clicks the link, and /demo is where they live. The
-// last two come back on the short route if the preflight artifact is missing, because then
-// the sections that superseded them are not there either.
+// The middle three are for the reader who clicks the link, and /demo is where they live.
+// `live` comes back on the short route if the preflight artifact is missing, because then
+// the section that superseded it is not there either.
+//
+// COMPREHENSION IS NO LONGER ON THAT LIST. It was, on the argument that §04's lane picker
+// answers its heading — but §04 answers which CUT comprehends best, never what comprehension
+// is measured FROM. That mechanism (OCR off the screen, ASR out of the audio, both checked
+// against the language lane) is one of the three signals the page is built on, and while it
+// was filtered out the walkthrough claimed a three-signal read while only ever showing two
+// being taken. It renders on both routes now; what stays filtered is the five-cut overlay
+// inside it, which on the spliced route is §04 two beats up. See the section's own header.
 //
 // Two pieces of chrome go the other way and appear only on the SHORT route: the beta marquee
 // (asked for there, and the long page has diligence material instead of social proof) and,
@@ -587,7 +594,7 @@ export default function DemoScrollPage({
       // ONE THING TO KNOW BEFORE RECORDING, and it is a one-prop fix either way. The list
       // beside the chart carries each cut's score, as it does on /preflight, and those scores
       // come from batch_report.json. The generation board two beats later scores THE SAME FIVE
-      // CLIPS off report.json, on a different scale: Product First is 80 here and 73 there, and
+      // CLIPS off report.json, on a different scale: Product First is 80 here and 72 there, and
       // ranks 4 and 5 come out in the opposite order (Weak Open is last here, Urgency First is
       // last there). On camera that is the page disagreeing with itself about its own footage.
       // /demo's copy of this figure passes showScore={false} for exactly this reason and lets
@@ -608,11 +615,26 @@ export default function DemoScrollPage({
     },
     {
       key: "comprehension",
-      // Dropped from the walkthrough now that the batch comparison above answers this heading
-      // on screen with a lane picker: "comprehension" is one of its three metrics, and asking
-      // the question a second time under its own heading would be the page making the same
-      // point twice. Still the long page's beat, where the reader has no founder to ask it.
-      show: !spine,
+      // BACK ON BOTH ROUTES. It was dropped from the walkthrough on the argument that §04's
+      // lane picker already answers this heading — "comprehension" is one of its three
+      // metrics — but that conflates two different claims. §04 answers WHICH CUT scored
+      // best on comprehension. It never shows WHAT COMPREHENSION IS MEASURED FROM, which is
+      // the ad's own words: text recognition off the screen, speech recognition out of the
+      // audio, checked against the language lane. That mechanism is the third of the three
+      // signals the whole page rests on, and with this beat filtered out it appeared on no
+      // live route at all — the walkthrough asserted a three-signal read and only ever
+      // showed the reader two of them being taken.
+      //
+      // What is NOT restored is the five-cut overlay below (see the body): on the spliced
+      // route that chart is §04, two beats up, and rendering it again here is the exact
+      // duplication that got this section dropped in the first place. The two panels are
+      // the part §04 cannot supply, so the two panels are the part that comes back.
+      //
+      // FOOTAGE SWITCH, stated so it reads as deliberate. §02-§04 run on the preflight
+      // batch (the welding cuts); compAd is tt_313, out of report.json's TikTok batch,
+      // because it is the only English clip in either set with brand mentions on BOTH
+      // channels ("hat" spoken at 0:00, "Cap" on screen at 0:27). A comprehension beat
+      // needs an ad that names something, and this is the one that does.
       // The heading is the line this beat was kept for, so it is set at hero size: it is the
       // question the founder asks out loud and then answers, not a caption for the figure.
       feature: true,
@@ -634,7 +656,11 @@ export default function DemoScrollPage({
       // walkthrough does not, because the founder is saying them.
       body: (revealed) => (
         <div className="space-y-8">
-          {preflight ? (
+          {/* `!spine`, not `preflight`. The overlay earns its place here only on a route
+              where §04's OverlayPanel is absent — on /demo, and on the walkthrough whenever
+              the preflight artifact is missing. With the spine spliced in it would be the
+              same five-cut chart twice on one page, which reads as a rendering fault. */}
+          {preflight && !spine ? (
             <div>
               <BatchOverlay report={preflight} active={revealed} />
               <p className="mt-4 max-w-[68ch] text-[13.5px] leading-[1.6] text-ink-2">
@@ -644,14 +670,13 @@ export default function DemoScrollPage({
               </p>
             </div>
           ) : null}
-          {variant === "full" || !preflight ? (
-            <>
-              <ComprehensionPanel ad={compAd} active={revealed} />
-              {/* The words themselves, under the mention pins. The panel above shows THAT
-                  the brand was named; this shows what was actually said around it. */}
-              <MessageTrack ad={compAd} active={revealed} />
-            </>
-          ) : null}
+          {/* Unconditional now, on every route. These two ARE the beat: the mention pins
+              show that the brand was named and on which channel, the transcript shows what
+              was actually said around it. Both are real detections (macOS Vision OCR +
+              faster-whisper via tools/demo/media_text.py), which is why the claim survives
+              being looked at closely. */}
+          <ComprehensionPanel ad={compAd} active={revealed} />
+          <MessageTrack ad={compAd} active={revealed} />
         </div>
       ),
     },
