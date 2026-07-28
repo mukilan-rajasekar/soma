@@ -159,10 +159,12 @@ export default function DemoScrollPage({
   preflight?: PreflightReport | null;
   variant?: DemoVariant;
 }) {
-  // The English half of the batch. Five of the ten scraped clips are Arabic, Portuguese or
-  // Spanish-captioned, and this page shows them as evidence: a wall of stills on the database
-  // beat and a transcript in the comprehension panel. See corpus.ts for the per-ad call and
-  // for why filtering was the only lever (the other arcs on disk cannot be scored this way).
+  // The filtered batch: seven of the ten scraped clips, the three dropped being the ones that
+  // hold an Arabic, Indonesian or Portuguese caption through their entire runtime, with no
+  // clean second to cut a still from. This page shows these as evidence — a wall of frames on
+  // the database beat, and a transcript in the comprehension panel on /demo. See corpus.ts for
+  // the per-clip call and for why filtering was the only lever available (the other arcs on
+  // disk carry two scalar series and cannot be scored the way these are).
   const batch = englishBatch(report.batch);
   const variants = report.campaign.variants;
   const byId = (list: Ad[], id: string) => list.find((a) => a.id === id) ?? list[0];
@@ -259,7 +261,14 @@ export default function DemoScrollPage({
     if (cue === "build") { setHeroPhase("build"); return; }
     setHeroPhase("blank");
     setTakeId((n) => n + 1);
-  }, []);
+    // The remount cannot reach this one. `selectedId` is declared ABOVE the keyed Fragment
+    // because two sections share it (the player reads what the batch list selects), so it
+    // survives exactly the reset that is supposed to make the page cold. Click "Deal First" in
+    // the batch beat, scroll back, press Start, and take two opens with the player and the
+    // comparison both still on Deal First instead of the cut the report ranks first — which is
+    // the cut every other beat on the page follows. Reset it with the rest of the take.
+    setSelectedId(pf?.bestId ?? pf?.order[0] ?? "");
+  }, [pf]);
   // Transitions run in BOTH directions, so sharing one would fade the hero out over a second
   // before rebuilding it — the recording would open on the page dissolving. Only "build" gets
   // a transition, which makes the blanking a cut and leaves "rest" completely still.

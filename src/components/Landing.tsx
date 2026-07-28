@@ -57,12 +57,24 @@ export default function Landing() {
           solid, this strip would quietly kill the drag along the whole top of the page. */}
       <div className="pointer-events-none absolute inset-x-11 top-[34px] z-[2] flex items-center justify-between">
         <span className="text-[23px] font-medium tracking-[-0.01em]">soma</span>
-        {/* Same treatment as "Upload an MP4" below: a text link, underlined, ink to #333 on
-            hover. A button or a pill would read as a second call to action next to the
-            waitlist form, and this is a side door, not the thing the page is asking for. */}
+        {/* A button, at the founder's call, reversing the note that used to sit here: this was
+            an underlined text link on the reasoning that a pill would read as a second call to
+            action beside the waitlist form. The hierarchy argument still holds and is answered
+            by the VARIANT rather than by the element — outlined, not filled, so the ink-filled
+            submit in the form is still the only solid button on the page and still the thing
+            being asked for. What the text link could not answer is that it sat over a moving
+            point cloud with nothing behind it, at 13px, in the one corner every visitor looks
+            at first.
+            Geometry is SiteHeader's button, to the pixel (rounded-xl, px-[15px] py-[9px], 14px
+            medium, -0.01em), so the two bars match on any route where a visitor sees both. The
+            radius picks up globals.css's quintic superellipse layer for free, which is the
+            house corner.
+            bg-paper/80 + backdrop-blur, unlike the header's: BrainField animates underneath
+            this one, and on bare transparency the points drift through the label and the
+            hairline border reads as part of the cloud. */}
         <Link
           href="/demo-short"
-          className="pointer-events-auto text-[13px] font-medium text-[#0a0a0a] underline underline-offset-2 transition-colors hover:text-[#333]"
+          className="pointer-events-auto rounded-xl border border-line-2 bg-paper/80 px-[15px] py-[9px] text-[14px] font-medium tracking-[-0.01em] text-ink backdrop-blur-sm transition-colors hover:border-ink hover:bg-paper"
         >
           Demo
         </Link>

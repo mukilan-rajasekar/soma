@@ -4,14 +4,17 @@
 //
 // This used to be a static chart of a clip nobody could see, which meant the most convincing
 // object on the page — real footage with the read-out moving against it — did not appear until
-// §06, about 80% of the way down. The opening frame of the recording asserted a measurement;
-// the proof was four minutes of narration later.
+// four fifths of the way down it, in the live-player beat. The opening frame of the recording
+// asserted a measurement; the proof was minutes of narration later.
 //
-// It is NOT a copy of §06. That section is the full instrument: three lanes named, three live
-// per-second numbers, brand pins, weak spots, a verdict. The point there is that you can READ
-// the measurement. The point here is that it is BEING TAKEN — the curve is drawn by the video's
-// own clock, arriving one second at a time, and nothing else is on the card. Same footage, two
-// different sentences, and they are 3 minutes apart in the take.
+// It is NOT a copy of the player beat, wherever that beat currently is. Deliberately no section
+// number here: the numbering is derived from what survives the route filter, and the player has
+// already moved twice (LivePlayer at the end of /demo; /preflight's PlayerPanel a third of the
+// way down /demo-short). A player section is the full instrument — lanes named, live per-second
+// numbers, brand pins, a verdict — and the point there is that you can READ the measurement.
+// The point HERE is that it is BEING TAKEN: the curve is drawn by the video's own clock,
+// arriving one second at a time, with nothing else on the card. Same footage, two different
+// sentences, minutes apart in the take.
 //
 // PLAYBACK FOLLOWS THE HERO'S EXISTING STATE MACHINE and adds no control of its own. That is
 // the whole reason this works on the recording route: the founder clicks the one intro control,

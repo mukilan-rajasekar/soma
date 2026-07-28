@@ -7,7 +7,7 @@
 // through a section cannot desynchronise anything, because there is no clock but arrival.
 // Honours prefers-reduced-motion by reporting "revealed" immediately with no animation clock.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function prefersReducedMotion(): boolean {
   return typeof window !== "undefined"
@@ -61,12 +61,27 @@ const FRAME_MAX_PCT = 65;
 // an HTMLElement bound would have forced into a wrapper div.
 export function useReveal<T extends Element = HTMLDivElement>(
   opts: { threshold?: number; rootMargin?: string; frame?: number } = {},
-): [React.RefObject<T | null>, boolean] {
-  const ref = useRef<T>(null);
+): [React.RefCallback<T>, boolean] {
+  // A CALLBACK REF INTO STATE, not a useRef. The difference is that this effect re-runs when
+  // the observed NODE changes, and a plain ref object cannot tell it that: React writes
+  // `.current` and notifies nobody.
+  //
+  // That is not theoretical here. /demo-short's intro control remounts everything below the
+  // header on every take (DemoScrollPage's `takeId`), while two of these hooks — the hero's and
+  // the science beat's — are called ABOVE that boundary and attach their refs below it. With a
+  // ref object the effect's deps never changed, so the observer stayed bound to the node that
+  // had just been thrown away, and the replacement node was watched by nothing. The failure was
+  // silent and it was worst on exactly the path that matters: press Start, and from the second
+  // take onward the cortex and its two region cards had no gate at all.
+  //
+  // Identity has to be stable or React tears the ref down and rebuilds it every render, so the
+  // setter is wrapped once and never re-created.
+  const [node, setNode] = useState<T | null>(null);
+  const ref = useCallback((n: T | null) => setNode(n), []);
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
-    const el = ref.current;
+    const el = node;
     if (!el || revealed) return;
     if (!("IntersectionObserver" in window)) {
       // Deferred a frame rather than set synchronously in the effect body, which cascades
@@ -102,8 +117,15 @@ export function useReveal<T extends Element = HTMLDivElement>(
     // below the fold, without keeping its own list of selectors that would drift from this
     // observer silently. Stamped AFTER the height-aware adjustment above, so what is recorded
     // is the margin that actually fired, not the one that was asked for.
+    // The disable is for react-hooks/immutability, and it is a false positive with a real
+    // cause: the observed node is held in STATE now (see the callback ref above), so the rule
+    // sees a write through a state-derived binding and calls it a state mutation. It is not —
+    // it is a data attribute on a DOM element, which is the same side effect this line always
+    // performed, and the element is not React-rendered content. Nothing about the value or its
+    // lifetime changed; only where the reference came from.
     const pct = /(-?\d+(?:\.\d+)?)%\s*0px\s*$/.exec(rootMargin);
     if (el instanceof HTMLElement || el instanceof SVGElement) {
+      // eslint-disable-next-line react-hooks/immutability
       el.dataset.reveal = String(pct ? -parseFloat(pct[1]) : 0);
     }
 
@@ -140,6 +162,13 @@ export function useReveal<T extends Element = HTMLDivElement>(
     const settled = () => {
       const r = el.getBoundingClientRect();
       const view = window.innerHeight;
+      // A zero-size box is not "on camera", it is not measurable, and it must never satisfy
+      // this rule. Detached and display:none nodes both report an all-zero rect, and the
+      // comparison below reads 0 >= 0 on one — true — so the figure would fire on the first
+      // scroll pause anywhere on the page, including at the top. The callback ref above is what
+      // stops the detached case arising at all; this is the guard that makes the rule itself
+      // honest, and it costs one comparison.
+      if (r.height <= 0) return;
       const shown = Math.max(0, Math.min(r.bottom, view) - Math.max(r.top, 0));
       if (shown >= REST_FRAC * Math.min(r.height, view)) fire();
     };
@@ -158,7 +187,9 @@ export function useReveal<T extends Element = HTMLDivElement>(
       scroller?.removeEventListener("scroll", onScroll);
       if (idle) clearTimeout(idle);
     };
-  }, [revealed, opts.threshold, opts.rootMargin, opts.frame]);
+    // `node` first, and it is the dependency this whole hook turns on: it is what re-attaches
+    // the observer when a remount hands the same hook a different element.
+  }, [node, revealed, opts.threshold, opts.rootMargin, opts.frame]);
 
   return [ref, revealed];
 }

@@ -40,10 +40,15 @@ type Props = {
   // default) leaves `progress` in charge, which is what the live player needs.
   animate?: boolean | null;
   drawMs?: number;
-  // Bypass the on-screen gate below and draw as soon as `animate` turns true. Exactly one
-  // caller wants this: the hero chart, which is above the fold by construction and is the
-  // frame a recording opens on, so it must not sit empty waiting to be scrolled into.
-  // Every other plot on the page is deep inside a section and has to wait to be framed.
+  // Bypass the on-screen gate below and draw as soon as `animate` turns true.
+  //
+  // NOTHING PASSES THIS ANY MORE, and it is kept rather than deleted because the situation it
+  // exists for still exists. Its one caller was the hero chart: above the fold by construction,
+  // the frame a recording opens on, and therefore the one plot that must not sit empty waiting
+  // to be scrolled into. That chart is now inside HeroReadout, where the curve is drawn from
+  // the video's own clock through `progress` and is complete at rest, so it never reaches the
+  // `animate` path this flag gates. Put a timer-driven plot above the fold again and this is
+  // what it will need. Every other plot on the page is deep inside a section and has to wait.
   eager?: boolean;
   // A labelled dot on one lane at a given time, faded in only once the curve has finished
   // drawing. §02 uses it to put the ventral peak the read-out names ("spikes at 0:02") on

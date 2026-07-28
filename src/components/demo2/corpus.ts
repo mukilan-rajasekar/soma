@@ -1,9 +1,13 @@
 // Which of report.json's batch ads have a frame worth showing.
 //
-// The batch is ten real clips scraped off TikTok Creative Center, and half of them carry
-// foreign-language captions: Arabic, Portuguese, Indonesian, Spanish. On the database beat
-// they are shown as a wall of stills, and half that wall was foreign captions — which for a US
-// product, in a pitch recording, reads as a screenshot of somebody else's corpus.
+// The batch is ten real clips scraped off TikTok Creative Center, and five of them carried a
+// foreign-language caption in the frame that was originally cut for the wall: Arabic,
+// Portuguese, Indonesian, Spanish. For a US product, in a pitch recording, half a wall of
+// foreign captions reads as a screenshot of somebody else's corpus.
+//
+// SEVEN SURVIVE, not five, and the difference is the frame rather than the clip. Two of those
+// five carry the caption in some seconds and not others, so re-cutting the still was enough;
+// only three hold it through the whole runtime and have no clean second to take.
 //
 // AN ALLOW-LIST, NOT A DETECTOR, and the call was made by looking. Every heuristic available
 // is wrong on this data: tt_33 has NO speech at all and is fine; tt_607's speech transcribes

@@ -12,12 +12,13 @@
 // They are frames from the clips in public/ad-videos, pulled from report.json's batch with the
 // scores that report already carries, so nothing here is styled to look like data it is not: no
 // invented thumbnails, no filler tiles to make the row come out even. If the batch changes size
-// the row changes with it — which it now does, because the caller passes the English half of
-// the batch (see corpus.ts) and five of the ten scraped clips are not in English.
+// the row changes with it — which it now does, because the caller passes the filtered batch
+// (see corpus.ts): seven of the ten scraped clips have a frame with no foreign caption in it,
+// and three carry one through their whole runtime.
 //
 // THE TILE SIZE IS DERIVED FROM THE COUNT, not fixed. At ten the band was ten narrow slivers
-// and read as texture, which was the right answer for ten; at five the same grid would have
-// left half the row empty and the wall would have read as a row that failed to load. Column
+// and read as texture, which was the right answer for ten; at seven the same grid would have
+// left three columns empty and the wall would have read as a row that failed to load. Column
 // count follows the data so the band keeps its width whatever survives the filter.
 //
 // Deliberately NOT another ranked list. §05's board is five generated cuts being sorted, and

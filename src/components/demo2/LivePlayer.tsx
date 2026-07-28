@@ -1,11 +1,23 @@
 "use client";
 
-// Section 7 — the one interactive panel, and a new capability: watch the ad next to its
-// score. The clip on the left is the clock; a rAF loop reads video.currentTime and drives
-// a playhead across the attention/surprise arc plus a live per-second read-out on the
-// right. Muted by default (a card must never blare audio at a visitor) with an opt-in
-// sound toggle. Everything shown is this ad's real arc — the video and the curve are the
-// same measurement, side by side.
+// Watch the ad next to its score. The clip on the left is the clock; a rAF loop reads
+// video.currentTime and drives a playhead across the attention/surprise arc plus a live
+// per-second read-out on the right. Muted by default (a card must never blare audio at a
+// visitor) with an opt-in sound toggle. Everything shown is this ad's real arc — the video and
+// the curve are the same measurement, side by side.
+//
+// WHERE THIS RENDERS, because it has moved twice. /demo only, as its "watch it live" beat, and
+// /demo-short only when public/preflight/batch_report.json is missing. With the artifact
+// present the short route runs /preflight's PlayerPanel three beats earlier instead, over the
+// whole batch rather than one ad — see DemoScrollPage's `spine`.
+//
+// Two claims this header used to make and can no longer: that it is "the one interactive panel"
+// (GenerateStudio and EditStudio are both interactive, and on the short route so are
+// PlayerPanel, AdList and OverlayPanel), and that it is "the only frames of real ad footage
+// anywhere in the walkthrough" (the hero plays the same clip on both routes now — see
+// HeroReadout). Neither was load-bearing for the code; both were load-bearing for whoever next
+// argues about whether this beat earns its space, which is why they are corrected rather than
+// dropped.
 
 import { useEffect, useRef, useState } from "react";
 import ArcPlot from "./ArcPlot";
