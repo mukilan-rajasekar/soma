@@ -968,13 +968,16 @@ export default function DemoScrollPage({
               takes, so the last thing a viewer saw was a promise with no mechanics attached.
               Both halves are checkable rather than aspirational: src/lib/upload.ts pins
               ACCEPT_ATTR to "video/mp4" and MAX_UPLOAD_BYTES to 150MB, so mp4 is the literal
-              and only thing the product accepts, and "hours, not a research cycle" is
-              ServiceTiers' own line, which /demo already carries.
+              and only thing the product accepts, and turnaround in hours is ServiceTiers' own
+              claim, which /demo already carries in full ("hours, not a research cycle").
+              Set as the founder typed it: lower case, one comma, no full stop. It is the only
+              line on the closing frame that is not a sentence, and that is what makes it read
+              as a spec under the ask rather than as a fourth thing being said.
               NO PRICE, on purpose. Every tier is sold in a conversation right now and
               ServiceTiers records the decision not to print one; a number invented for a
               closing frame is exactly the kind this repo calls a bug. */}
           <p className="mx-auto mt-3 max-w-[46ch] text-[13.5px] leading-[1.6] text-ink-3">
-            An mp4 per cut is the whole intake. Turnaround in hours, not a research cycle.
+            upload mp4, turnaround in hours
           </p>
           {/* One button. The closing frame used to offer "Explore the live console" beside
               it, which split the last ask on the page in two; /console is still built and
