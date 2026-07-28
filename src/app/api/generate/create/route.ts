@@ -1,3 +1,4 @@
+import { acquireRunSlot, betaAccessDenied } from "@/lib/beta-gate";
 import { serviceClient } from "@/lib/supabase/server";
 import { runGeneratePipeline, toGenerateBrief, validateGenerateInput } from "@/lib/generate-runner";
 
@@ -10,6 +11,9 @@ type Incoming = {
 };
 
 export async function POST(request: Request) {
+  const denied = betaAccessDenied(request);
+  if (denied) return denied;
+
   const body = (await request.json().catch(() => ({}))) as Incoming;
   const brief = toGenerateBrief(body.brief);
   const { problems, input } = validateGenerateInput({
@@ -43,6 +47,21 @@ export async function POST(request: Request) {
     return Response.json({ error: "Could not start generation beta." }, { status: 500 });
   }
 
+  const slot = acquireRunSlot(request);
+  if (slot instanceof Response) {
+    // The row says `processing` and nothing is coming to move it. Close it out rather
+    // than leaving a run that claims to be working forever.
+    await supabase
+      .from("generation_runs")
+      .update({
+        status: "failed",
+        error: "The box was already busy with another beta run.",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", run.id);
+    return slot;
+  }
+
   try {
     const result = await runGeneratePipeline(input);
     const { error: updateError } = await supabase
@@ -74,5 +93,7 @@ export async function POST(request: Request) {
       })
       .eq("id", run.id);
     return Response.json({ ok: false, token: run.share_token, error: message }, { status: 500 });
+  } finally {
+    slot.release();
   }
 }

@@ -100,7 +100,9 @@ export async function runGeneratePipeline(input: GenerateRunInput): Promise<Reco
 
     await execFileAsync(PYTHON, args, {
       cwd: process.cwd(),
-      timeout: 10 * 60 * 1000,
+      // Three minutes. A run that has not finished by then is wedged, not slow, and a
+      // hung child holds the single run slot for everyone else until it is reaped.
+      timeout: 3 * 60 * 1000,
       maxBuffer: 8 * 1024 * 1024,
     });
 

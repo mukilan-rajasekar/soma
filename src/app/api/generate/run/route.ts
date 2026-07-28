@@ -1,3 +1,4 @@
+import { acquireRunSlot, betaAccessDenied } from "@/lib/beta-gate";
 import { runGeneratePipeline, toGenerateBrief, validateGenerateInput } from "@/lib/generate-runner";
 
 export const runtime = "nodejs";
@@ -12,6 +13,9 @@ type Incoming = {
 };
 
 export async function POST(request: Request) {
+  const denied = betaAccessDenied(request);
+  if (denied) return denied;
+
   const body = (await request.json().catch(() => ({}))) as Incoming;
   const brief = toGenerateBrief(body.brief);
   const { problems, input } = validateGenerateInput({
@@ -24,6 +28,11 @@ export async function POST(request: Request) {
   if (problems.length) {
     return Response.json({ error: problems[0], problems }, { status: 400 });
   }
+
+  // Taken only once the request is known to be well-formed, so a malformed body cannot
+  // burn a caller's daily quota.
+  const slot = acquireRunSlot(request);
+  if (slot instanceof Response) return slot;
 
   try {
     const payload = await runGeneratePipeline(input);
@@ -38,5 +47,7 @@ export async function POST(request: Request) {
       },
       { status: 500 },
     );
+  } finally {
+    slot.release();
   }
 }

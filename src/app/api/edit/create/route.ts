@@ -116,6 +116,8 @@ export async function POST(request: Request) {
       })
       .eq("id", run.id);
     return Response.json({ ok: false, token: run.share_token, error: message }, { status: 500 });
+  } finally {
+    slot.release();
   }
 }
 
