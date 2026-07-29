@@ -36,6 +36,14 @@ WorkingDirectory=/opt/soma
 
 # run_batch.py reads .env from the repo root itself, so no EnvironmentFile is needed.
 # Keep the service key there, mode 600, owned by User= above.
+# The HuggingFace cache is pinned INSIDE the working directory on purpose. ProtectHome
+# below makes every home directory read-only, and the hub's default cache is
+# ~/.cache/huggingface — so leaving HF_HOME unset means the first attempt to fetch a new
+# model revision (or repair a corrupted cache) fails with a permission error mid-run and
+# drops the batch to `failed` with an opaque I/O message. provision.sh exports the same
+# path, so the install populates the cache the service actually reads.
+Environment=HF_HOME=/opt/soma/.cache/huggingface
+
 ExecStart=/opt/soma/.venv/bin/python tools/concierge/run_batch.py --watch --poll-seconds 60
 
 # See the note above: SIGINT, not SIGTERM, so an interrupted run closes its own row.
@@ -63,8 +71,9 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=read-only
-# The scratch dir (./concierge-runs/<batch_id>) and the HF cache both live under the
-# working directory or the user's home, so those must stay writable.
+# The scratch dir (./concierge-runs/<batch_id>) and the HF cache (pinned to HF_HOME
+# above) both live under the working directory, so this one path covers both. Nothing the
+# worker writes lives in a home directory, which is what makes ProtectHome safe here.
 ReadWritePaths=/opt/soma
 
 [Install]

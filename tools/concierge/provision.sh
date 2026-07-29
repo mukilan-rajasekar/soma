@@ -89,11 +89,20 @@ say "torch"
 if [[ -z "$CUDA_TAG" ]]; then
   if command -v nvidia-smi >/dev/null; then
     DRIVER_CUDA="$(nvidia-smi | sed -n 's/.*CUDA Version: \([0-9.]*\).*/\1/p' | head -1)"
-    case "${DRIVER_CUDA%%.*}" in
-      13|12) CUDA_TAG="cu124" ;;
-      11)    CUDA_TAG="cu118" ;;
-      *)     CUDA_TAG="" ;;
-    esac
+    # MAJOR AND MINOR BOTH MATTER. cu124 wheels need runtime 12.4+, so mapping every
+    # 12.x driver to cu124 puts an unusable wheel on a 12.0-12.3 box: torch installs
+    # without error, cuda.is_available() is False, and the only symptom is "no GPU" —
+    # which is exactly the hour-long misdiagnosis this detection exists to prevent.
+    d_major="${DRIVER_CUDA%%.*}"
+    d_rest="${DRIVER_CUDA#*.}"; d_minor="${d_rest%%.*}"
+    [[ "$d_major" =~ ^[0-9]+$ ]] || d_major=0
+    [[ "$d_minor" =~ ^[0-9]+$ ]] || d_minor=0
+    if   (( d_major >= 13 ));                        then CUDA_TAG="cu124"
+    elif (( d_major == 12 )) && (( d_minor >= 4 ));  then CUDA_TAG="cu124"
+    elif (( d_major == 12 ));                        then CUDA_TAG="cu121"
+    elif (( d_major == 11 ));                        then CUDA_TAG="cu118"
+    else                                                  CUDA_TAG=""
+    fi
     echo "      driver reports CUDA ${DRIVER_CUDA:-unknown} -> ${CUDA_TAG:-cpu wheels}"
   else
     warn "no nvidia-smi. Installing CPU torch — scoring will work and be very slow."
@@ -106,6 +115,12 @@ else
 fi
 
 # ── 5 · the model stack ───────────────────────────────────────────────────────
+# Same HF_HOME the systemd unit sets. Without this the install populates ~/.cache and
+# the service looks under /opt/soma, so the first supervised run re-downloads the lot.
+export HF_HOME="${HF_HOME:-$REPO_ROOT/.cache/huggingface}"
+mkdir -p "$HF_HOME"
+echo "      HF_HOME=$HF_HOME"
+
 say "model stack"
 $PY -m pip install -qq neuralset tribev2 huggingface_hub transformers nibabel faster-whisper
 
@@ -130,6 +145,8 @@ if torch.cuda.is_available():
     print(f"      device: {torch.cuda.get_device_name(0)}")
 else:
     print("      no GPU visible — scoring will run on CPU and take a very long time.")
+    print("      If this box HAS a GPU, the wheel index probably does not match the")
+    print("      driver. Check `nvidia-smi` and re-run with an explicit --cuda cuXXX.")
 PYCHECK
 
 if $PY -c "import huggingface_hub, sys; sys.exit(0 if huggingface_hub.get_token() else 1)" 2>/dev/null; then
