@@ -28,7 +28,11 @@
 # REMOVAL RUNWAY: lift the ceiling on the GPU box ONLY after those upstreams
 # publish numpy>=2.1 wheels; then re-verify the head (see GROUP B below) + a real
 # batch_extract run before bumping.
-torch                    # CUDA build; installed per the box's CUDA version
+# torch                 # CUDA build; installed per the box's CUDA version. Commented
+#                       # like the rest of GROUP A: nothing in this repo imports torch
+#                       # (only tribev2 does, on the box), and uncommented it made the
+#                       # documented CPU install above pull a ~2 GB CUDA wheel into a
+#                       # venv that runs the whole suite green without it.
 # --- TRIBE v2 + its event-building stack (installed from their sources) ---
 # tribev2               # model.from_pretrained("facebook/tribev2"); TribeModel.predict
 # neuralset             # standardize_events + ExtractAudioFromVideo + ChunkEvents
