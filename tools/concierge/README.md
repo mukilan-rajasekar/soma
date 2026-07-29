@@ -153,9 +153,57 @@ and `/upload` (a batch) are deliberately separate products, but both go through
 
 ---
 
+## Standing the box up
+
+```bash
+git clone <repo> /opt/soma && cd /opt/soma
+bash tools/concierge/provision.sh          # --cuda cu118 / --skip-apt if needed
+.venv/bin/huggingface-cli login            # facebook/tribev2 weights are gated
+printf 'SUPABASE_URL=...\nSUPABASE_SERVICE_ROLE_KEY=...\n' > .env && chmod 600 .env
+```
+
+`provision.sh` is idempotent — re-running it is how you repair a half-finished install.
+
+**The failure it exists to prevent.** numpy is pinned below 2.1 because 2.1+ segfaults
+neuralset's C-ABI, and installing the model stack is exactly what drags numpy forward:
+pip satisfies a later dependency by upgrading it, silently, and you find out during a
+scoring run. The script asserts the pin first, re-asserts it after the stack lands, and
+then *verifies* it — a box whose numpy drifted exits non-zero rather than scoring.
+
+Smoke it on a batch you control before pointing anything real at it. Everything either
+side of the model is proven end to end against live Supabase, so a first failure here is
+a failure in the model, which is where you want one.
+
+```bash
+.venv/bin/python tools/concierge/run_batch.py --list
+.venv/bin/python tools/concierge/run_batch.py <token>
+```
+
+Then run it as a service. Edit `User=` and `WorkingDirectory=` first — they are
+placeholders and the unit will not start as shipped, deliberately.
+
+```bash
+sudo cp tools/concierge/soma-worker.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now soma-worker
+journalctl -u soma-worker -f
+```
+
+**Why the unit sends SIGINT.** The runner claims a batch by moving it to `processing`
+before any long work, so two operators cannot double-run it. That claim is also a
+liability: kill the worker mid-run and the row stays `processing` forever, the customer's
+page says "we're working on it" indefinitely, and nothing revisits it — there is no
+stale-claim reaper. `run_batch.py` marks a batch failed on `KeyboardInterrupt`, which is
+raised by SIGINT and not by systemd's default SIGTERM. So `KillSignal=SIGINT` turns a
+restart-during-a-run into a failed run the customer can be told about, rather than a
+silent one that never ends.
+
+---
+
 ## Still not built yet
 
 - **Queue-started confirmation from the site itself.** The runner emails on processing /
   done / failed. The instant "we received your batch" email still belongs at intake time.
-- **A managed process wrapper.** `--watch` gives the box a real worker mode; running it
-  under launchd, systemd, tmux, or another supervisor is still an operator choice.
+- **A stale-claim reaper.** SIGINT covers a supervised stop, but a hard kill (OOM, power,
+  `kill -9`) still strands a row on `processing` with nothing to recover it. The fix is a
+  `started_at` age check that returns old claims to `queued`; until it exists, a stuck row
+  is a manual `--force` re-run.
