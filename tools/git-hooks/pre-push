@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+#
+# pre-push — refuse a direct push to the default branch, so work goes through a PR.
+#
+# WHY THIS EXISTS RATHER THAN BRANCH PROTECTION. Server-side protection — classic rules
+# and the newer rulesets alike — is a paid feature on private repositories. Every repo in
+# this account except CityLens is private on the free plan, so GitHub answers both APIs
+# with "Upgrade to GitHub Pro or make this repository public". This hook is the honest
+# substitute, and it is worth being precise about how much weaker it is:
+#
+#   * it is CLIENT-SIDE. It lives in a working copy, not on GitHub. A fresh clone does
+#     not have it until someone runs the install line below.
+#   * it is ADVISORY. `git push --no-verify` walks straight past it, by design — a hook
+#     that cannot be bypassed is a hook that eventually blocks something urgent.
+#
+# So it does not *secure* anything. What it does is make the PR the default path and the
+# direct push the deliberate one, which is the entire point: Greptile, and every other
+# PR-triggered check, only ever sees what arrives as a pull request. Commit straight to
+# main and the review simply never happens — not because it is misconfigured, but because
+# nothing asked it to run.
+#
+# Install (per clone):
+#     git config core.hooksPath tools/git-hooks
+#
+# Bypass, when you actually mean it:
+#     git push --no-verify
+
+set -euo pipefail
+
+# The default branch as the REMOTE understands it, falling back to main. Asking the
+# remote rather than assuming means this keeps working on a repo that renamed its trunk.
+protected="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')"
+protected="${protected:-main}"
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  # Deleting a branch is not a content push; leave it alone.
+  case "$_local_sha" in
+    0000000000000000000000000000000000000000) continue ;;
+  esac
+
+  case "$remote_ref" in
+    "refs/heads/$protected")
+      current="$(git rev-parse --abbrev-ref HEAD)"
+      cat >&2 <<EOF
+
+  Refusing to push straight to '$protected'.
+
+  Nothing that lands this way is ever reviewed: Greptile and every other
+  PR-triggered check only run on pull requests, so a direct push is not a
+  fast review, it is no review.
+
+  Instead:
+
+      git switch -c <branch>          # you are on '$current'
+      git push -u origin <branch>
+      gh pr create --fill
+
+  If you genuinely mean it:
+
+      git push --no-verify
+
+EOF
+      exit 1
+      ;;
+  esac
+done
+
+exit 0
