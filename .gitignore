@@ -101,3 +101,8 @@ colab_upload/
 concierge-runs/
 edits/
 generated/
+
+# impeccable (design tooling) cache. hook.cache.json holds names of components
+# that no longer exist; listing the directory here keeps it out of commits and
+# out of rg / git grep results, which is where the stale names kept surfacing.
+.impeccable/
