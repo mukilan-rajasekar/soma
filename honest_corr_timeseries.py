@@ -104,7 +104,10 @@ def _rankdata(a):
 def pearson(x, y):
     x = np.asarray(x, float)
     y = np.asarray(y, float)
-    if len(x) < 3 or x.std() == 0 or y.std() == 0:
+    # Tolerance, not == 0: a residualized constant (a flat series with its fitted mean
+    # subtracted in float) keeps a std of ~1e-16 rounding noise, sails past an exact
+    # check, and corrcoef manufactures a plausible-looking r out of that noise.
+    if len(x) < 3 or x.std() <= 1e-10 or y.std() <= 1e-10:
         return np.nan
     return float(np.corrcoef(x, y)[0, 1])
 

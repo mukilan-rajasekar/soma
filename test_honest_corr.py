@@ -151,6 +151,18 @@ def test_spearman_returns_nan_below_three_points():
     assert np.isnan(H.spearman([1.0, 2.0], [3.0, 4.0]))
 
 
+def test_pearson_rejects_a_residualized_constant():
+    """Subtracting a fitted mean from a constant series in float leaves ~1e-16 rounding
+    noise, not exact zeros. An exact std()==0 guard passes it through and corrcoef
+    manufactures an r out of that noise; the tolerance guard must return NaN instead."""
+    t = np.arange(32, dtype=float)
+    x = np.full(32, 1.0)
+    x[::2] += 3e-16                      # what float subtraction leaves of a constant
+    assert x.std() > 0                   # an exact check would have let this through
+    assert np.isnan(H.pearson(x, np.sin(t / 5.0)))
+    assert np.isnan(H.pearson(np.sin(t / 5.0), x))
+
+
 def test_pearson_is_a_real_number_once_the_guards_pass():
     # The guards must not be so eager that the smallest legitimate input is refused.
     assert H.pearson([1.0, 2.0, 3.0], [2.0, 4.0, 7.0]) == pytest.approx(0.99339926, abs=1e-6)

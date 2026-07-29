@@ -246,12 +246,18 @@ def test_partial_shift_p_denominator_follows_the_sampled_shifts():
 
 
 def test_partial_shift_p_refuses_series_it_cannot_shift():
+    # The covariate must not fully explain x or y: residualizing a series against
+    # itself leaves only float noise, which pearson's variance guard (correctly)
+    # calls NaN — and the refusal under test here is the shift policy, not that guard.
     x = np.arange(6.0)
-    Z = x.reshape(-1, 1)
-    p, r = IV.partial_shift_p(x, x, Z)                     # n < 8
+    y = np.array([0.0, 2.0, 1.0, 4.0, 3.0, 5.0])           # co-moves with x, imperfectly
+    Z = np.array([1.0, -1.0, 1.0, -1.0, 1.0, -1.0]).reshape(-1, 1)
+    p, r = IV.partial_shift_p(x, y, Z)                     # n < 8
     assert np.isnan(p)
     assert not np.isnan(r)                                 # the r is still reported
 
     x = np.arange(10.0)
-    p, _ = IV.partial_shift_p(x, x, x.reshape(-1, 1), min_shift=6)   # hi < lo
+    y = np.array([0.0, 2.0, 1.0, 4.0, 3.0, 6.0, 5.0, 8.0, 7.0, 9.0])
+    Z = np.tile([1.0, -1.0], 5).reshape(-1, 1)
+    p, _ = IV.partial_shift_p(x, y, Z, min_shift=6)        # hi < lo
     assert np.isnan(p)
