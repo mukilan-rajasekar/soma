@@ -87,6 +87,11 @@ DEFAULT_POLL_SECONDS = 60
 # text column without turning every row read into a megabyte.
 RUN_LOG_TAIL_CHARS = 20_000
 
+# Exit code for "the operator interrupted this", as distinct from "this batch failed".
+# 128 + SIGINT(2), the shell convention. run_watch() stops on it instead of claiming
+# another batch; see the KeyboardInterrupt handler in run_batch() for why that matters.
+INTERRUPTED = 130
+
 
 # ==============================================================================
 # environment
@@ -667,7 +672,14 @@ def run_batch(sb, batch, args):
     except RuntimeError as e:
         return fail(str(e))
     except KeyboardInterrupt:
-        return fail("The run was interrupted by the operator.")
+        fail("The run was interrupted by the operator.")
+        # NOT fail()'s 1. A failed batch and an interrupted worker need to be told apart
+        # by the caller: run_watch() treats an ordinary failure as "carry on to the next
+        # one", which after a SIGINT means claiming a batch the process is about to be
+        # killed for holding. 130 is the conventional 128+SIGINT, and run_watch() stops on
+        # it. Without this the systemd unit's whole reason for sending SIGINT is defeated:
+        # the interrupted run closes its own row and immediately strands the next one.
+        return INTERRUPTED
 
 
 def run_watch(sb, args):
@@ -677,6 +689,11 @@ def run_watch(sb, args):
         if batch:
             print("", flush=True)
             rc = run_batch(sb, batch, args)
+            if rc == INTERRUPTED:
+                # Stop claiming. The process is being shut down, and anything claimed now
+                # is a row nothing will ever finish.
+                print("interrupted — not claiming another batch", flush=True)
+                return rc
             if rc and rc != 1:
                 return rc
             continue

@@ -1,0 +1,80 @@
+[Unit]
+# soma-worker — claims queued batches and scores them, forever.
+#
+#   sudo cp tools/concierge/soma-worker.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now soma-worker
+#   journalctl -u soma-worker -f
+#
+# EDIT User= AND WorkingDirectory= BEFORE INSTALLING. Both are placeholders and the unit
+# will not start as shipped, which is deliberate: a worker running as the wrong user with
+# a service_role key is worth failing loudly over.
+#
+# WHY KillSignal=SIGINT, WHICH IS THE ONE LINE HERE WORTH UNDERSTANDING. run_batch.py
+# claims a batch by moving it to `processing` before doing any long work, so two operators
+# cannot run it twice. That claim is also a liability: if the worker is killed mid-run the
+# row stays `processing` forever, the customer's page says "we're working on it" for good,
+# and nothing in the system ever revisits it — there is no stale-claim reaper.
+#
+# run_batch.py handles KeyboardInterrupt by marking the batch failed with a readable
+# reason. KeyboardInterrupt is raised by SIGINT, not SIGTERM. So systemd's default stop
+# signal would orphan exactly the batch a restart interrupted, and SIGINT closes it out
+# cleanly instead. `systemctl restart` during a run therefore costs the customer a failed
+# run they can be told about, rather than a silent one that never ends.
+
+Description=Soma concierge worker — scores queued ad batches
+Documentation=file:///opt/soma/tools/concierge/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# ---- EDIT THESE TWO ----------------------------------------------------------
+User=soma
+WorkingDirectory=/opt/soma
+# ------------------------------------------------------------------------------
+
+# run_batch.py reads .env from the repo root itself, so no EnvironmentFile is needed.
+# Keep the service key there, mode 600, owned by User= above.
+# The HuggingFace cache is pinned INSIDE the working directory on purpose. ProtectHome
+# below makes every home directory read-only, and the hub's default cache is
+# ~/.cache/huggingface — so leaving HF_HOME unset means the first attempt to fetch a new
+# model revision (or repair a corrupted cache) fails with a permission error mid-run and
+# drops the batch to `failed` with an opaque I/O message. provision.sh exports the same
+# path, so the install populates the cache the service actually reads.
+Environment=HF_HOME=/opt/soma/.cache/huggingface
+
+ExecStart=/opt/soma/.venv/bin/python tools/concierge/run_batch.py --watch --poll-seconds 60
+
+# See the note above: SIGINT, not SIGTERM, so an interrupted run closes its own row.
+KillSignal=SIGINT
+KillMode=mixed
+# Long enough for the in-flight batch to write its failure row and exit; not so long that
+# a stop hangs. The row write is fast — this is slack for a download or ffmpeg to unwind.
+TimeoutStopSec=90
+
+Restart=always
+RestartSec=15
+# A worker that crash-loops on a bad batch would chew the queue. This lets it retry a few
+# times a minute and then stop, so a person looks at it.
+StartLimitIntervalSec=300
+StartLimitBurst=8
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=soma-worker
+
+# ---- hardening ---------------------------------------------------------------
+# Modest on purpose: the process shells out to ffmpeg and downloads model weights, so
+# anything stricter tends to fail in ways that look like model bugs.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+# The scratch dir (./concierge-runs/<batch_id>) and the HF cache (pinned to HF_HOME
+# above) both live under the working directory, so this one path covers both. Nothing the
+# worker writes lives in a home directory, which is what makes ProtectHome safe here.
+ReadWritePaths=/opt/soma
+
+[Install]
+WantedBy=multi-user.target
