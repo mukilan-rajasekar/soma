@@ -106,3 +106,7 @@ generated/
 # that no longer exist; listing the directory here keeps it out of commits and
 # out of rg / git grep results, which is where the stale names kept surfacing.
 .impeccable/
+
+# Generated share bundles (tools/corpus/bundle.py). Derived from /data/, which is
+# already ignored — keep the derivative out too rather than committing a copy of it.
+/dist/
