@@ -65,14 +65,18 @@ fi
 # Conditional: bare pytest exits 5 ("no tests collected") when the pipeline has
 # no tests yet, which would wedge the gate closed forever. Once you add the
 # first test_*.py this starts enforcing automatically.
+#
+# .venv is required, not optional. Falling back to system python3 here used to
+# hand a fresh checkout a bare ImportError from whichever interpreter was on
+# PATH — which reads as a broken repo instead of a missing setup step.
 step "pytest"
 PYTEST_TARGETS=$(find . -name 'test_*.py' -not -path './.venv/*' -not -path './node_modules/*' -not -path './.next/*' 2>/dev/null | head -1)
-if [[ -z "$PYTEST_TARGETS" ]]; then
+if [[ ! -x .venv/bin/python ]]; then
+  fail "no .venv — create it first (README):  python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt"
+elif [[ -z "$PYTEST_TARGETS" ]]; then
   echo "no test_*.py found — skipping (add one and this gate arms itself)"
-elif [[ -x .venv/bin/python ]]; then
-  .venv/bin/python -m pytest -q || fail "pytest"
 else
-  python3 -m pytest -q || fail "pytest"
+  .venv/bin/python -m pytest -q || fail "pytest"
 fi
 
 # ---- 4. demo artifact coherence ---------------------------------------------
@@ -85,7 +89,7 @@ step "demo artifact coherence"
 if [[ -x .venv/bin/python ]]; then
   .venv/bin/python tools/demo/check_coherence.py || fail "demo artifact coherence"
 else
-  python3 tools/demo/check_coherence.py || fail "demo artifact coherence"
+  fail "no .venv — see the pytest step above for the two setup lines"
 fi
 
 # ---- 5. smoke ---------------------------------------------------------------
