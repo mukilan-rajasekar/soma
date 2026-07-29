@@ -41,6 +41,20 @@ MEDIA_COLS = ["width", "height", "aspect_ratio", "orientation", "fps", "has_audi
 
 PLATFORM_LABEL = {"meta": "days_running", "tiktok": "ctr_index"}
 
+# TIKTOK'S `ctr` IS A PERCENTILE RANK WHERE 0.01 IS THE BEST, NOT A RATE. It has exactly
+# 99 distinct values in 0.01..0.99, and 0.99 would be an absurd click-through rate.
+#
+# Established from the arrival order inside a sweep slice, not assumed:
+#   - in `sortedby_like` slices, likes DECREASE with position in 17 of 17 slices, so the
+#     Creative Center API returns best-first;
+#   - in `sortedby_ctr` slices, `ctr` INCREASES with position (34 slices to 12).
+# Best-first plus increasing means low `ctr` is the good end.
+#
+# ad_manifest.README and ad_backtest.py both take `outcome` as HIGHER = better, so the
+# raw value has to be flipped on the way into the manifest or every correlation computed
+# from it carries the wrong sign. The raw percentile stays in `note` as `ctrpct_<v>`.
+INVERT_OUTCOME = {"tiktok"}
+
 
 def num(row, col):
     v = (row.get(col) or "").strip()
@@ -142,13 +156,25 @@ def main():
     for plat in sorted({r["platform"] for r in perf}):
         rows = [r for r in keep if r["platform"] == plat]
         out = ADS / f"ad_manifest_{plat}.csv"
+        flip = plat in INVERT_OUTCOME
+        written = 0
         with open(out, "w", newline="") as fh:
             w = csv.writer(fh)
             w.writerow(["ad_id", "outcome", "platform", "note"])
             for r in rows:
                 src = man.get(r["ad_id"], {})
-                w.writerow([r["ad_id"], r["primary_label"], plat, src.get("note", "")])
-        print(f"wrote {out.name:26} {len(rows):5} ads   outcome = {PLATFORM_LABEL.get(plat,'?')}")
+                note = src.get("note", "")
+                raw = num(r, "primary_label")
+                if raw is None:
+                    continue
+                outcome = round(1.0 - raw, 4) if flip else raw
+                if flip:
+                    note = f"{note};ctrpct_{raw}"
+                w.writerow([r["ad_id"], outcome, plat, note])
+                written += 1
+        label = PLATFORM_LABEL.get(plat, "?")
+        suffix = "  (INVERTED: 1 - percentile, so higher = better)" if flip else ""
+        print(f"wrote {out.name:26} {written:5} ads   outcome = {label}{suffix}")
 
     print("\nnext:")
     print("  .venv/bin/python ad_backtest.py --manifest data/ads/ad_manifest_meta.csv --score arc")
