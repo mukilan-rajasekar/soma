@@ -96,6 +96,16 @@ SWEEP_QUERIES = [
     "electric toothbrush", "language app", "car insurance", "meal replacement",
     "hair growth", "pet food", "sunglasses", "fitness app", "coffee subscription",
     "credit card", "online course", "vitamins", "razor subscription",
+    # Second tier, added once the first pass had been through 14 of the terms above.
+    # A search term is a sampling frame, not a keyword: whatever it matches becomes the
+    # population the model is fit on. The first tier is heavily DTC-physical-product, so
+    # these deliberately add services, apps, finance and durables — categories with
+    # different ad grammar (talking head, screen recording, price overlay) rather than
+    # more of the same unboxing shot.
+    "robot vacuum", "air fryer", "smart watch", "noise cancelling headphones",
+    "dating app", "mobile game", "budgeting app", "vpn subscription",
+    "solar panels", "hearing aid", "teeth whitening", "perfume",
+    "travel booking", "gym membership", "streaming service", "web hosting",
 ]
 
 # An ad shorter than this is more likely a dated promo than a judgement about creative.
