@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { sendWaitlistWelcomeEmail } from "@/lib/notify";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -34,6 +35,16 @@ export async function POST(request: Request) {
 
   if (error && error.code !== "23505") {
     return Response.json({ error: "Could not join waitlist." }, { status: 500 });
+  }
+
+  // Welcome email only on a fresh row: a duplicate (23505) already got one,
+  // and re-submitting must not let anyone trigger repeat email to an address.
+  if (!error) {
+    try {
+      await sendWaitlistWelcomeEmail(normalizedEmail);
+    } catch (err) {
+      console.error("waitlist welcome email failed", err);
+    }
   }
 
   return Response.json({ ok: true });

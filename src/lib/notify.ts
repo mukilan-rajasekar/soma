@@ -56,6 +56,18 @@ async function sendEmail(message: EmailMessage): Promise<void> {
   }
 }
 
+export async function sendWaitlistWelcomeEmail(email: string): Promise<void> {
+  await sendEmail({
+    to: email,
+    subject: "You're on the Soma waitlist",
+    text:
+      "Thanks for joining the Soma waitlist.\n\n" +
+      "We onboard in small batches so every read-out gets real attention. " +
+      "We'll email you at this address when your spot opens.\n\n" +
+      `Until then, the demo lives at ${appUrl()}/demo.`,
+  });
+}
+
 export async function sendBatchQueuedEmail(input: {
   email: string;
   batchName: string;
