@@ -58,6 +58,23 @@ def digest(path):
     return h.hexdigest()
 
 
+def video_list(args):
+    """The mp4s to ship. Default is the USABLE set, not everything.
+
+    The 33 excluded files are 3% of the corpus by count and 25% of it by bytes — the
+    long-form entries are 25-minute videos that were never ads. Shipping them costs 2.9 GB
+    to hand someone files the datasheet tells them not to use. --all-videos overrides."""
+    perf = {r["ad_id"]: r for r in csv.DictReader(open(SRC / "ad_performance.csv"))}
+    out = []
+    for ad_id, r in sorted(perf.items()):
+        if not args.all_videos and r.get("exclude_reason"):
+            continue
+        p = SRC / "videos" / f"{ad_id}.mp4"
+        if p.exists():
+            out.append(p)
+    return out
+
+
 def reason_family(reason):
     """`long_form_1495s` and `long_form_205s` are one reason, not two hundred. Collapse the
     measurement off the end so the datasheet counts families."""
@@ -295,8 +312,14 @@ def datasheet(s):
     w("  per-second analysis of the whole corpus without downloading 11 GB of video.")
     w("- `CHECKSUMS.txt` — sha256 of each table, so a truncated copy is detectable.\n")
 
-    w("## SHARING — how to get the videos too\n")
-    w(f"The {s['videos']} mp4s are **{gb:.1f} GB** and are deliberately gitignored (`/data/`).")
+    w("## SHARING — the videos\n")
+    w("**If this bundle has a `videos/` directory, the mp4s are already here** — and it holds")
+    w(f"the {s['usable']} USABLE ads only, not all {s['videos']}. The 33 excluded files are 3%")
+    w("of the corpus by count but 25% of it by bytes (the long-form entries are 25-minute")
+    w("videos that were never ads), so shipping them would cost ~2.9 GB to hand you files")
+    w("this datasheet tells you not to use. Rebuild with `--all-videos` if you need them.\n")
+    w(f"If there is no `videos/` directory, the {s['videos']} mp4s are **{gb:.1f} GB** and are"
+      " gitignored (`/data/`).")
     w("They are third-party ads collected from public ad libraries: fine to hold and analyse")
     w("internally, but do not republish them as a public dataset.\n")
     w("Ranked by how fast you can hand them over:\n")
@@ -315,7 +338,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=str(OUT))
     ap.add_argument("--zip", action="store_true", help="also write a single .zip")
+    ap.add_argument("--with-videos", action="store_true",
+                    help="include the usable mp4s (~8.4 GB). Implies --zip.")
+    ap.add_argument("--all-videos", action="store_true",
+                    help="with --with-videos, include excluded files too (~11.3 GB)")
     args = ap.parse_args()
+    if args.with_videos:
+        args.zip = True
 
     out = Path(args.out)
     if not SRC.exists():
@@ -356,12 +385,33 @@ def main():
     print(f"\nbundle {out}  ({total / 1024:.0f} KB, {n_files} files)")
 
     if args.zip:
+        vids = video_list(args) if args.with_videos else []
+        if vids:
+            need = sum(p.stat().st_size for p in vids)
+            free = shutil.disk_usage(out.parent).free
+            print(f"\nvideos {len(vids)} files, {need / 1e9:.2f} GB   free {free / 1e9:.2f} GB")
+            # Videos are streamed straight into the archive rather than staged under out/,
+            # because staging would need the bytes twice and there is not room for that.
+            if need > free * 0.92:
+                raise SystemExit(
+                    f"refusing to start: {need/1e9:.2f} GB archive into {free/1e9:.2f} GB free.\n"
+                    "  Free space, attach a volume, or drop --with-videos and sync the mp4s\n"
+                    "  to object storage instead (rclone needs no local archive at all).")
+
         z = out.with_suffix(".zip")
-        with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
+        # ZIP_STORED for mp4: they are already compressed, so deflate costs minutes of CPU
+        # to save well under a percent. The metadata still deflates.
+        with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
             for p in sorted(out.rglob("*")):
                 if p.is_file():
                     zf.write(p, f"{out.name}/{p.relative_to(out)}")
-        print(f"zip    {z}  ({z.stat().st_size / 1024:.0f} KB)")
+            for i, p in enumerate(vids, 1):
+                zf.write(p, f"{out.name}/videos/{p.name}", compress_type=zipfile.ZIP_STORED)
+                if i % 100 == 0:
+                    print(f"  {i}/{len(vids)} videos", flush=True)
+        gb = z.stat().st_size / 1e9
+        print(f"zip    {z}  ({gb:.2f} GB)" if gb >= 1 else
+              f"zip    {z}  ({z.stat().st_size / 1024:.0f} KB)")
 
 
 if __name__ == "__main__":
