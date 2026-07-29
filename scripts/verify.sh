@@ -51,12 +51,14 @@ if ! npm run build > /tmp/soma-verify-build.log 2>&1; then
 fi
 
 # ---- 2. lint ----------------------------------------------------------------
-# Scoped to src/ on purpose: the flat config's globalIgnores() drops eslint's
-# default ignores, so a bare `eslint .` walks .venv/ and node_modules and
-# reports ~17k problems from vendored JS. src/ is clean today.
-step "eslint src"
-if ! npx eslint src; then
-  fail "eslint src"
+# Whole repo, the same scope as `npm run lint` — a gate that lints less than the
+# local command lets scripts/ and config files rot unchecked. Safe now because
+# eslint.config.mjs restates every default ignore (node_modules/, .venv/, .next/)
+# that globalIgnores() would otherwise drop; this used to be scoped to src/ when
+# it did not.
+step "eslint"
+if ! npx eslint .; then
+  fail "eslint"
 fi
 
 # ---- 3. python tests --------------------------------------------------------
