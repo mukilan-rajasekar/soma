@@ -352,6 +352,8 @@ def main():
                     help="include the usable mp4s (~8.4 GB). Implies --zip.")
     ap.add_argument("--all-videos", action="store_true",
                     help="with --with-videos, include excluded files too (~11.3 GB)")
+    ap.add_argument("--force", action="store_true",
+                    help="allow a metadata-only rebuild to overwrite an archive that has videos")
     args = ap.parse_args()
     if args.with_videos:
         args.zip = True
@@ -409,6 +411,21 @@ def main():
                     "  to object storage instead (rclone needs no local archive at all).")
 
         z = out.with_suffix(".zip")
+        # A metadata-only rebuild must not silently destroy a video archive at the same
+        # path. This has already happened once: a routine `--zip` to refresh the datasheet
+        # overwrote an 8.4 GB archive with a 1.7 MB one, discarding the exact file the
+        # author had just chosen to keep. Same filename, no warning, gone. Refuse instead.
+        if z.exists() and not args.with_videos:
+            try:
+                had = sum(1 for n in zipfile.ZipFile(z).namelist() if n.endswith(".mp4"))
+            except (zipfile.BadZipFile, OSError):
+                had = 0
+            if had and not args.force:
+                raise SystemExit(
+                    f"{z.name} already holds {had} videos and this run has none.\n"
+                    "  Writing it would throw those away. Either add --with-videos to\n"
+                    "  rebuild the full archive, or pass --force to accept the downgrade,\n"
+                    "  or use --out to write somewhere else.")
         # ZIP_STORED for mp4: they are already compressed, so deflate costs minutes of CPU
         # to save well under a percent. The metadata still deflates.
         with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
