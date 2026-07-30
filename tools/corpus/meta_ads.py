@@ -96,6 +96,16 @@ SWEEP_QUERIES = [
     "electric toothbrush", "language app", "car insurance", "meal replacement",
     "hair growth", "pet food", "sunglasses", "fitness app", "coffee subscription",
     "credit card", "online course", "vitamins", "razor subscription",
+    # Second tier, added once the first pass had been through 14 of the terms above.
+    # A search term is a sampling frame, not a keyword: whatever it matches becomes the
+    # population the model is fit on. The first tier is heavily DTC-physical-product, so
+    # these deliberately add services, apps, finance and durables — categories with
+    # different ad grammar (talking head, screen recording, price overlay) rather than
+    # more of the same unboxing shot.
+    "robot vacuum", "air fryer", "smart watch", "noise cancelling headphones",
+    "dating app", "mobile game", "budgeting app", "vpn subscription",
+    "solar panels", "hearing aid", "teeth whitening", "perfume",
+    "travel booking", "gym membership", "streaming service", "web hosting",
 ]
 
 # An ad shorter than this is more likely a dated promo than a judgement about creative.
@@ -342,6 +352,8 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--query", default="", help="a single search term")
     ap.add_argument("--country", default="DE", help="two-letter EU country code")
+    ap.add_argument("--queries", default="",
+                    help="comma-separated terms to sweep instead of all of SWEEP_QUERIES")
     ap.add_argument("--sweep", action="store_true",
                     help="harvest the built-in vertical list across EU markets in ONE session")
     ap.add_argument("--limit", type=int, default=40, help="max NEW ads this run")
@@ -375,7 +387,23 @@ def main():
 
     # Country-major, so a run that is cut short still spans verticals rather than
     # finishing one market and never reaching the others.
-    combos = ([(q, c) for q in SWEEP_QUERIES for c in EU_COUNTRIES[:max(1, args.countries)]]
+    # --queries narrows the sweep to named terms. This matters more than it looks: the
+    # sweep walks SWEEP_QUERIES in order, and a term that has already been swept is nearly
+    # all duplicates — 'protein powder' has 43 ads in the corpus and returned 2 new ones
+    # after thirteen minutes of browser time. Grinding the used terms first spends the
+    # session budget on ads that get deduplicated away before it ever reaches a fresh
+    # vertical. Naming the fresh ones is the difference between a useful run and a slow one.
+    if args.queries:
+        wanted = [q.strip() for q in args.queries.split(",") if q.strip()]
+        unknown = [q for q in wanted if q not in SWEEP_QUERIES]
+        if unknown:
+            print(f"note      {len(unknown)} term(s) not in SWEEP_QUERIES, using anyway: "
+                  f"{', '.join(unknown)}")
+        pool = wanted
+    else:
+        pool = SWEEP_QUERIES
+
+    combos = ([(q, c) for q in pool for c in EU_COUNTRIES[:max(1, args.countries)]]
               if args.sweep else [(args.query, args.country)])
     print(f"plan      {len(combos)} search(es), up to {args.limit} new ads\n")
 
@@ -439,6 +467,18 @@ def main():
                     taken += 1
                     print(f"    {ad_id}  {rec['days']:>4}d  {rec['page_name'][:28]:<28} "
                           f"{rec['start']:%Y-%m-%d} -> {rec['end']:%Y-%m-%d}")
+
+                # Persist after every search rather than once at the end. A sweep is a
+                # multi-hour browser session against a bot-protected site, so it gets
+                # interrupted — by a challenge page, a timeout, or an operator. Holding
+                # every row in memory until the last combo means an interruption leaves
+                # the DOWNLOADED VIDEOS ON DISK WITH NO MANIFEST ROWS: bytes paid for,
+                # metadata gone, and orphans that collide with the next run's id
+                # numbering. append_rows is already append-only, so calling it per search
+                # is free and makes the run resumable at search granularity.
+                if rows:
+                    append_rows(data_dir, rows, args.dry_run)
+                    rows = []
 
     if not collected:
         print("\nNothing collected. If the browser hit a challenge page, the session "
