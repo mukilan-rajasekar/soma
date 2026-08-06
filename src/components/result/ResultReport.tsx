@@ -80,14 +80,29 @@ export default function ResultReport({
   batchName,
   generatedAt,
   batchToken,
+  editsAvailable,
 }: {
   report: PreflightReport;
   batchName: string;
   generatedAt: string | null;
   batchToken: string;
+  /** Whether the serving host can run an edit search. Blocks 05 and 06 both spend Python
+   *  and ffmpeg — on a host without them the first renders an error and the second links
+   *  to a form that 404s, so they are omitted rather than shipped broken.
+   *  See src/lib/edit-capability.ts. */
+  editsAvailable: boolean;
 }) {
   const [selectedId, setSelectedId] = useState(report.bestId);
   const selected = report.ads.find((a) => a.id === selectedId) ?? report.ads[0];
+
+  // Section numbers are assigned in render order rather than hard-coded. Two blocks are
+  // conditional — the brief (only if one was submitted) and the two edit blocks (only on a
+  // host that can run Python) — and with fixed numbers, omitting one printed a sequence
+  // like 04, 07, 08, which reads to a customer as a section that failed to load. Counting
+  // here means the numbering is always contiguous whatever renders. Re-created every
+  // render, so it cannot drift when `selectedId` changes.
+  let blockN = 0;
+  const nextN = () => String(++blockN).padStart(2, "0");
 
   const ordered = useMemo(
     () =>
@@ -152,7 +167,7 @@ export default function ResultReport({
           The clip on the left, its lanes on the right, one clock between them, and
           the batch under it to switch between. Identical instrument to /preflight;
           the selection is shared with the comparison below. */}
-      <Block title="Every cut, second by second" n="01">
+      <Block title="Every cut, second by second" n={nextN()}>
         {selected ? (
           <div className="flex flex-col gap-8">
             {/* Keyed on the ad: switching cuts remounts the panel, the <video> and the
@@ -173,7 +188,7 @@ export default function ResultReport({
       {/* ── the batch ─────────────────────────────────────────────────────── */}
       <Block
         title="The batch on one axis"
-        n="02"
+        n={nextN()}
         lede="Change the lane and the batch answers a different question: which cut held the eye, which surprised, and which one actually registered."
       >
         <OverlayPanel
@@ -187,7 +202,7 @@ export default function ResultReport({
       {/* ── the hook ──────────────────────────────────────────────────────── */}
       <Block
         title="The first three seconds"
-        n="03"
+        n={nextN()}
         lede={`Every cut's first ${HOOK_SECONDS} seconds are scored separately, and worth ${Math.round((report.weights?.hook ?? 0.4) * 100)}% of the total. The ventral surprise signal is what measures it: a hook works by being unexpected.`}
       >
         <HookCompare report={report} active />
@@ -200,7 +215,7 @@ export default function ResultReport({
           is how far below the clip's own median the stretch ran, in robust SDs. */}
       <Block
         title="Where attention leaks"
-        n="04"
+        n={nextN()}
         lede="Stretches at least three seconds long that run measurably below the cut's own median. These are the timestamps to look at first."
       >
         {withWeakSpots.length === 0 ? (
@@ -242,48 +257,58 @@ export default function ResultReport({
         )}
       </Block>
 
-      <Block
-        title="Per-shot edit diagnosis"
-        n="05"
-        lede="For the selected cut, Soma now estimates which removable beat is dragging most before you commit to a full edit run."
-      >
-        <BatchEditPreview
-          key={selected.id}
-          batchToken={batchToken}
-          adId={selected.id}
-          adTitle={selected.title}
-        />
-      </Block>
+      {/* ── the edit hand-off ─────────────────────────────────────────────────
+          Both of these blocks spend Python and ffmpeg on the host serving the request,
+          and the site deploys to Vercel, which has neither. Rendered unconditionally
+          they gave every real customer an error panel followed by buttons that 404.
+          They appear only where the stack exists. See src/lib/edit-capability.ts for
+          the flag and for the fix-forward (precompute the candidates on the box). */}
+      {editsAvailable ? (
+        <Block
+          title="Per-shot edit diagnosis"
+          n={nextN()}
+          lede="For the selected cut, Soma now estimates which removable beat is dragging most before you commit to a full edit run."
+        >
+          <BatchEditPreview
+            key={selected.id}
+            batchToken={batchToken}
+            adId={selected.id}
+            adTitle={selected.title}
+          />
+        </Block>
+      ) : null}
 
-      <Block
-        title="Search the best re-cut"
-        n="06"
-        lede="Any delivered cut can now hand off directly into edit search. Start from the winner, or from the cut with the clearest drag."
-      >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {ordered.map((ad) => (
-            <div key={ad.id} className="rounded-2xl border border-line bg-fill p-4">
-              <div className="flex items-baseline gap-3">
-                <div className="text-ui font-medium text-ink">{ad.title}</div>
-                <div className="ml-auto text-[13px] tabular-nums text-ink-3">
-                  {Math.round(ad.scores.preflight)}
+      {editsAvailable ? (
+        <Block
+          title="Search the best re-cut"
+          n={nextN()}
+          lede="Any delivered cut can now hand off directly into edit search. Start from the winner, or from the cut with the clearest drag."
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {ordered.map((ad) => (
+              <div key={ad.id} className="rounded-2xl border border-line bg-fill p-4">
+                <div className="flex items-baseline gap-3">
+                  <div className="text-ui font-medium text-ink">{ad.title}</div>
+                  <div className="ml-auto text-[13px] tabular-nums text-ink-3">
+                    {Math.round(ad.scores.preflight)}
+                  </div>
                 </div>
+                <p className="mt-2 text-[13px] leading-[1.55] text-ink-2">
+                  {ad.weakSpots.length
+                    ? `${ad.weakSpots.length} weak spot${ad.weakSpots.length > 1 ? "s" : ""} already flagged in this cut.`
+                    : "No weak spot was long enough to flag, but the edit search can still test alternate openings and trims."}
+                </p>
+                <Link
+                  href={`/edit?batch=${batchToken}&ad=${ad.id}`}
+                  className="mt-4 inline-flex rounded-xl border border-line-2 px-4 py-[10px] text-[13px] font-medium text-ink transition-colors hover:border-ink"
+                >
+                  Search edits for this cut
+                </Link>
               </div>
-              <p className="mt-2 text-[13px] leading-[1.55] text-ink-2">
-                {ad.weakSpots.length
-                  ? `${ad.weakSpots.length} weak spot${ad.weakSpots.length > 1 ? "s" : ""} already flagged in this cut.`
-                  : "No weak spot was long enough to flag, but the edit search can still test alternate openings and trims."}
-              </p>
-              <Link
-                href={`/edit?batch=${batchToken}&ad=${ad.id}`}
-                className="mt-4 inline-flex rounded-xl border border-line-2 px-4 py-[10px] text-[13px] font-medium text-ink transition-colors hover:border-ink"
-              >
-                Search edits for this cut
-              </Link>
-            </div>
-          ))}
-        </div>
-      </Block>
+            ))}
+          </div>
+        </Block>
+      ) : null}
 
       {/* ── the brief ─────────────────────────────────────────────────────────
           Echoed back verbatim. Clarity is 25% of the score and is computed against
@@ -293,7 +318,7 @@ export default function ResultReport({
       {message ? (
         <Block
           title="What we scored the message against"
-          n="07"
+          n={nextN()}
           lede="Comprehension is checked against these words, on screen and out loud. If any of this is wrong, that part of the score is measuring the wrong thing, and it is worth telling us."
         >
           <dl className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2">
@@ -339,7 +364,7 @@ export default function ResultReport({
           line here is a specific, checkable statement about THIS run. */}
       <Block
         title="What this run can and cannot tell you"
-        n="08"
+        n={nextN()}
         lede="Every line below is about this batch specifically, read straight out of the file the pipeline produced."
       >
         <div className="flex flex-col gap-3">

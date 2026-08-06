@@ -111,9 +111,26 @@ a customer slide as a result — it lives in the greyed "Vision" panel only.
    each fold, circular-shift + phase-randomization nulls, and a mandatory
    stimulus-only baseline the brain decoder must beat.
 
-## Do first (unblocks everything)
-Resolve which TRIBE we actually serve: the Algonauts-2025 winner natively predicts
-**1,000 Schaefer parcels in MNI volume**, while our pipeline assumes the
-**fsaverage5 ~20k-vertex surface** variant. These are NOT interchangeable. Pick one
-canonical space and force every training set through the identical transform, or the
-decoder's learned weights are meaningless on TRIBE's output.
+## Which TRIBE we serve — RESOLVED 2026-07-30
+This was an open blocker ("pick one canonical space or the decoder's learned weights
+are meaningless"). It is settled, and the answer is **fsaverage5 surface, 20484
+vertices, `[lh; rh]` order**.
+
+Settled by evidence, not by decision: the `facebook/tribev2` checkpoint we load emits
+`(T, 20484)` — confirmed in three independent real-run records
+(`public/preflight/batch_report.json` predsStats, `docs/reports/FIRST-REAL-RUN.md`,
+`docs/science/PREREGISTRATION-head.md:34`) — and every one of the 152 prediction
+arrays and 10 ROI masks in this repo matches it. The apparent conflict with the
+Algonauts paper's "Schaefer-1000 MNI" dissolves on inspection: the Schaefer annots
+`demo/process_batch.py` downloads are **Schaefer-400 on the fsaverage5 surface**
+(10242/hemi → 20484), used as per-vertex network labels, so no transform is needed
+and none is missing.
+
+Four independent shape guards enforce it (`demo/process_batch.py:569`,
+`head_apply.py:170`, `batch_extract.py:182`, `affect_extract.py:90`), and the
+`visualPositive` sanity check — which fails if the `[LH; RH]` order is wrong — passed
+on the last real run for all five ads. Run `check_preds_space.py` on any preds file
+to confirm a given batch.
+
+The Schaefer-1000-MNI path remains supported (`build_roi_mask.py --n-units 1000`) in
+case a future checkpoint emits it. Nothing we have produced has ever been in it.
