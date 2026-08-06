@@ -7,7 +7,19 @@ import { usePathname } from "next/navigation";
 // reachable by URL — nothing about them was deleted — they are just not advertised in the
 // bar any more. Re-adding one is a line here and nothing else.
 const LINKS = [
-  { href: "/demo", label: "Demo" },
+  { href: "/demo", label: "Demo", prefetch: undefined },
+  // The door into the logged-in product. It is a plain link rather than a session-aware
+  // control on purpose: making this bar know whether you are signed in would turn a
+  // Server Component rendered on every marketing page into one that must await an auth
+  // round-trip first. /dashboard redirects a signed-out visitor to /sign-in and carries
+  // them back afterwards, so the link is correct either way.
+  //
+  // prefetch={false} IS LOAD-BEARING, and the smoke pass is what found it. Next prefetches
+  // a Link's RSC payload when it enters the viewport; /dashboard answers with a redirect,
+  // and the aborted prefetch surfaces as a failed request on every page carrying this bar
+  // (scripts/smoke.mjs flagged /preflight and /upload). Prefetching a route that exists to
+  // bounce you is wasted work regardless — the flag removes the fetch, not a feature.
+  { href: "/dashboard", label: "Studio", prefetch: false },
 ] as const;
 
 // Shared top bar for the scrolling content routes. Sticky within the (site) scroll
@@ -45,6 +57,7 @@ export default function SiteHeader() {
               <Link
                 key={l.href}
                 href={l.href}
+                prefetch={l.prefetch}
                 aria-current={active ? "page" : undefined}
                 // The links rendered 21px tall, well under the 44px minimum touch target.
                 // Padding plus an equal negative margin grows the hit area to ~45px without

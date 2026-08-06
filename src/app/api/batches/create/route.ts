@@ -23,6 +23,7 @@
 // keys into a file our pipeline parses.
 
 import { serviceClient } from "@/lib/supabase/server";
+import { currentUser } from "@/lib/supabase/session";
 import {
   MAX_BATCH_ADS,
   adIdFor,
@@ -139,9 +140,25 @@ export async function POST(request: Request) {
   // ── write ────────────────────────────────────────────────────────────────────
   const manifest = buildManifest(brief, ads);
 
+  // OWNERSHIP IS STAMPED ONLY IF THERE IS A REAL SESSION, and its absence is not an error.
+  // /upload is the concierge intake and stays open to people who have never signed in
+  // (migration 0008: a null user_id means "reachable only by its share token", which is
+  // how every row created before accounts existed already behaves). When someone IS signed
+  // in, this is what makes the run appear in their dashboard.
+  //
+  // Taken from the verified session rather than from `email` in the body: that field is
+  // unvalidated free text, so trusting it would let any caller file a run into anyone
+  // else's library by typing their address.
+  const owner = await currentUser();
+
   const { data: batch, error: batchError } = await supabase
     .from("batches")
-    .insert({ email, batch_name: manifest.batch_name, manifest })
+    .insert({
+      email,
+      batch_name: manifest.batch_name,
+      manifest,
+      ...(owner ? { user_id: owner.id } : {}),
+    })
     .select("id, share_token")
     .single();
 
@@ -162,6 +179,7 @@ export async function POST(request: Request) {
     ad_id: adIdFor(i),
     ad_title: manifest.ads[i].title,
     user_agent: request.headers.get("user-agent"),
+    ...(owner ? { user_id: owner.id } : {}),
   }));
 
   const { error: uploadsError } = await supabase.from("uploads").insert(rows);
