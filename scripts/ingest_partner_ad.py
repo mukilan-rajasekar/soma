@@ -456,6 +456,21 @@ def main():
                 ad["poster"] = keys[ad["id"]]["poster"]
 
     # ── 6. rows ──────────────────────────────────────────────────────────────
+    #
+    # A SKIPPED RUN IS TERMINAL, NOT QUEUED. --skip-score writes no report, and nothing
+    # anywhere will ever come back and finish these rows — there is no worker watching
+    # for them and no stale-claim reaper. Writing 'queued' left a row the dashboard
+    # renders as "Searching the edit space… reload in a few minutes" forever, which is
+    # the exact failure tools/concierge/README.md already lists as unbuilt.
+    #
+    # The schema's only terminal states are done and failed, and this is honestly the
+    # second: the run stopped before producing a result, and the reason is worth saying
+    # in words rather than leaving as a spinner.
+    SKIPPED = ("Scoring was skipped (--skip-score), so this run has no read-out. "
+               "Re-run scripts/ingest_partner_ad.py without that flag on a host with "
+               "the model stack.")
+    terminal = "done" if report else "failed"
+
     print("6/6  writing rows")
     batch = supabase.insert("batches", {
         "id": batch_id,
@@ -463,8 +478,9 @@ def main():
         "user_id": owner_id,
         "batch_name": manifest["batch_name"],
         "manifest": manifest,
-        "status": "done" if report else "queued",
-        **({"report": report, "completed_at": now_iso()} if report else {}),
+        "status": terminal,
+        **({"report": report, "completed_at": now_iso()}
+           if report else {"error": SKIPPED, "completed_at": now_iso()}),
     })
     token = batch["share_token"]
 
@@ -490,11 +506,12 @@ def main():
         "source_kind": "batch",
         "source_title": ads[0]["title"],
         "batch_share_token": token,
-        "status": "done" if report else "queued",
+        "status": terminal,
         **({"result": {"baseScore": base,
                        "shots": [{"start": a, "end": b} for a, b in shots],
                        "verified": True},
-            "completed_at": now_iso()} if report else {}),
+            "completed_at": now_iso()}
+           if report else {"error": SKIPPED, "completed_at": now_iso()}),
     })
 
     if report:

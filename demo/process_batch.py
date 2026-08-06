@@ -1070,7 +1070,15 @@ def within_item_scores(feature_rows, arcs):
             # No lanes (--lanes primary, or a timing failure). Say 50 rather than 0: an
             # absent measurement is not a bad score, and a 0 would read as one.
             H[i], P[i] = 50.0, 50.0
-        C[i] = 100.0 * float(row["clarity_raw"])
+        # NOT multiplied by 100. clarity_raw is already 0..100 — score_message_clarity
+        # builds it as `sum(CLARITY_WEIGHTS[k] * parts[k] * 100)` where each part is a
+        # 0..1 overlap. Scaling it again put clarity up to 10,000, and at 25% of the
+        # weighted score that one term would have swamped hook and processing entirely.
+        #
+        # It read as correct because the batch path never has to know: percentile_rank()
+        # is scale-invariant, so `c_raw` can be on any scale there. This is the only place
+        # the raw value is used as a score directly.
+        C[i] = float(row["clarity_raw"])
 
     zeros = np.zeros(n)
     return {"z_dorsattn": zeros, "z_salventattn": zeros, "z_higher_order": zeros,

@@ -38,7 +38,13 @@ class Lane:
         self.raw = raw
 
 
-def row(ad_id, clarity=0.6, **over):
+# clarity_raw is ALREADY 0..100 when process_batch.py builds it:
+#     sum(CLARITY_WEIGHTS[k] * parts[k] * 100)   with each part a 0..1 overlap
+# The first version of this file passed 0.6 here and asserted 42.0 for an input of 0.42,
+# which encoded the wrong scale and then agreed with a bug that scaled it a second time.
+# A test written from the same misunderstanding as the code cannot catch it, so these
+# values are deliberately realistic ones.
+def row(ad_id, clarity=60.0, **over):
     base = {"ad_id": ad_id, "hook_dorsattn": 0.1, "hook_salventattn": 0.2,
             "full_higher_order": 0.3, "full_visual": 0.1, "clarity_raw": clarity}
     base.update(over)
@@ -64,7 +70,7 @@ def test_under_three_ads_scores_within_item_instead_of_exiting(n):
 
 def test_three_or_more_still_takes_the_batch_path():
     """The whole point of the fallback is that it is invisible above the threshold."""
-    rows = [row(f"ad_{i}", clarity=0.4 + 0.1 * i, hook_salventattn=0.2 * i) for i in range(3)]
+    rows = [row(f"ad_{i}", clarity=40.0 + 10.0 * i, hook_salventattn=0.2 * i) for i in range(3)]
     out = pb.compute_preflight_scores(rows, {})
     assert all(r["scale"] == "batch" for r in out)
     # Percentile midranks over n=3 — the batch path's signature, not the fallback's.
@@ -102,8 +108,17 @@ def test_scoring_one_ad_does_not_depend_on_what_else_was_in_the_run():
 def test_clarity_is_carried_through_unscaled():
     """clarity_raw was never batch-relative, so the fallback must pass it straight
     through rather than re-deriving it."""
-    out = pb.compute_preflight_scores([row("a", clarity=0.42)], {"a": (None, STRONG, True)})[0]
+    out = pb.compute_preflight_scores([row("a", clarity=42.0)], {"a": (None, STRONG, True)})[0]
     assert out["communication_clarity_score"] == pytest.approx(42.0)
+
+
+def test_clarity_is_not_scaled_twice():
+    """The bug this guards: clarity_raw arrives on 0..100 and was multiplied by 100 again,
+    reaching 10,000. At 25% of the weighted score one term would swamp the other two, so
+    an overall score can never exceed 100 either."""
+    out = pb.compute_preflight_scores([row("a", clarity=100.0)], {"a": (None, STRONG, True)})[0]
+    assert out["communication_clarity_score"] == pytest.approx(100.0)
+    assert 0.0 <= out["preflight_score"] <= 100.0
 
 
 # ── absent data is not bad data ─────────────────────────────────────────────────
