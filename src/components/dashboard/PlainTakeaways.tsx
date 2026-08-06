@@ -22,13 +22,26 @@ export default function PlainTakeaways({
     );
   }
 
+  // WHAT THE HOOK NUMBER IS COMPARED AGAINST depends on the cohort, so the sentence has
+  // to say the right thing for both. A batch score is a percentile against the other ads
+  // in the run; a within-item score is the cut against its own timeline, which is what a
+  // single ad necessarily gets (demo/process_batch.py falls back below three ads).
+  // These lines used to claim "against the other cuts in this run" unconditionally, while
+  // the closing line below said "not against other ads" — so a single-ad run, the flow
+  // this product now leads with, contradicted itself on screen.
+  const withinItem = report.scoring?.scale === "within_item" || report.ads.length < 2;
+
   if (ad.scores.hook < 40) {
     lines.push(
-      `The first ${HOOK_SECONDS} seconds are the softest part of this cut against the rest of the run (hook ${Math.round(ad.scores.hook)}).`,
+      withinItem
+        ? `The first ${HOOK_SECONDS} seconds are the softest stretch of this cut's own timeline (hook ${Math.round(ad.scores.hook)}).`
+        : `The first ${HOOK_SECONDS} seconds are the softest part of this cut against the rest of the run (hook ${Math.round(ad.scores.hook)}).`,
     );
   } else if (ad.scores.hook >= 70) {
     lines.push(
-      `The opening holds: hook scores ${Math.round(ad.scores.hook)} against the other cuts in this run.`,
+      withinItem
+        ? `The opening holds: hook scores ${Math.round(ad.scores.hook)} against the rest of this cut's own timeline.`
+        : `The opening holds: hook scores ${Math.round(ad.scores.hook)} against the other cuts in this run.`,
     );
   }
 
@@ -40,7 +53,7 @@ export default function PlainTakeaways({
     );
   }
 
-  if (report.scoring?.scale === "within_item" || report.ads.length < 2) {
+  if (withinItem) {
     lines.push(
       "This number is within-item: the cut ranked against its own timeline, not against other ads.",
     );
