@@ -73,6 +73,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from tools.capture.recorder import Recorder, sha256_of                  # noqa: E402
 from tools.edit import render as rnd                                    # noqa: E402
 from tools.edit.ops import shots_from_boundaries, total_seconds         # noqa: E402
 
@@ -200,6 +201,24 @@ class Supabase:
 # stages
 # ==============================================================================
 
+def _dimensions(video: Path):
+    """(width, height), or (None, None) if ffprobe cannot say.
+
+    Recorded because it is the fastest way for a reader to tell a real delivered asset
+    from a scraped thumbnail-grade file, and the record should not make them guess.
+    """
+    proc = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+         "stream=width,height", "-of", "csv=p=0:s=x", str(video)],
+        capture_output=True, text=True,
+    )
+    try:
+        w, h = proc.stdout.strip().splitlines()[0].split("x")[:2]
+        return int(w), int(h)
+    except (IndexError, ValueError):
+        return None, None
+
+
 def detect_shots(video: Path, duration: float, threshold=0.28):
     """ffmpeg scene detection, same call and same threshold as
     tools/demo/build_report.py:detect_shots — the two must agree or a rendered cut would
@@ -277,11 +296,16 @@ def poster_for(video: Path, dest: Path, at=0.5):
     return dest
 
 
-def score_batch(manifest_path: Path, videos_dir: Path, out_dir: Path, n: int, extra=()):
+def score_batch(manifest_path: Path, videos_dir: Path, out_dir: Path, n: int,
+                rec: Recorder, stage, extra=()):
     """One process_batch.py run over the original plus its cuts.
 
     --allow-n because the batch size is K+1 by construction rather than the default 5, and
     that is deliberate rather than an accident worth warning about.
+
+    The subprocess runs through rec.run_logged rather than inheriting stdout, so the
+    model pass — the longest and least visible part of the whole pipeline — ends up in
+    the record instead of only in whichever terminal happened to be open.
     """
     cmd = [
         sys.executable, str(ROOT / "demo" / "process_batch.py"),
@@ -290,15 +314,17 @@ def score_batch(manifest_path: Path, videos_dir: Path, out_dir: Path, n: int, ex
         "--batch-size", str(n), "--allow-n", *extra,
     ]
     print(f"  $ {' '.join(cmd[1:])}")
-    proc = subprocess.run(cmd, cwd=str(ROOT))
-    if proc.returncode != 0:
+    if rec.run_logged(stage, cmd, cwd=ROOT) != 0:
+        stage.fail("process_batch.py exited non-zero")
         sys.exit(
             "The scoring run failed. Its output is above. Nothing was written to the "
             "database, so re-running this script after fixing the cause is safe."
         )
     report_path = out_dir / "batch.json"
     if not report_path.exists():
+        stage.fail(f"no {report_path.name} was produced")
         sys.exit(f"The scoring run produced no {report_path}.")
+    stage.artifact(report_path, role="report", label="batch.json")
     return json.loads(report_path.read_text())
 
 
@@ -320,6 +346,11 @@ def main():
                     help="render and upload but do not run the model — plumbing only")
     ap.add_argument("--dry-run", action="store_true",
                     help="do everything local, write nothing to Supabase")
+    # Provenance is on by default. It costs one small file in the work dir, and a run
+    # that was not recorded cannot be shown to anyone afterwards — which is the whole
+    # problem tools/capture/recorder.py exists to fix.
+    ap.add_argument("--no-capture", dest="capture", action="store_false", default=True,
+                    help="do not write run.jsonl (provenance is recorded by default)")
     args = ap.parse_args()
 
     if not args.video.exists():
@@ -354,9 +385,27 @@ def main():
     videos_dir = work / "videos"
     videos_dir.mkdir(parents=True, exist_ok=True)
 
+    rec = Recorder(work, run_id, enabled=args.capture)
+    env = rec.env(extra={"ownerEmail": args.owner_email, "dryRun": bool(args.dry_run)})
+
+    # ── 0. probe ─────────────────────────────────────────────────────────────
+    # The input, addressed by content. Everything downstream is a claim about THIS file,
+    # so the hash is what lets a reader check that the cut they were shown is the cut
+    # that was scored.
+    with rec.stage("probe", "The file that came in") as st:
+        duration = rnd.duration_of(args.video)
+        w, h = _dimensions(args.video)
+        st.fact(filename=args.video.name, durationS=round(duration, 3),
+                width=w, height=h, bytes=args.video.stat().st_size,
+                sha256=sha256_of(args.video))
+        st.artifact(args.video, role="source", label="the partner's cut")
+
     # ── 1. shots ─────────────────────────────────────────────────────────────
-    duration = rnd.duration_of(args.video)
-    shots = detect_shots(args.video, duration)
+    with rec.stage("shots", "Where the cuts already are") as st:
+        shots = detect_shots(args.video, duration)
+        st.fact(detector="ffmpeg select=gt(scene,0.28)", threshold=0.28, shots=len(shots))
+        for i, (a, b) in enumerate(shots):
+            st.fact(**{f"shot{i + 1:02d}": f"{a:.2f}–{b:.2f}s"})
     print(f"1/6  {args.video.name}  {duration:.1f}s  ->  {len(shots)} shots")
 
     # A ONE-SHOT AD IS NOT AN ERROR, and this used to exit here.
@@ -382,17 +431,24 @@ def main():
     candidates = choose_candidates(shots, args.top) if recuttable else []
     print(f"2/6  rendering {len(candidates)} re-cuts")
     rendered = []
-    for i, cand in enumerate(candidates):
-        ad_id = f"ad_{i + 2:02d}"
-        dst = videos_dir / f"{ad_id}.mp4"
-        try:
-            rnd.render(cand["timeline"], args.video, dst)
-        except RuntimeError as e:
-            print(f"     ! {cand['label']}: {e}")
-            continue
-        actual = rnd.duration_of(dst)
-        print(f"     {dst.name}  {actual:.2f}s  {cand['label']}")
-        rendered.append({**cand, "adId": ad_id, "path": dst, "durationS": actual})
+    with rec.stage("render", "The re-cut ladder, encoded for real") as st:
+        if not recuttable:
+            st.skip("one shot only — there is no edit space to render")
+        st.fact(candidates=len(candidates), strategy="even spread of single-shot removals, plus a head trim")
+        for i, cand in enumerate(candidates):
+            ad_id = f"ad_{i + 2:02d}"
+            dst = videos_dir / f"{ad_id}.mp4"
+            try:
+                rnd.render(cand["timeline"], args.video, dst)
+            except RuntimeError as e:
+                print(f"     ! {cand['label']}: {e}")
+                st.fact(**{f"{ad_id}_failed": str(e)})
+                continue
+            actual = rnd.duration_of(dst)
+            print(f"     {dst.name}  {actual:.2f}s  {cand['label']}")
+            st.fact(**{ad_id: f"{cand['label']}  ->  {actual:.2f}s"})
+            st.artifact(dst, role="video", label=cand["label"])
+            rendered.append({**cand, "adId": ad_id, "path": dst, "durationS": actual})
 
     # No floor here any more. demo/process_batch.py scores a run of one within-item
     # (within_item_scores), so "the original alone" is a complete deliverable — it just
@@ -413,127 +469,196 @@ def main():
     manifest_path.write_text(json.dumps(manifest, indent=2))
 
     out_dir = work / "out"
+    report = None
+
+    # THE TWO STAGES THAT DECIDE WHETHER ANY OF THIS IS EVIDENCE.
+    #
+    # `encode` is the TRIBE v2 forward pass — the GPU step, and the only step whose cost
+    # is measured in minutes rather than seconds. `score` is the cheap collapse of those
+    # arcs into a read-out. They are one subprocess (process_batch.py does both) but two
+    # stages in the record, because a reader asking "did a model actually run" is asking
+    # about the first one and would not be able to find the answer inside the second.
+    #
+    # The skip reason names the ACTUAL missing piece rather than saying "skipped": torch
+    # absent and licence-not-accepted are different problems with different fixes, and a
+    # page that cannot tell them apart is not worth reading.
+    skip_reason = None
     if args.skip_score:
-        print("3/6  --skip-score: no model pass, no report")
-        report = None
-    else:
-        print(f"3/6  scoring {len(ads)} ads in one batch")
-        report = score_batch(manifest_path, videos_dir, out_dir, len(ads))
+        skip_reason = "--skip-score was passed: plumbing was exercised, no model ran"
+    elif not env["torch"]["present"]:
+        skip_reason = ("torch is not installed on this host, so there is no model to run "
+                       "(this is a laptop; the encoder needs a provisioned CUDA box — "
+                       "tools/concierge/provision.sh)")
+    elif not env["tribeWeights"]["present"]:
+        skip_reason = ("facebook/tribev2 weights are not on this host. They are CC BY-NC "
+                       "4.0 behind a click-through, so a human has to accept the licence "
+                       "on Hugging Face before any box can encode.")
+
+    with rec.stage("encode", "TRIBE v2 forward pass") as st:
+        st.fact(ads=len(ads),
+                device=(env["torch"].get("backend") or "none") if env["torch"]["present"] else "none",
+                weights="facebook/tribev2 (CC BY-NC 4.0)")
+        if skip_reason:
+            print(f"3/6  no model pass — {skip_reason}")
+            st.skip(skip_reason)
+        else:
+            print(f"3/6  scoring {len(ads)} ads in one batch")
+            report = score_batch(manifest_path, videos_dir, out_dir, len(ads), rec, st)
+
+    with rec.stage("score", "Arcs collapsed to a read-out") as st:
+        if report is None:
+            st.skip("no arcs were produced, so there is nothing to score")
+        else:
+            scoring = report.get("scoring") or {}
+            st.fact(scale=scoring.get("scale"), cohortN=scoring.get("cohortN") or len(ads))
+            for a in report.get("ads", []):
+                s = a.get("scores") or {}
+                st.fact(**{a["id"]: (f"preflight {s.get('preflight')}  "
+                                     f"hook {s.get('hook')}  processing {s.get('processing')}  "
+                                     f"clarity {s.get('clarity')}")})
 
     # ── 4. posters ───────────────────────────────────────────────────────────
     print("4/6  posters")
-    posters = {"ad_01": poster_for(original, work / "ad_01.jpg")}
-    for r in rendered:
-        posters[r["adId"]] = poster_for(r["path"], work / f"{r['adId']}.jpg")
+    with rec.stage("posters", "One frame per cut, for the grid") as st:
+        posters = {"ad_01": poster_for(original, work / "ad_01.jpg")}
+        for r in rendered:
+            posters[r["adId"]] = poster_for(r["path"], work / f"{r['adId']}.jpg")
+        for ad_id, p in posters.items():
+            st.artifact(p, role="poster", label=ad_id)
 
     if args.dry_run:
+        with rec.stage("publish", "Storage objects, rows, and the customer's URL") as st:
+            st.skip("--dry-run: nothing was written to Supabase")
+        rec.finish(status="partial", workDir=str(work),
+                   note="dry run: no rows, no storage objects, no share link")
         print(f"\n--dry-run: artifacts are in {work}. Nothing was written to Supabase.")
+        if args.capture:
+            print(f"           record       ->  {rec.path}")
         return 0
 
-    # ── 5. upload ────────────────────────────────────────────────────────────
-    batch_id = str(uuid.uuid4())
-    edit_run_id = str(uuid.uuid4())
-    print("5/6  uploading")
+    # ── 5+6. publish ─────────────────────────────────────────────────────────
+    # Upload and rows are one stage in the record even though they are two in the
+    # console, because they succeed or fail together: a storage object with no row
+    # pointing at it is invisible, and a row pointing at an object that failed to
+    # upload renders as a broken player. The stage ends when the customer has a URL.
+    with rec.stage("publish", "Storage objects, rows, and the customer's URL") as st:
+        # ── 5. upload ────────────────────────────────────────────────────────────
+        batch_id = str(uuid.uuid4())
+        edit_run_id = str(uuid.uuid4())
+        print("5/6  uploading")
 
-    def put(src: Path, key: str) -> str:
-        supabase.upload(src, key)
-        return key
+        def put(src: Path, key: str) -> str:
+            supabase.upload(src, key)
+            return key
 
-    source_key = put(original, f"queued/{batch_id}/ad_01.mp4")
-    keys = {"ad_01": {"video": source_key, "poster": put(posters["ad_01"], f"results/{batch_id}/ad_01.jpg")}}
-    for r in rendered:
-        keys[r["adId"]] = {
-            "video": put(r["path"], f"edits/{edit_run_id}/{r['adId']}.mp4"),
-            "poster": put(posters[r["adId"]], f"edits/{edit_run_id}/{r['adId']}.jpg"),
-        }
+        source_key = put(original, f"queued/{batch_id}/ad_01.mp4")
+        keys = {"ad_01": {"video": source_key, "poster": put(posters["ad_01"], f"results/{batch_id}/ad_01.jpg")}}
+        for r in rendered:
+            keys[r["adId"]] = {
+                "video": put(r["path"], f"edits/{edit_run_id}/{r['adId']}.mp4"),
+                "poster": put(posters[r["adId"]], f"edits/{edit_run_id}/{r['adId']}.jpg"),
+            }
 
-    # The report stores object KEYS, never URLs: the bucket is private, so any URL is
-    # stale the moment it is written. /r/<token> and the dashboard both sign at render.
-    if report:
-        for ad in report.get("ads", []):
-            if ad["id"] in keys:
-                ad["video"] = keys[ad["id"]]["video"]
-                ad["poster"] = keys[ad["id"]]["poster"]
+        # The report stores object KEYS, never URLs: the bucket is private, so any URL is
+        # stale the moment it is written. /r/<token> and the dashboard both sign at render.
+        if report:
+            for ad in report.get("ads", []):
+                if ad["id"] in keys:
+                    ad["video"] = keys[ad["id"]]["video"]
+                    ad["poster"] = keys[ad["id"]]["poster"]
 
-    # ── 6. rows ──────────────────────────────────────────────────────────────
-    #
-    # A SKIPPED RUN IS TERMINAL, NOT QUEUED. --skip-score writes no report, and nothing
-    # anywhere will ever come back and finish these rows — there is no worker watching
-    # for them and no stale-claim reaper. Writing 'queued' left a row the dashboard
-    # renders as "Searching the edit space… reload in a few minutes" forever, which is
-    # the exact failure tools/concierge/README.md already lists as unbuilt.
-    #
-    # The schema's only terminal states are done and failed, and this is honestly the
-    # second: the run stopped before producing a result, and the reason is worth saying
-    # in words rather than leaving as a spinner.
-    SKIPPED = ("Scoring was skipped (--skip-score), so this run has no read-out. "
-               "Re-run scripts/ingest_partner_ad.py without that flag on a host with "
-               "the model stack.")
-    terminal = "done" if report else "failed"
+        # ── 6. rows ──────────────────────────────────────────────────────────────
+        #
+        # A SKIPPED RUN IS TERMINAL, NOT QUEUED. --skip-score writes no report, and nothing
+        # anywhere will ever come back and finish these rows — there is no worker watching
+        # for them and no stale-claim reaper. Writing 'queued' left a row the dashboard
+        # renders as "Searching the edit space… reload in a few minutes" forever, which is
+        # the exact failure tools/concierge/README.md already lists as unbuilt.
+        #
+        # The schema's only terminal states are done and failed, and this is honestly the
+        # second: the run stopped before producing a result, and the reason is worth saying
+        # in words rather than leaving as a spinner.
+        SKIPPED = ("Scoring was skipped (--skip-score), so this run has no read-out. "
+                   "Re-run scripts/ingest_partner_ad.py without that flag on a host with "
+                   "the model stack.")
+        terminal = "done" if report else "failed"
 
-    print("6/6  writing rows")
-    batch = supabase.insert("batches", {
-        "id": batch_id,
-        "email": args.owner_email,
-        "user_id": owner_id,
-        "batch_name": manifest["batch_name"],
-        "manifest": manifest,
-        "status": terminal,
-        **({"report": report, "completed_at": now_iso()}
-           if report else {"error": SKIPPED, "completed_at": now_iso()}),
-    })
-    token = batch["share_token"]
+        print("6/6  writing rows")
+        batch = supabase.insert("batches", {
+            "id": batch_id,
+            "email": args.owner_email,
+            "user_id": owner_id,
+            "batch_name": manifest["batch_name"],
+            "manifest": manifest,
+            "status": terminal,
+            **({"report": report, "completed_at": now_iso()}
+               if report else {"error": SKIPPED, "completed_at": now_iso()}),
+        })
+        token = batch["share_token"]
 
-    supabase.insert("uploads", [{
-        "email": args.owner_email,
-        "user_id": owner_id,
-        "filename": args.video.name,
-        "content_type": "video/mp4",
-        "storage_path": source_key,
-        "batch_id": batch_id,
-        "ad_id": "ad_01",
-        "ad_title": ads[0]["title"],
-    }])
+        supabase.insert("uploads", [{
+            "email": args.owner_email,
+            "user_id": owner_id,
+            "filename": args.video.name,
+            "content_type": "video/mp4",
+            "storage_path": source_key,
+            "batch_id": batch_id,
+            "ad_id": "ad_01",
+            "ad_title": ads[0]["title"],
+        }])
 
-    # Scores from the run, so a delta is the difference between two measured numbers.
-    scored = {a["id"]: a["scores"]["preflight"] for a in (report or {}).get("ads", [])}
-    base = scored.get("ad_01")
+        # Scores from the run, so a delta is the difference between two measured numbers.
+        scored = {a["id"]: a["scores"]["preflight"] for a in (report or {}).get("ads", [])}
+        base = scored.get("ad_01")
 
-    supabase.insert("edit_runs", {
-        "id": edit_run_id,
-        "user_id": owner_id,
-        "ad_id": "ad_01",
-        "source_kind": "batch",
-        "source_title": ads[0]["title"],
-        "batch_share_token": token,
-        "status": terminal,
-        **({"result": {"baseScore": base,
-                       "shots": [{"start": a, "end": b} for a, b in shots],
-                       "verified": True},
-            "completed_at": now_iso()}
-           if report else {"error": SKIPPED, "completed_at": now_iso()}),
-    })
+        supabase.insert("edit_runs", {
+            "id": edit_run_id,
+            "user_id": owner_id,
+            "ad_id": "ad_01",
+            "source_kind": "batch",
+            "source_title": ads[0]["title"],
+            "batch_share_token": token,
+            "status": terminal,
+            **({"result": {"baseScore": base,
+                           "shots": [{"start": a, "end": b} for a, b in shots],
+                           "verified": True},
+                "completed_at": now_iso()}
+               if report else {"error": SKIPPED, "completed_at": now_iso()}),
+        })
 
-    if report:
-        supabase.insert("edit_cuts", [{
-            "edit_run_id": edit_run_id,
-            "position": i + 1,
-            "kind": r["kind"],
-            "label": r["label"],
-            # Not an estimate: each of these was encoded and then scored by the run above.
-            "confidence": "measured",
-            "measured": True,
-            "storage_path": keys[r["adId"]]["video"],
-            "poster_path": keys[r["adId"]]["poster"],
-            "duration_s": round(r["durationS"], 2),
-            "est_score": scored.get(r["adId"]),
-            "est_delta": (None if base is None or scored.get(r["adId"]) is None
-                          else round(scored[r["adId"]] - base, 2)),
-        } for i, r in enumerate(rendered)])
+        if report:
+            supabase.insert("edit_cuts", [{
+                "edit_run_id": edit_run_id,
+                "position": i + 1,
+                "kind": r["kind"],
+                "label": r["label"],
+                # Not an estimate: each of these was encoded and then scored by the run above.
+                "confidence": "measured",
+                "measured": True,
+                "storage_path": keys[r["adId"]]["video"],
+                "poster_path": keys[r["adId"]]["poster"],
+                "duration_s": round(r["durationS"], 2),
+                "est_score": scored.get(r["adId"]),
+                "est_delta": (None if base is None or scored.get(r["adId"]) is None
+                              else round(scored[r["adId"]] - base, 2)),
+            } for i, r in enumerate(rendered)])
+
+        st.fact(batchStatus=terminal, shareToken=token, batchId=batch_id,
+                storageObjects=sum(len(v) for v in keys.values()),
+                editCuts=len(rendered) if report else 0)
+
+    # The run's own verdict. `partial` is not a euphemism: it is what a run that rendered
+    # and published but never encoded actually is, and calling it `ok` would put a green
+    # tick on the page next to a stage that says "no model ran".
+    rec.finish(status="ok" if report else "partial",
+               workDir=str(work), shareToken=token, dashboard="/dashboard")
 
     print(f"\ndone.  /dashboard  ->  {ads[0]['title']}")
     print(f"       share link   ->  /r/{token}")
     print(f"       artifacts    ->  {work}")
+    if args.capture:
+        print(f"       record       ->  {rec.path}")
+        print(f"       publish it   ->  .venv/bin/python tools/capture/summarize.py {rec.path} --write")
     return 0
 
 

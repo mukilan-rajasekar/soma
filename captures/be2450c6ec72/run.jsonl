@@ -1,0 +1,43 @@
+{"seq": 1, "tMs": 0, "kind": "run.begin", "runId": "be2450c6ec72", "startedAt": "2026-08-06T22:15:24+00:00", "argv": ["scripts/ingest_partner_ad.py", "ingest-runs/f8fd93b2f0bd/videos/ad_01.mp4", "/private/tmp/claude-501/-Users-mukilan/28276212-eda7-499c-aaab-e978c85199f6/scratchpad/brief.json", "--owner-email", "mukilan.rajasekar@gmail.com", "--dry-run"]}
+{"seq": 2, "tMs": 395, "kind": "env", "host": "Mukilans-MacBook-Air-2439.local", "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O", "python": "3.13.13", "git": "07da935", "ffmpeg": "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers", "tesseract": null, "torch": {"present": false, "reason": "ModuleNotFoundError: No module named 'torch'"}, "tribeWeights": {"present": false, "searched": ["/Users/mukilan/.cache/huggingface"]}, "fasterWhisper": {"present": true, "version": "1.2.1"}, "ownerEmail": "mukilan.rajasekar@gmail.com", "dryRun": true}
+{"seq": 3, "tMs": 395, "kind": "stage.begin", "stage": "probe", "title": "The file that came in"}
+{"seq": 4, "tMs": 465, "kind": "fact", "stage": "probe", "values": {"filename": "ad_01.mp4", "durationS": 28.714, "width": 360, "height": 450, "bytes": 1301006, "sha256": "33015cdd95535a30148d027d727e42f769f9f1c2705012e5ab139d73f4316c00"}}
+{"seq": 5, "tMs": 466, "kind": "artifact", "stage": "probe", "role": "source", "label": "the partner's cut", "path": "ingest-runs/f8fd93b2f0bd/videos/ad_01.mp4", "present": true, "bytes": 1301006, "sha256": "33015cdd95535a30148d027d727e42f769f9f1c2705012e5ab139d73f4316c00"}
+{"seq": 6, "tMs": 466, "kind": "stage.end", "stage": "probe", "status": "ok", "reason": null, "elapsedMs": 71}
+{"seq": 7, "tMs": 466, "kind": "stage.begin", "stage": "shots", "title": "Where the cuts already are"}
+{"seq": 8, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"detector": "ffmpeg select=gt(scene,0.28)", "threshold": 0.28, "shots": 11}}
+{"seq": 9, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot01": "0.00–1.70s"}}
+{"seq": 10, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot02": "1.70–4.93s"}}
+{"seq": 11, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot03": "4.93–6.63s"}}
+{"seq": 12, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot04": "6.63–12.37s"}}
+{"seq": 13, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot05": "12.37–14.00s"}}
+{"seq": 14, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot06": "14.00–19.73s"}}
+{"seq": 15, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot07": "19.73–22.10s"}}
+{"seq": 16, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot08": "22.10–23.13s"}}
+{"seq": 17, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot09": "23.13–24.63s"}}
+{"seq": 18, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot10": "24.63–26.87s"}}
+{"seq": 19, "tMs": 553, "kind": "fact", "stage": "shots", "values": {"shot11": "26.87–28.71s"}}
+{"seq": 20, "tMs": 553, "kind": "stage.end", "stage": "shots", "status": "ok", "reason": null, "elapsedMs": 88}
+{"seq": 21, "tMs": 554, "kind": "stage.begin", "stage": "render", "title": "The re-cut ladder, encoded for real"}
+{"seq": 22, "tMs": 554, "kind": "fact", "stage": "render", "values": {"candidates": 3, "strategy": "even spread of single-shot removals, plus a head trim"}}
+{"seq": 23, "tMs": 1148, "kind": "fact", "stage": "render", "values": {"ad_02": "Drop shot 1 (0.0–1.7s)  ->  27.08s"}}
+{"seq": 24, "tMs": 1149, "kind": "artifact", "stage": "render", "role": "video", "label": "Drop shot 1 (0.0–1.7s)", "path": "ingest-runs/be2450c6ec72/videos/ad_02.mp4", "present": true, "bytes": 1903254, "sha256": "233bd02a0e863781493bebdef883fd13d9455f215f26c2254c90adc99dc3f0cb"}
+{"seq": 25, "tMs": 1628, "kind": "fact", "stage": "render", "values": {"ad_03": "Drop shot 6 (14.0–19.7s)  ->  23.05s"}}
+{"seq": 26, "tMs": 1629, "kind": "artifact", "stage": "render", "role": "video", "label": "Drop shot 6 (14.0–19.7s)", "path": "ingest-runs/be2450c6ec72/videos/ad_03.mp4", "present": true, "bytes": 1619693, "sha256": "be5b5515b18f65adca5dca6beef32d64bbc379f8b19751b123dfed81ef11272f"}
+{"seq": 27, "tMs": 2186, "kind": "fact", "stage": "render", "values": {"ad_04": "Drop shot 11 (26.9–28.7s)  ->  26.93s"}}
+{"seq": 28, "tMs": 2187, "kind": "artifact", "stage": "render", "role": "video", "label": "Drop shot 11 (26.9–28.7s)", "path": "ingest-runs/be2450c6ec72/videos/ad_04.mp4", "present": true, "bytes": 1888573, "sha256": "2709c6d7cb999caae36e33703fe14eb948ef3c2c330470e63e57024d8f360d1f"}
+{"seq": 29, "tMs": 2188, "kind": "stage.end", "stage": "render", "status": "ok", "reason": null, "elapsedMs": 1633}
+{"seq": 30, "tMs": 2188, "kind": "stage.begin", "stage": "encode", "title": "TRIBE v2 forward pass"}
+{"seq": 31, "tMs": 2188, "kind": "fact", "stage": "encode", "values": {"ads": 4, "device": "none", "weights": "facebook/tribev2 (CC BY-NC 4.0)"}}
+{"seq": 32, "tMs": 2188, "kind": "stage.end", "stage": "encode", "status": "skipped", "reason": "torch is not installed on this host, so there is no model to run (this is a laptop; the encoder needs a provisioned CUDA box — tools/concierge/provision.sh)", "elapsedMs": 0}
+{"seq": 33, "tMs": 2188, "kind": "stage.begin", "stage": "score", "title": "Arcs collapsed to a read-out"}
+{"seq": 34, "tMs": 2188, "kind": "stage.end", "stage": "score", "status": "skipped", "reason": "no arcs were produced, so there is nothing to score", "elapsedMs": 0}
+{"seq": 35, "tMs": 2188, "kind": "stage.begin", "stage": "posters", "title": "One frame per cut, for the grid"}
+{"seq": 36, "tMs": 2291, "kind": "artifact", "stage": "posters", "role": "poster", "label": "ad_01", "path": "ingest-runs/be2450c6ec72/ad_01.jpg", "present": true, "bytes": 11818, "sha256": "bfd4156a31dcc1563b44a255ac0c007d61a16327921493f11d6fdd32e8ee60e8"}
+{"seq": 37, "tMs": 2291, "kind": "artifact", "stage": "posters", "role": "poster", "label": "ad_02", "path": "ingest-runs/be2450c6ec72/ad_02.jpg", "present": true, "bytes": 11495, "sha256": "afe886a0922001398e4d22a3d7c5e5151f80ffb691e8a012c4e3aac537efd346"}
+{"seq": 38, "tMs": 2291, "kind": "artifact", "stage": "posters", "role": "poster", "label": "ad_03", "path": "ingest-runs/be2450c6ec72/ad_03.jpg", "present": true, "bytes": 11702, "sha256": "9240f4770ff700a5658e3417853e1cda6b738088277c55019b550b77bd8c51be"}
+{"seq": 39, "tMs": 2291, "kind": "artifact", "stage": "posters", "role": "poster", "label": "ad_04", "path": "ingest-runs/be2450c6ec72/ad_04.jpg", "present": true, "bytes": 11702, "sha256": "9240f4770ff700a5658e3417853e1cda6b738088277c55019b550b77bd8c51be"}
+{"seq": 40, "tMs": 2292, "kind": "stage.end", "stage": "posters", "status": "ok", "reason": null, "elapsedMs": 104}
+{"seq": 41, "tMs": 2292, "kind": "stage.begin", "stage": "publish", "title": "Storage objects, rows, and the customer's URL"}
+{"seq": 42, "tMs": 2292, "kind": "stage.end", "stage": "publish", "status": "skipped", "reason": "--dry-run: nothing was written to Supabase", "elapsedMs": 0}
+{"seq": 43, "tMs": 2292, "kind": "run.end", "status": "partial", "elapsedMs": 2292, "stages": ["probe", "shots", "render", "encode", "score", "posters", "publish"], "workDir": "/Users/mukilan/Projects/soma/ingest-runs/be2450c6ec72", "note": "dry run: no rows, no storage objects, no share link"}

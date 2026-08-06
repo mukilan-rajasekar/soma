@@ -1,0 +1,317 @@
+{
+  "argv": [
+    "scripts/ingest_partner_ad.py",
+    "ingest-runs/f8fd93b2f0bd/videos/ad_01.mp4",
+    "/private/tmp/claude-501/-Users-mukilan/28276212-eda7-499c-aaab-e978c85199f6/scratchpad/brief.json",
+    "--owner-email",
+    "mukilan.rajasekar@gmail.com",
+    "--dry-run"
+  ],
+  "counts": {
+    "failed": 0,
+    "ok": 4,
+    "skipped": 3
+  },
+  "elapsedMs": 2292,
+  "env": {
+    "dryRun": true,
+    "fasterWhisper": {
+      "present": true,
+      "version": "1.2.1"
+    },
+    "ffmpeg": "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers",
+    "git": "07da935",
+    "host": "Mukilans-MacBook-Air-2439.local",
+    "ownerEmail": "mukilan.rajasekar@gmail.com",
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "python": "3.13.13",
+    "tesseract": null,
+    "torch": {
+      "present": false,
+      "reason": "ModuleNotFoundError: No module named 'torch'"
+    },
+    "tribeWeights": {
+      "present": false,
+      "searched": [
+        "/Users/mukilan/.cache/huggingface"
+      ]
+    }
+  },
+  "outputs": {
+    "note": "dry run: no rows, no storage objects, no share link",
+    "workDir": "/Users/mukilan/Projects/soma/ingest-runs/be2450c6ec72"
+  },
+  "runId": "be2450c6ec72",
+  "sourceJsonl": "captures/be2450c6ec72/run.jsonl",
+  "stages": [
+    {
+      "artifacts": [
+        {
+          "bytes": 1301006,
+          "label": "the partner's cut",
+          "path": "ingest-runs/f8fd93b2f0bd/videos/ad_01.mp4",
+          "present": true,
+          "role": "source",
+          "sha256": "33015cdd95535a30148d027d727e42f769f9f1c2705012e5ab139d73f4316c00"
+        }
+      ],
+      "elapsedMs": 71,
+      "facts": [
+        {
+          "k": "filename",
+          "v": "ad_01.mp4"
+        },
+        {
+          "k": "durationS",
+          "v": 28.714
+        },
+        {
+          "k": "width",
+          "v": 360
+        },
+        {
+          "k": "height",
+          "v": 450
+        },
+        {
+          "k": "bytes",
+          "v": 1301006
+        },
+        {
+          "k": "sha256",
+          "v": "33015cdd95535a30148d027d727e42f769f9f1c2705012e5ab139d73f4316c00"
+        }
+      ],
+      "key": "probe",
+      "log": [],
+      "logTruncated": 0,
+      "reason": null,
+      "startMs": 395,
+      "status": "ok",
+      "title": "The file that came in"
+    },
+    {
+      "artifacts": [],
+      "elapsedMs": 88,
+      "facts": [
+        {
+          "k": "detector",
+          "v": "ffmpeg select=gt(scene,0.28)"
+        },
+        {
+          "k": "threshold",
+          "v": 0.28
+        },
+        {
+          "k": "shots",
+          "v": 11
+        },
+        {
+          "k": "shot01",
+          "v": "0.00–1.70s"
+        },
+        {
+          "k": "shot02",
+          "v": "1.70–4.93s"
+        },
+        {
+          "k": "shot03",
+          "v": "4.93–6.63s"
+        },
+        {
+          "k": "shot04",
+          "v": "6.63–12.37s"
+        },
+        {
+          "k": "shot05",
+          "v": "12.37–14.00s"
+        },
+        {
+          "k": "shot06",
+          "v": "14.00–19.73s"
+        },
+        {
+          "k": "shot07",
+          "v": "19.73–22.10s"
+        },
+        {
+          "k": "shot08",
+          "v": "22.10–23.13s"
+        },
+        {
+          "k": "shot09",
+          "v": "23.13–24.63s"
+        },
+        {
+          "k": "shot10",
+          "v": "24.63–26.87s"
+        },
+        {
+          "k": "shot11",
+          "v": "26.87–28.71s"
+        }
+      ],
+      "key": "shots",
+      "log": [],
+      "logTruncated": 0,
+      "reason": null,
+      "startMs": 466,
+      "status": "ok",
+      "title": "Where the cuts already are"
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 1903254,
+          "label": "Drop shot 1 (0.0–1.7s)",
+          "path": "ingest-runs/be2450c6ec72/videos/ad_02.mp4",
+          "present": true,
+          "role": "video",
+          "sha256": "233bd02a0e863781493bebdef883fd13d9455f215f26c2254c90adc99dc3f0cb"
+        },
+        {
+          "bytes": 1619693,
+          "label": "Drop shot 6 (14.0–19.7s)",
+          "path": "ingest-runs/be2450c6ec72/videos/ad_03.mp4",
+          "present": true,
+          "role": "video",
+          "sha256": "be5b5515b18f65adca5dca6beef32d64bbc379f8b19751b123dfed81ef11272f"
+        },
+        {
+          "bytes": 1888573,
+          "label": "Drop shot 11 (26.9–28.7s)",
+          "path": "ingest-runs/be2450c6ec72/videos/ad_04.mp4",
+          "present": true,
+          "role": "video",
+          "sha256": "2709c6d7cb999caae36e33703fe14eb948ef3c2c330470e63e57024d8f360d1f"
+        }
+      ],
+      "elapsedMs": 1633,
+      "facts": [
+        {
+          "k": "candidates",
+          "v": 3
+        },
+        {
+          "k": "strategy",
+          "v": "even spread of single-shot removals, plus a head trim"
+        },
+        {
+          "k": "ad_02",
+          "v": "Drop shot 1 (0.0–1.7s)  ->  27.08s"
+        },
+        {
+          "k": "ad_03",
+          "v": "Drop shot 6 (14.0–19.7s)  ->  23.05s"
+        },
+        {
+          "k": "ad_04",
+          "v": "Drop shot 11 (26.9–28.7s)  ->  26.93s"
+        }
+      ],
+      "key": "render",
+      "log": [],
+      "logTruncated": 0,
+      "reason": null,
+      "startMs": 554,
+      "status": "ok",
+      "title": "The re-cut ladder, encoded for real"
+    },
+    {
+      "artifacts": [],
+      "elapsedMs": 0,
+      "facts": [
+        {
+          "k": "ads",
+          "v": 4
+        },
+        {
+          "k": "device",
+          "v": "none"
+        },
+        {
+          "k": "weights",
+          "v": "facebook/tribev2 (CC BY-NC 4.0)"
+        }
+      ],
+      "key": "encode",
+      "log": [],
+      "logTruncated": 0,
+      "reason": "torch is not installed on this host, so there is no model to run (this is a laptop; the encoder needs a provisioned CUDA box — tools/concierge/provision.sh)",
+      "startMs": 2188,
+      "status": "skipped",
+      "title": "TRIBE v2 forward pass"
+    },
+    {
+      "artifacts": [],
+      "elapsedMs": 0,
+      "facts": [],
+      "key": "score",
+      "log": [],
+      "logTruncated": 0,
+      "reason": "no arcs were produced, so there is nothing to score",
+      "startMs": 2188,
+      "status": "skipped",
+      "title": "Arcs collapsed to a read-out"
+    },
+    {
+      "artifacts": [
+        {
+          "bytes": 11818,
+          "label": "ad_01",
+          "path": "ingest-runs/be2450c6ec72/ad_01.jpg",
+          "present": true,
+          "role": "poster",
+          "sha256": "bfd4156a31dcc1563b44a255ac0c007d61a16327921493f11d6fdd32e8ee60e8"
+        },
+        {
+          "bytes": 11495,
+          "label": "ad_02",
+          "path": "ingest-runs/be2450c6ec72/ad_02.jpg",
+          "present": true,
+          "role": "poster",
+          "sha256": "afe886a0922001398e4d22a3d7c5e5151f80ffb691e8a012c4e3aac537efd346"
+        },
+        {
+          "bytes": 11702,
+          "label": "ad_03",
+          "path": "ingest-runs/be2450c6ec72/ad_03.jpg",
+          "present": true,
+          "role": "poster",
+          "sha256": "9240f4770ff700a5658e3417853e1cda6b738088277c55019b550b77bd8c51be"
+        },
+        {
+          "bytes": 11702,
+          "label": "ad_04",
+          "path": "ingest-runs/be2450c6ec72/ad_04.jpg",
+          "present": true,
+          "role": "poster",
+          "sha256": "9240f4770ff700a5658e3417853e1cda6b738088277c55019b550b77bd8c51be"
+        }
+      ],
+      "elapsedMs": 104,
+      "facts": [],
+      "key": "posters",
+      "log": [],
+      "logTruncated": 0,
+      "reason": null,
+      "startMs": 2188,
+      "status": "ok",
+      "title": "One frame per cut, for the grid"
+    },
+    {
+      "artifacts": [],
+      "elapsedMs": 0,
+      "facts": [],
+      "key": "publish",
+      "log": [],
+      "logTruncated": 0,
+      "reason": "--dry-run: nothing was written to Supabase",
+      "startMs": 2292,
+      "status": "skipped",
+      "title": "Storage objects, rows, and the customer's URL"
+    }
+  ],
+  "startedAt": "2026-08-06T22:15:24+00:00",
+  "status": "partial"
+}

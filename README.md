@@ -89,6 +89,30 @@ through the model.
 It needs ffmpeg and, unless `--skip-score` is passed, the TRIBE stack. It runs on the
 scorer box, never on the request path.
 
+#### What the run leaves behind, and `/run`
+
+Every pass records itself. `tools/capture/recorder.py` writes a `run.jsonl` into the work
+dir as the pipeline executes — one JSON object per event, carrying the timings, the
+environment it observed, and every artifact it produced with a size and a sha256. Pass
+`--no-capture` to turn it off; it is on by default, because a run nobody recorded cannot
+be shown to anyone afterwards.
+
+```bash
+# fold a run into the page's data (also copies the jsonl into captures/)
+./.venv/bin/python tools/capture/summarize.py ingest-runs/<id>/run.jsonl --write
+
+# what the gate asserts: the page still matches the run it claims to show
+./.venv/bin/python tools/capture/summarize.py --check
+```
+
+`/run` renders that record and nothing else. It is the counterweight to `/demo`: the
+figures there are transcribed into the page and kept honest by
+`tools/demo/check_coherence.py`, whereas nothing on `/run` is authored at all. The stages
+that did **not** run are rendered at the same size as the ones that did, and whether a
+model was actually involved is computed from the stage record rather than written in
+prose — so on a laptop capture the page leads with "no model ran," and no edit to the
+component can change that. `scripts/verify.sh` re-folds the source and fails on drift.
+
 Run it locally:
 
 ```bash
