@@ -11,6 +11,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // Lets scripts/check-*.ts import "../src/lib/x.ts" WITH the extension. Node runs those
+    // scripts directly (it strips types, and its ESM resolver requires the extension),
+    // while tsc rejects a ".ts" specifier unless this is on. Legal only because noEmit is
+    // true, which it is — nothing here is compiled, so nothing can emit a broken path.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
