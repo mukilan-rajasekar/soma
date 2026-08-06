@@ -133,6 +133,32 @@ def total_seconds(timeline: Timeline) -> float:
     return sum(max(0.0, b - a) for a, b in timeline)
 
 
+def lane_length(lanes) -> int:
+    """How many timepoints the arc has, whatever the lanes happen to be called.
+
+    THIS USED TO BE `len(lanes.get("dorsal") or [])` AND THAT WAS A SILENT ZERO. There are
+    two producers of `lanes` and they do not agree on the key names:
+
+        /demo campaign   build_report.py     dorsal / ventral / language
+        customer batch   process_batch.py    higherOrder / salventattn / visual
+
+    estimate() only wants the SAMPLE COUNT — it slices every lane it is given by index and
+    never reads a lane by name — so keying the count off one producer's vocabulary made the
+    other producer's arcs look like empty arrays. n came back 0, the `len(idx) < 4` guard
+    fired, and every candidate returned est_delta 0.0 with result_s left at its 0.0 default.
+    rank() then had nothing to sort by and fell through to enumeration order.
+
+    The visible symptom was not an error. It was a customer edit search that returned a
+    plausible-looking list of edits whose numbers were all +0 and whose ranking was
+    arbitrary — on the demo campaign it worked correctly, which is exactly why it survived.
+
+    Taking the longest lane rather than a named one is also the honest reading of the
+    contract: the lanes are parallel arrays over the same timebase, so any of them answers
+    the question, and max() is robust to one lane being absent or short.
+    """
+    return max((len(v) for v in lanes.values() if v), default=0)
+
+
 # ── the edit space ──────────────────────────────────────────────────────────────
 
 def enumerate_candidates(shots: Timeline, *, allow_reorder: bool = True) -> list[Candidate]:
@@ -282,7 +308,7 @@ def estimate(
     `score_fn` is injected rather than imported so this module stays pure and testable
     without numpy or the report pipeline — pass tools.demo.build_report.score_ad.
     """
-    n = len(lanes.get("dorsal") or [])
+    n = lane_length(lanes)
     idx = timeline_sample_indices(cand.timeline, n, fps)
 
     if len(idx) < 4:
