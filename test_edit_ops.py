@@ -265,3 +265,49 @@ def test_reorders_are_labelled_a_weaker_estimate_than_removals():
     by_kind = {c.kind: c.confidence for c in enumerate_candidates(shots)}
     assert by_kind["remove"] == "estimate"
     assert by_kind["hoist"] == "weak estimate"
+
+
+# ── the estimator must not care what the lanes are called ───────────────────────
+#
+# There are two producers of `lanes` and they use different key names for the same
+# parallel arrays: build_report.py (the /demo campaign) emits dorsal/ventral/language,
+# process_batch.py (a customer batch, via search.load_custom_ad) emits
+# higherOrder/salventattn/visual. estimate() only ever needs the sample COUNT.
+#
+# It used to read `len(lanes["dorsal"])`, so a customer's arcs measured 0 timepoints:
+# every candidate returned +0 with result_s 0.0 and rank() degenerated to enumeration
+# order. It failed silently and only on the customer path — the demo path, which is the
+# one a developer exercises, was correct throughout. These two tests are the guard.
+
+CUSTOMER_LANES = {"higherOrder": [0.1] * 30, "salventattn": [0.2] * 30, "visual": [0.3] * 30}
+DEMO_LANES = {"dorsal": [0.1] * 30, "ventral": [0.2] * 30, "language": [0.3] * 30}
+
+
+def _spread(lanes):
+    """Estimate the same edit space against `lanes` and return the deltas, best first."""
+    shots = shots_from_boundaries([4.0, 9.0, 15.0, 22.0], 30.0)
+
+    def score_fn(cut_lanes, _levels, _brand, _duration, fps=1.0):
+        # Any lane will do — they are parallel — and the score has to MOVE with the cut,
+        # otherwise this test would pass against an estimator that returns a constant.
+        longest = max((len(v) for v in cut_lanes.values() if v), default=0)
+        return {"soma": 50.0 + longest}
+
+    cands = enumerate_candidates(shots)
+    for c in cands:
+        estimate(c, lanes, {}, [], score_fn, 60.0)
+    return [(round(c.est_delta, 3), round(c.result_s, 3)) for c in rank(cands)]
+
+
+def test_estimate_reads_arcs_whatever_the_lanes_are_called():
+    """A customer's lane names must estimate exactly like the demo's."""
+    assert _spread(CUSTOMER_LANES) == _spread(DEMO_LANES)
+
+
+def test_estimate_does_not_silently_flatten_to_zero():
+    """The regression itself: all-zero deltas and all-zero result_s is what the bug looked
+    like from the outside — a full list of candidates, none of which said anything."""
+    spread = _spread(CUSTOMER_LANES)
+    assert spread, "enumeration produced no candidates"
+    assert any(delta != 0.0 for delta, _ in spread), "every candidate estimated +0"
+    assert all(result_s > 0.0 for _, result_s in spread), "result_s never left its default"

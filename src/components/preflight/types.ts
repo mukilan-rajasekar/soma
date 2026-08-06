@@ -122,6 +122,16 @@ export type PreflightReport = {
     scoreRange?: [number, number];
     smallNCaveat?: string;
     partialBatch?: boolean;
+    /** Which reference point the scores use, written by process_batch.py.
+     *  "batch"       a percentile against the other ads in the run (n >= 3).
+     *  "within_item" against the clip's own timeline, which is what a run of one or
+     *                two gets. THE TWO ARE NOT COMPARABLE — an 80 within-item means
+     *                "this ad's hook beats 80% of its own seconds", an 80 in a batch
+     *                means "better than 80% of the ads you sent". Any surface printing
+     *                the number has to say which it is. Absent on artifacts produced
+     *                before the field existed; treat that as "batch". */
+    scale?: "batch" | "within_item";
+    cohortN?: number;
   };
   chart: PreflightChart;
   bestId: string;

@@ -101,6 +101,11 @@ colab_upload/
 concierge-runs/
 edits/
 generated/
+ingest-runs/
+
+# `supabase link` writes the linked project ref here. Machine-local state, not source —
+# the ref belongs in whoever's shell is applying migrations, not in the tree.
+supabase/.temp/
 
 # impeccable (design tooling) cache. hook.cache.json holds names of components
 # that no longer exist; listing the directory here keeps it out of commits and

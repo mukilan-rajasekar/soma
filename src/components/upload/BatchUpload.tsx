@@ -27,7 +27,7 @@ import {
   MAX_BATCH_ADS,
   MESSAGE_FIELDS,
   MESSAGE_FIELD_COPY,
-  MIN_BATCH_ADS,
+  RANKING_FLOOR,
   OBJECTIVES,
   PLACEMENTS,
   PLATFORMS,
@@ -183,7 +183,7 @@ export default function BatchUpload() {
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.token) {
-        throw new Error(body?.error ?? "Could not queue this batch.");
+        throw new Error(body?.error ?? "Could not queue these ads.");
       }
 
       // The address IS the confirmation. No interstitial "thanks" screen: the run has a
@@ -203,25 +203,33 @@ export default function BatchUpload() {
     <form onSubmit={submit} className="mx-auto max-w-[860px] px-[clamp(16px,4vw,24px)] pb-24 pt-[clamp(26px,5vw,44px)]">
       <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-ink-3">
         <span className="h-[6px] w-[6px] rounded-full bg-accent-2" />
-        Send a batch
+        Send your ads
       </div>
-      <h1 className="max-w-[18ch] text-balance text-hero text-ink">
-        Send the cuts. Get back the one that{" "}
-        <span className="font-serif font-normal italic">wins</span>.
+      <h1 className="max-w-[20ch] text-balance text-hero text-ink">
+        Send an ad. See where it earns{" "}
+        <span className="font-serif font-normal italic">attention</span>.
       </h1>
+      {/* ONE ad is a supported run, not a degraded one, and the copy leads with that.
+          The old headline ("Send the cuts. Get back the one that wins.") described a
+          bake-off, which is the only thing the form used to accept — MIN_BATCH_ADS was 2
+          and a single ad was rejected at validation. It now scores within-item, so the
+          page has to offer both jobs and be precise about which one you get. */}
       <p className="mt-[18px] max-w-[62ch] text-pretty text-[clamp(16px,1.7vw,18px)] leading-[1.5] text-ink-2">
-        Between {MIN_BATCH_ADS} and {MAX_BATCH_ADS} cuts of the same campaign. We read how a
-        brain watches each one, rank them against each other, and hand back the timestamps
-        where attention leaks. Turnaround is measured in hours.
+        One ad, or up to {MAX_BATCH_ADS} of them. We read how a brain watches every second
+        of your creative and hand back the timestamps where attention leaks. Send{" "}
+        {RANKING_FLOOR} or more from the same campaign and we rank them against each other
+        too. Turnaround is measured in hours.
       </p>
 
-      {/* ── 1 · the cuts ─────────────────────────────────────────────────── */}
-      <Step n="01" title="The cuts">
+      {/* ── 1 · the ads ──────────────────────────────────────────────────── */}
+      <Step n="01" title="Your ads">
         <p className="mb-4 max-w-[62ch] text-body text-ink-2">
-          MP4, up to 150 MB each. They need to be cuts of the{" "}
-          <span className="font-serif italic">same</span> campaign at roughly the same
-          length: every score is a percentile against the others in the batch, so mixing
-          creative jobs or a 9-second cut with a 45-second one makes the ranking meaningless.
+          MP4, up to 150 MB each. A single ad is scored against{" "}
+          <span className="font-serif italic">itself</span> — how its opening seconds rank
+          among its own, and how much of it holds attention. To get a ranking as well, send{" "}
+          {RANKING_FLOOR} or more from the same campaign at roughly the same length: a
+          ranking is a percentile against the others in the run, so mixing creative jobs or
+          a 9-second ad with a 45-second one makes it meaningless.
         </p>
 
         <input
@@ -246,8 +254,8 @@ export default function BatchUpload() {
             {files.length >= MAX_BATCH_ADS
               ? `That's the maximum of ${MAX_BATCH_ADS}.`
               : files.length
-                ? "Add more cuts"
-                : "Choose your cuts"}
+                ? "Add more ads"
+                : "Choose your ads"}
           </span>
           <span className="shrink-0 text-[13px] text-ink-3">
             {files.length}/{MAX_BATCH_ADS}
@@ -315,7 +323,7 @@ export default function BatchUpload() {
 
         {buckets.size > 1 ? (
           <p className="mt-3 text-[13px] leading-[1.6] text-neg">
-            These cuts span more than one length category ({[...buckets].join(", ")}). Length
+            These ads span more than one length category ({[...buckets].join(", ")}). Length
             is a confound, so the batch has to be length-matched before it can be ranked.
           </p>
         ) : null}
@@ -397,7 +405,7 @@ export default function BatchUpload() {
         </div>
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field
-            label="Name this batch"
+            label="Name this run"
             hint="Optional. What you'll recognise it by."
             placeholder="Q3 hook test"
             value={brief.batch_name}
@@ -444,7 +452,7 @@ export default function BatchUpload() {
               ? "Uploading…"
               : phase === "creating"
                 ? "Queueing…"
-                : "Send this batch"}
+                : "Send these ads"}
           </button>
           <span className="text-[13px] text-ink-3">
             {busy

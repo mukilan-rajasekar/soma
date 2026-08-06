@@ -11,6 +11,22 @@ const PYTHON = process.env.SOMA_PYTHON_BIN?.trim() || "python3";
 
 type EditMessage = PreflightReport["batch"]["message"] | null;
 
+// VERIFICATION IS OFF UNLESS ASKED FOR, and the default used to be the other way round.
+//
+// `--verify` re-scores the rendered cuts by re-entering demo/process_batch.py, which
+// demo/README.md clocks at roughly four minutes for a SINGLE ad. execFileAsync below kills
+// the child at three. So a run that requested verification could not finish by
+// construction: the only reason the routes appeared to work is that on a machine without
+// the TRIBE stack verify_batch fails fast and prints "verification did not run" instead of
+// doing the work. Provision the stack and the same call starts timing out.
+//
+// Defaulting it off is also the honest default. `measured` is the difference between "we
+// think this cut scores better" and "we ran the cut through the encoder and it does", and
+// a flag that quietly claims the expensive one is the wrong way round. Verification is now
+// something a caller asks for, on a host that can actually do it — see
+// scripts/ingest_partner_ad.py, which runs it offline where there is no request timeout.
+const VERIFY_BY_DEFAULT = false;
+
 export type DemoEditRunInput = {
   kind: "demo";
   ad: string;
@@ -69,7 +85,7 @@ export async function runEditSearch(input: EditRunInput): Promise<Record<string,
             "--json",
             jsonPath,
             ...(input.estimateOnly ? ["--estimate-only"] : []),
-            ...(input.verify ?? true ? ["--verify"] : []),
+            ...((input.verify ?? VERIFY_BY_DEFAULT) ? ["--verify"] : []),
           ]
         : await buildBatchArgs(input, tmpDir, jsonPath);
 
@@ -136,6 +152,6 @@ async function buildBatchArgs(
     "--json",
     jsonPath,
     ...(input.estimateOnly ? ["--estimate-only"] : []),
-    ...(input.verify ?? true ? ["--verify"] : []),
+    ...((input.verify ?? VERIFY_BY_DEFAULT) ? ["--verify"] : []),
   ];
 }

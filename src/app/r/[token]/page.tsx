@@ -27,6 +27,7 @@ import BatchStatus from "@/components/result/BatchStatus";
 import ResultReport from "@/components/result/ResultReport";
 import SiteHeader from "@/components/site/SiteHeader";
 import { isShareToken } from "@/lib/batch";
+import { editSearchAvailable } from "@/lib/edit-capability";
 import { serviceClient } from "@/lib/supabase/server";
 import type { PreflightReport } from "@/components/preflight/types";
 
@@ -158,6 +159,9 @@ export default async function ResultPage({
           batchName={name}
           generatedAt={batch.completed_at ?? report.generatedAt ?? null}
           batchToken={token}
+          // Decided on the server, per host: the edit blocks spend Python and ffmpeg,
+          // which the deploy target does not have. See src/lib/edit-capability.ts.
+          editsAvailable={editSearchAvailable()}
         />
       </main>
     );

@@ -24,8 +24,15 @@ a video — better than chance AND better than a stimulus-only baseline?
 
 ## Feature (pre-registered)
 - Input = TRIBE predicted cortical pattern per second, in the **one canonical space**
-  we serve (resolve fsaverage5-surface vs Schaefer-1000-MNI FIRST; record it here:
-  `SERVED_SPACE = ______`).
+  we serve: `SERVED_SPACE = fsaverage5-surface (20484 vertices, [lh; rh])`.
+  Settled empirically 2026-07-30, not chosen: every prediction array in the repo
+  (152 files across `data/ads/arcs/`, `data/arcs/`, `data/mrhisum/preds/`) is
+  `(T, 20484)`, all 10 ROI masks are `(20484,)`, and the Schaefer parcels this
+  pipeline uses are the **FreeSurfer5.3/fsaverage5 surface annots** (10242/hemi),
+  not the paper's Schaefer-1000 MNI volume. Verify on any preds file with
+  `check_preds_space.py`. The Schaefer-1000-MNI path stays supported in
+  `build_roi_mask.py --n-units 1000` for a future checkpoint that emits it, but
+  nothing we have ever produced has been in that space.
 - Decoder = **heavily-regularized ridge** on either all vertices or an a-priori
   affect-network feature set (mPFC, ACC, anterior insula, right TPJ, precuneus/PCC).
   A-priori maps (PINES / EmoNet / Neurosynth) may be **input features only** — never
