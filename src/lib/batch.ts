@@ -97,16 +97,30 @@ export const OBJECTIVES = ["conversions", "traffic", "awareness", "app installs"
 
 // ── batch size ──────────────────────────────────────────────────────────────────
 //
-// TWO ads is the floor because the entire score is a percentile WITHIN the batch: with
-// one ad there is nothing to be a percentile of. TEN is the ceiling the product claims
-// and roughly a 30-minute run on one box.
+// ONE ad is the floor, and it used to be two.
 //
-// Worth knowing and saying on the page: at n=5 each component can only take the values
-// 10/30/50/70/90, so rank order is ordinal and the gaps between ranks are not
-// meaningful. That caveat travels in the artifact itself (`scoring.smallNCaveat`) and
-// the result page renders it — see process_batch.py's "What this does not do".
-export const MIN_BATCH_ADS = 2;
+// The old floor was a correct statement about percentiles smuggled in as a product rule:
+// every component is a percentile WITHIN the run, so one ad has nothing to be a
+// percentile of. True — and it meant someone with a single ad was turned away at the form
+// rather than told what we could and could not tell them about it.
+//
+// demo/process_batch.py:within_item_scores() now scores a run of one or two against the
+// clip's OWN timeline instead: how the first three seconds rank among the ad's own
+// seconds, how much of it holds above baseline, whether the message lands. A real review,
+// a different quantity, and the artifact says which one it carries (`scoring.scale`).
+//
+// What one ad still does NOT get is a ranking, because there is nothing to rank. The
+// upload form says that up front rather than letting someone discover it in the report.
+//
+// TEN remains the ceiling: the product claims it, and it is roughly a 30-minute run on
+// one box. At n=5 each component can only take the values 10/30/50/70/90, so rank order
+// is ordinal and the gaps between ranks are not meaningful — that caveat travels in the
+// artifact itself (`scoring.smallNCaveat`) and the result page renders it.
+export const MIN_BATCH_ADS = 1;
 export const MAX_BATCH_ADS = 10;
+
+/** True when a run of this size gets a ranking. Below it, scoring is within-item. */
+export const RANKING_FLOOR = 3;
 
 // ── duration ────────────────────────────────────────────────────────────────────
 //
@@ -195,12 +209,10 @@ export function validateAds(ads: BatchAd[]): string[] {
   const problems: string[] = [];
 
   if (ads.length < MIN_BATCH_ADS) {
-    problems.push(
-      `A batch needs at least ${MIN_BATCH_ADS} cuts. Every score is a percentile against the others in the run, so a single ad has nothing to be ranked against.`,
-    );
+    problems.push("Add at least one ad.");
   }
   if (ads.length > MAX_BATCH_ADS) {
-    problems.push(`A batch takes at most ${MAX_BATCH_ADS} cuts.`);
+    problems.push(`A run takes at most ${MAX_BATCH_ADS} ads.`);
   }
 
   // The bucket check, done here so it costs a second rather than a GPU run.

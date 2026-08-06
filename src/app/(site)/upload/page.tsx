@@ -7,15 +7,18 @@ import BatchUpload from "@/components/upload/BatchUpload";
 //
 // In the (site) group so it inherits the scroll container, the header and the footer.
 // The landing page's one-click UploadDialog is a different and continuing path: it takes
-// a single ad with no brief for a look, and it does not produce a ranked read-out,
-// because a percentile within a batch of one is not a number.
+// a single ad with no brief for a look. It still does not produce a RANKED read-out — a
+// percentile within a run of one is not a number — but since
+// process_batch.py:within_item_scores() a single ad sent through THIS form does get a
+// full review, scored against its own timeline. The difference is the brief: Clarity is
+// 25% of the score and cannot be computed without one.
 //
 // Not indexed. Not because it is secret, but because the batch flow is currently sold in
 // a conversation: we point specific people at it. Drop `robots` when it goes self-serve.
 export const metadata: Metadata = {
-  title: "soma — send a batch",
+  title: "soma — send your ads",
   description:
-    "Send 2 to 10 cuts of the same campaign. Soma reads how a brain watches each one, ranks them against each other, and returns the timestamps where attention leaks.",
+    "Send one ad or up to ten. Soma reads how a brain watches every second, returns the timestamps where attention leaks, and ranks them against each other when there are three or more.",
   robots: { index: false, follow: false },
 };
 

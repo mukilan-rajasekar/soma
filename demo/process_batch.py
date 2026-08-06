@@ -1010,11 +1010,84 @@ def percentile_rank(values):
     return 100.0 * ((d > 0).sum(axis=1) + 0.5 * (d == 0).sum(axis=1)) / n
 
 
-def normalize_within_batch(feature_rows):
-    """Batch z-scores and percentile ranks. All scores are relative to THIS batch."""
+def within_item_scores(feature_rows, arcs):
+    """Score each ad AGAINST ITSELF, for when there is no cohort to rank it against.
+
+    WHY THIS EXISTS. Everything above is comparative by construction: `percentile_rank` is
+    a midrank over the batch, so with fewer than three ads it stops meaning anything and
+    this module used to sys.exit rather than print a number it could not defend. That was
+    the right call about percentiles and the wrong call about the product — a single ad
+    still has an arc, still has weak spots, still has a hook that either lands or does
+    not. Refusing to look at it at all threw away the review along with the ranking.
+
+    So: same three components, same frozen weights, different reference point.
+
+        H  the first HOOK_WINDOW_S, as a percentile against THIS clip's own timeline
+        P  the share of the film whose higher-order lane holds at or above baseline
+        C  clarity_raw, which was never batch-relative in the first place
+
+    This is the scorer tools/edit/search.py:make_preflight_score_fn already uses to rank
+    re-cuts of one film, so a single-ad review and its edit ladder are on one scale by
+    construction rather than by coincidence.
+
+    IT IS NOT THE SAME QUANTITY AS THE BATCH SCORE and must never be presented as though
+    it were. An 80 here means "this clip's hook beats 80% of its own seconds"; an 80 in a
+    batch means "better than 80% of the other ads you sent". The report carries
+    `scoring.scale` so the UI can say which one it is showing.
+    """
+    # How much of the hook read comes from the ventral/salience lane vs the higher-order
+    # one. Same split tools/edit/search.py uses, so a single-ad score and the edit ladder
+    # underneath it are computed the same way rather than merely similarly.
+    VENTRAL_SHARE = 0.65
+
+    n = len(feature_rows)
+    hook_tp = max(1, int(round(HOOK_WINDOW_S / TR_SECONDS)))
+
+    def pct_rank_self(series, value):
+        vals = [float(v) for v in series if v == v]      # drop NaN
+        if not vals:
+            return 0.5
+        return float(sum(v < value for v in vals)) / float(len(vals))
+
+    H, P, C = np.zeros(n), np.zeros(n), np.zeros(n)
+    for i, row in enumerate(feature_rows):
+        entry = (arcs or {}).get(row["ad_id"])
+        lanes = entry[1] if entry else {}
+
+        def series(name):
+            lane = lanes.get(name)
+            return list(getattr(lane, "raw", [])) if lane is not None else []
+
+        salvent, higher = series("salventattn"), series("higher_order")
+
+        if salvent or higher:
+            v_hook = float(np.mean(salvent[:hook_tp])) if salvent else 0.0
+            h_hook = float(np.mean(higher[:hook_tp])) if higher else 0.0
+            H[i] = 100.0 * (VENTRAL_SHARE * pct_rank_self(salvent, v_hook)
+                            + (1.0 - VENTRAL_SHARE) * pct_rank_self(higher, h_hook))
+            P[i] = 100.0 * (sum(1 for v in higher if v >= 0.0) / len(higher)) if higher else 50.0
+        else:
+            # No lanes (--lanes primary, or a timing failure). Say 50 rather than 0: an
+            # absent measurement is not a bad score, and a 0 would read as one.
+            H[i], P[i] = 50.0, 50.0
+        C[i] = 100.0 * float(row["clarity_raw"])
+
+    zeros = np.zeros(n)
+    return {"z_dorsattn": zeros, "z_salventattn": zeros, "z_higher_order": zeros,
+            "z_visual": zeros, "h_raw": H / 100.0, "p_raw": P / 100.0, "c_raw": C / 100.0,
+            "H": H, "P": P, "C": C, "scale": "within_item"}
+
+
+def normalize_within_batch(feature_rows, arcs=None):
+    """Batch z-scores and percentile ranks. All scores are relative to THIS batch.
+
+    Under three ads there is no batch to be relative to, so this hands off to
+    within_item_scores() rather than exiting. See its docstring for why the two are
+    different quantities and why the report has to say which one it carries.
+    """
     n = len(feature_rows)
     if n < 3:
-        sys.exit(f"Only {n} ads — percentile ranks over fewer than 3 ads are meaningless.")
+        return within_item_scores(feature_rows, arcs)
 
     dorsattn = zscore([r["hook_dorsattn"] for r in feature_rows])
     salvent = zscore([r["hook_salventattn"] for r in feature_rows])
@@ -1034,9 +1107,12 @@ def normalize_within_batch(feature_rows):
     }
 
 
-def compute_preflight_scores(feature_rows):
-    """Hook, Processing, Clarity, overall score and ranks — all batch-relative."""
-    norm = normalize_within_batch(feature_rows)
+def compute_preflight_scores(feature_rows, arcs=None):
+    """Hook, Processing, Clarity, overall score and ranks.
+
+    Batch-relative at n>=3; within-item below that (see normalize_within_batch). The
+    returned rows carry `scale` so nothing downstream has to re-derive which it got."""
+    norm = normalize_within_batch(feature_rows, arcs)
     score = (WEIGHTS["hook"] * norm["H"]
              + WEIGHTS["processing"] * norm["P"]
              + WEIGHTS["clarity"] * norm["C"])
@@ -1057,7 +1133,12 @@ def compute_preflight_scores(feature_rows):
                      "z_higher_order": float(norm["z_higher_order"][i]),
                      "z_visual": float(norm["z_visual"][i]),
                      "h_raw": float(norm["h_raw"][i]),
-                     "p_raw": float(norm["p_raw"][i])})
+                     "p_raw": float(norm["p_raw"][i]),
+                     # "batch" or "within_item". Travels with the row so the report, the
+                     # CSV and the UI all state the same thing about what the number means
+                     # instead of each inferring it from the ad count.
+                     "scale": norm.get("scale", "batch"),
+                     "cohort_n": len(feature_rows)})
     rows.sort(key=lambda r: r["rank"])
     return rows
 
@@ -1506,7 +1587,7 @@ def main():
             "flags": list(ad.flags),
         })
 
-    scores = compute_preflight_scores(feature_rows)
+    scores = compute_preflight_scores(feature_rows, arcs)
     by_id = {a.ad_id: a for a in ads}
 
     # A2 decides the default lane the page plots.
@@ -1616,14 +1697,26 @@ def main():
         "weights": WEIGHTS,
         "scoring": {
             "nAds": len(ads_json),
+            # Which reference point the numbers use. "batch" = a percentile against the
+            # other ads in this run; "within_item" = against the clip's own timeline,
+            # which is what a run of one or two ads gets. The two are not comparable and
+            # the UI must say which it is showing — see within_item_scores().
+            "scale": scores[0].get("scale", "batch") if scores else "batch",
+            "cohortN": len(ads_json),
             "percentileGrid": sorted({round(float(v), 1)
                                       for v in percentile_rank(np.arange(len(ads_json)))}),
             "scoreRange": [round(100.0 * 0.5 / len(ads_json), 1),
                            round(100.0 * (len(ads_json) - 0.5) / len(ads_json), 1)],
             "partialBatch": bool(args.only),
-            "smallNCaveat": (f"Batch z-scores over n={len(ads_json)} are dominated by "
-                             "single outliers. Treat rank order as ordinal, not the gaps "
-                             "between ranks."),
+            "smallNCaveat": (
+                ("This ad was scored against ITSELF, not against other ads — there were "
+                 f"only {len(ads_json)} in the run. The hook figure is a percentile "
+                 "against this clip's own seconds. It is not comparable to a score from a "
+                 "batch.")
+                if (scores and scores[0].get("scale") == "within_item")
+                else (f"Batch z-scores over n={len(ads_json)} are dominated by "
+                      "single outliers. Treat rank order as ordinal, not the gaps "
+                      "between ranks.")),
         },
         "chart": {
             "arcRoiLabel": {"dorsattn": "Dorsal attention network (Schaefer-400 / Yeo-7 DorsAttn)",
