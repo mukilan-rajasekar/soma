@@ -37,6 +37,16 @@ const ROUTES = [
   { path: '/r/' + '0'.repeat(32), expectStatus: 404 },
   // ...and a malformed one, which must be refused before it reaches a query at all.
   { path: '/r/not-a-token', expectStatus: 404 },
+  // The account surfaces. observed: sign-in text 267, sign-up text 319, both scroll 900.
+  { path: '/sign-in', minText: 200, minCanvas: 0, minScroll: 650, needsH1: true },
+  { path: '/sign-up', minText: 240, minCanvas: 0, minScroll: 650, needsH1: true },
+  // Studio is behind a session. These two assert the BOUNDARY, which is the half of the
+  // dashboard a smoke run can check without credentials — and the half that fails
+  // catastrophically: a Studio route that 500s or renders for a stranger is worse than one
+  // that looks wrong. src/proxy.ts redirects optimistically and requireUser() is the real
+  // check, so both must land on /sign-in for a visitor with no cookie.
+  { path: '/dashboard', expectRedirectTo: '/sign-in' },
+  { path: '/dashboard/runs/' + '0'.repeat(32), expectRedirectTo: '/sign-in' },
 ];
 
 // A cancelled media preload is normal browser behaviour, not a defect.
@@ -76,6 +86,24 @@ async function checkRoute(route) {
   try {
     const resp = await page.goto(BASE + route.path, { waitUntil: 'networkidle', timeout: 45000 });
     const status = resp?.status();
+
+    // A guarded route is asserted by WHERE IT LANDS, not by its status: the browser
+    // follows the redirect, so the response here is the sign-in page's 200. Checking the
+    // destination is the check — a regression that stopped guarding Studio would land on
+    // /dashboard with a 200 and pass every other assertion in this file.
+    if (route.expectRedirectTo) {
+      const landed = new URL(page.url()).pathname;
+      if (landed !== route.expectRedirectTo) {
+        problems.push(`landed on ${landed} (want ${route.expectRedirectTo})`);
+      }
+      try {
+        await ctx.close();
+      } catch {
+        /* already gone */
+      }
+      return { problems, info: { textLen: 0, canvases: 0, scrollH: 0, landed } };
+    }
+
     const want = route.expectStatus ?? 200;
     if (status !== want) problems.push(`status ${status} (want ${want})`);
 
@@ -222,11 +250,118 @@ if (!betaSecret) {
   }
 }
 
+// ── Studio, signed in ─────────────────────────────────────────────────────────
+//
+// The routes above prove Studio is GUARDED. They cannot prove it RENDERS, because
+// everything past the guard needs a session — and that is where ~2,500 lines of dashboard,
+// run report and edit workbench live, none of it otherwise exercised by this gate.
+//
+// Credentials come from the environment and are never written down here. Unset, this is
+// SKIPPED rather than passed, for the same reason the beta gate is: a check that silently
+// tests nothing is worse than no check.
+//
+//   SOMA_SMOKE_EMAIL=... SOMA_SMOKE_PASSWORD=... node scripts/smoke.mjs
+//
+// Use a throwaway account with seeded data, not a real customer's.
+
+const smokeEmail = process.env.SOMA_SMOKE_EMAIL?.trim();
+const smokePassword = process.env.SOMA_SMOKE_PASSWORD;
+let studioChecked = 0;
+
+if (!smokeEmail || !smokePassword) {
+  console.log('\nskip Studio (signed in) — set SOMA_SMOKE_EMAIL and SOMA_SMOKE_PASSWORD');
+} else {
+  console.log('');
+  const authBrowser = await chromium.launch();
+  const ctx = await authBrowser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const pageErrors = [];
+  page.on('pageerror', (e) => pageErrors.push(String(e).slice(0, 200)));
+
+  try {
+    await page.goto(BASE + '/sign-in', { waitUntil: 'networkidle', timeout: 45000 });
+    await page.locator('input[type="email"]').fill(smokeEmail);
+    await page.locator('input[type="password"]').fill(smokePassword);
+    await Promise.all([
+      page.waitForURL((u) => !u.pathname.startsWith('/sign-in'), { timeout: 45000 }),
+      page.locator('button[type="submit"]').click(),
+    ]);
+
+    const landed = new URL(page.url()).pathname;
+    if (landed !== '/dashboard') {
+      failures.push({ route: '/sign-in', problems: [`sign-in landed on ${landed}, want /dashboard`] });
+      console.log(`FAIL /sign-in -> ${landed} (credentials wrong, or the redirect broke)`);
+    } else {
+      studioChecked += 1;
+
+      // The library. A signed-in dashboard that renders its chrome and no rows is the
+      // failure this catches: text well under the floor means the grid came back empty.
+      await page.waitForTimeout(2000);
+      const lib = await page.evaluate(() => ({
+        h1: document.querySelector('h1')?.textContent?.trim() ?? null,
+        textLen: (document.body.innerText || '').length,
+      }));
+      if (!lib.h1) {
+        failures.push({ route: '/dashboard', problems: ['no <h1> rendered'] });
+        console.log('FAIL /dashboard — no <h1>');
+      } else if (lib.textLen < 200) {
+        failures.push({ route: '/dashboard', problems: [`text ${lib.textLen} < 200`] });
+        console.log(`FAIL /dashboard — text ${lib.textLen} < 200`);
+      } else {
+        studioChecked += 1;
+        console.log(`ok   /dashboard${' '.repeat(9)} signed in, text=${lib.textLen}`);
+      }
+
+      // Follow the first library row all the way into the read-out. Hard-coding a token
+      // would rot the moment the seed is re-run, so this navigates the way a customer
+      // does — which also proves the links the dashboard emits actually resolve.
+      const row = page.locator('a[href^="/dashboard/v/"], a[href^="/dashboard/runs/"]').first();
+      if ((await row.count()) === 0) {
+        console.log('     (no library rows for this account — nothing further to follow)');
+      } else {
+        const href = await row.getAttribute('href');
+        await row.click();
+        await page.waitForLoadState('networkidle');
+        await page.waitForTimeout(2000);
+        const detail = await page.evaluate(() => ({
+          h1: document.querySelector('h1')?.textContent?.trim() ?? null,
+          textLen: (document.body.innerText || '').length,
+        }));
+        if (!detail.h1 || detail.textLen < 400) {
+          failures.push({
+            route: href,
+            problems: [`detail thin: h1=${detail.h1}, text=${detail.textLen}`],
+          });
+          console.log(`FAIL ${href} — h1=${detail.h1} text=${detail.textLen}`);
+        } else {
+          studioChecked += 1;
+          console.log(`ok   ${href.slice(0, 40).padEnd(40)} text=${detail.textLen}`);
+        }
+      }
+    }
+
+    if (pageErrors.length) {
+      failures.push({ route: 'studio', problems: [`uncaught: ${pageErrors[0]}`] });
+      console.log(`FAIL studio — ${pageErrors.length} uncaught page error(s): ${pageErrors[0]}`);
+    }
+  } catch (e) {
+    failures.push({ route: 'studio', problems: [`threw: ${String(e).slice(0, 200)}`] });
+    console.log(`FAIL studio — ${String(e).slice(0, 160)}`);
+  }
+
+  try {
+    await authBrowser.close();
+  } catch {
+    /* nothing to clean up */
+  }
+}
+
 if (failures.length) {
   console.log(`\nsmoke: ${failures.length} check(s) failed`);
   process.exit(1);
 }
 console.log(
   `\nsmoke: all ${ROUTES.length} routes ok` +
-    (betaChecked ? `, ${betaChecked} beta-gate assertions ok` : ''),
+    (betaChecked ? `, ${betaChecked} beta-gate assertions ok` : '') +
+    (studioChecked ? `, ${studioChecked} Studio assertions ok` : ''),
 );

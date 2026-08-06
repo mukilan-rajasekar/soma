@@ -176,8 +176,15 @@ export default function AuthForm({ mode, next }: { mode: Mode; next: string }) {
 
       <p className="mt-7 text-meta text-ink-3">
         {copy.altPrompt}{" "}
+        {/* prefetch={false} for the same reason the dashboard link carries it. Both
+            /sign-in and /sign-up are named in src/proxy.ts's matcher, so prefetching the
+            opposite page fires an auth round-trip to Supabase for a page most visitors
+            never open — and the request is then cancelled when they navigate or close the
+            tab, which surfaces as an aborted RSC fetch. These are two small forms; there
+            is nothing here worth pre-loading at the cost of a session lookup. */}
         <Link
           href={copy.altHref}
+          prefetch={false}
           className="text-ink-2 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
         >
           {copy.altLabel}
