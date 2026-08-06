@@ -92,11 +92,19 @@ export type ResultReportProps = {
    *  session never leaves the owned surface for the beta-gated /edit form. */
   editHrefForAd?: (adId: string) => string;
   /** When true, skip the live BatchEditPreview fetch (Python on the host) and render
-   *  `shotDiagnosis` instead. That is the Vercel-safe path: candidates were precomputed
+   *  `shotDiagnosisByAd` instead. That is the Vercel-safe path: candidates were precomputed
    *  on the scorer box and live in edit_cuts. */
   preferPrecomputedEdits?: boolean;
-  /** Static shot diagnosis for preferPrecomputedEdits. Null/undefined hides the block. */
-  shotDiagnosis?: React.ReactNode;
+  /** Shot diagnosis for preferPrecomputedEdits, KEYED BY AD ID. Missing key hides the
+   *  block for that ad.
+   *
+   *  Keyed, and not a single node, because ad selection below is client state
+   *  (`selectedId`) while these nodes are rendered on the server. A lone node stayed
+   *  pinned to whichever ad the server happened to pick, so selecting a different cut
+   *  swapped the player and every chart but left the per-shot diagnosis — its title, base
+   *  score, timestamps and remove-recommendations — describing the previous one. The
+   *  server renders one per ad and the client picks; nothing has to re-fetch. */
+  shotDiagnosisByAd?: Record<string, React.ReactNode>;
   backHref?: string;
   backLabel?: string;
 };
@@ -110,7 +118,7 @@ export default function ResultReport({
   initialAdId,
   editHrefForAd,
   preferPrecomputedEdits = false,
-  shotDiagnosis,
+  shotDiagnosisByAd,
   backHref,
   backLabel = "← All videos",
 }: ResultReportProps) {
@@ -301,13 +309,13 @@ export default function ResultReport({
           they gave every real customer an error panel followed by buttons that 404.
           They appear only where the stack exists. See src/lib/edit-capability.ts for
           the flag and for the fix-forward (precompute the candidates on the box). */}
-      {preferPrecomputedEdits && shotDiagnosis ? (
+      {preferPrecomputedEdits && shotDiagnosisByAd?.[selectedId] ? (
         <Block
           title="Per-shot edit diagnosis"
           n={nextN()}
           lede="Remove-shot deltas from the re-cuts already scored for this run. A shot whose removal raises the score is dragging the cut down. These are estimates unless the cut was measured."
         >
-          {shotDiagnosis}
+          {shotDiagnosisByAd[selectedId]}
         </Block>
       ) : null}
 
