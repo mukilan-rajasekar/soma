@@ -115,6 +115,17 @@ console.log("\nedit_cuts rows pair by parsed label range");
   check("0.0-2.0s stays untested", cells[0].delta === null, `got ${cells[0].delta}`);
 }
 
+// ── 3b. a boundary that rounds to exactly the tolerance ──────────────────────────
+console.log("\nboundary rounded by exactly the tolerance");
+{
+  // tools/edit/ops.py _fmt writes "%.1f", so a shot ending at 0.750 is labelled "0.8" —
+  // off by 0.050000000000000044, which is larger than TOL_S in binary. A strict `<`, and
+  // a bare `<=`, both reject it: the shot reads "not tested" though it was scored, and if
+  // it is the only candidate the strip withholds itself and the block disappears.
+  const cells = shotCells([shot(0.5, 0.75)], [cut("Cut the 0.5-0.8s beat", 6)], []);
+  check("a .X5 boundary still pairs", cells[0].delta === 6, `got ${cells[0].delta}`);
+}
+
 // ── 4. no shot boundaries at all ─────────────────────────────────────────────────
 console.log("\nno shot boundaries");
 {

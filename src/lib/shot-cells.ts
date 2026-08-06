@@ -40,8 +40,17 @@ export type ShotCell = {
 
 /** Tolerance when comparing a candidate's boundaries to a shot's, in seconds. Shot
  *  boundaries round-trip through JSON and a label formatted at one decimal
- *  (tools/edit/ops.py _fmt), so an exact === would miss a correct pairing. */
+ *  (tools/edit/ops.py _fmt), so an exact === would miss a correct pairing.
+ *
+ *  INCLUSIVE, and with an epsilon, because 0.05 is not a slack allowance — it is exactly
+ *  the worst-case error of `%.1f`. A boundary sitting on a .X5 midpoint rounds to a label
+ *  precisely TOL_S away, and in binary that lands either side of 0.05: 0.750 formats to
+ *  "0.8" and differs by 0.050000000000000044, which a strict `<` AND a bare `<=` both
+ *  reject. Sweeping 0.000-299.999 at millisecond steps, 640 boundaries fail a strict
+ *  comparison. Each one is a shot that WAS scored being labelled "not tested", and when
+ *  it is the only candidate the strip withholds itself entirely. */
 const TOL_S = 0.05;
+const TOL_EPS = 1e-9;
 
 /** Matches "4.0-6.5" in a label, with either an ASCII hyphen (what _fmt emits) or an
  *  en dash (what a human editing a label is likely to type). */
@@ -65,7 +74,10 @@ function rangeFromLabel(label: string): [number, number] | null {
 }
 
 function covers(range: [number, number], shot: { start: number; end: number }): boolean {
-  return Math.abs(range[0] - shot.start) < TOL_S && Math.abs(range[1] - shot.end) < TOL_S;
+  return (
+    Math.abs(range[0] - shot.start) <= TOL_S + TOL_EPS &&
+    Math.abs(range[1] - shot.end) <= TOL_S + TOL_EPS
+  );
 }
 
 /** Every way we know of to locate a remove-edit on the timeline, most reliable first. */
