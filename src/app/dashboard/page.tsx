@@ -7,6 +7,10 @@
 // comparable — the single most misleading thing this screen could do. Newest first is the
 // only ordering the data actually supports.
 //
+// Within a date-ordered list, cuts from the SAME run are grouped under one run header so
+// rank-within-batch is readable next to siblings. Global order is still by the run's
+// scored date, never by score.
+//
 // FOUR STATES, each a real screen: unconfigured, empty, runs-in-flight, and the library.
 // The first is separated from the last on purpose. "You have no videos" and "this
 // deployment has no database" look identical to a visitor and mean completely different
@@ -16,10 +20,45 @@ import Link from "next/link";
 
 import PendingRunRow from "@/components/dashboard/PendingRunRow";
 import VideoRow from "@/components/dashboard/VideoRow";
-import { loadLibrary } from "@/lib/dashboard";
+import { loadLibrary, type DashboardVideo } from "@/lib/dashboard";
+
+type RunGroup = {
+  token: string;
+  batchName: string;
+  scoredAt: string | null;
+  ofN: number;
+  scale: DashboardVideo["scale"];
+  videos: DashboardVideo[];
+};
+
+function groupByRun(videos: DashboardVideo[]): RunGroup[] {
+  const order: string[] = [];
+  const map = new Map<string, RunGroup>();
+  for (const video of videos) {
+    let group = map.get(video.token);
+    if (!group) {
+      group = {
+        token: video.token,
+        batchName: video.batchName,
+        scoredAt: video.scoredAt,
+        ofN: video.ofN,
+        scale: video.scale,
+        videos: [],
+      };
+      map.set(video.token, group);
+      order.push(video.token);
+    }
+    group.videos.push(video);
+  }
+  for (const group of map.values()) {
+    group.videos.sort((a, b) => a.rank - b.rank);
+  }
+  return order.map((t) => map.get(t)!);
+}
 
 export default async function DashboardPage() {
   const { videos, pending, unconfigured } = await loadLibrary();
+  const groups = groupByRun(videos);
 
   return (
     <div className="mx-auto max-w-[860px] px-[clamp(18px,5vw,32px)] pb-24 pt-[clamp(28px,5vw,44px)]">
@@ -55,24 +94,50 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      {videos.length > 0 ? (
+      {groups.length > 0 ? (
         <section className="mt-11">
           <div className="flex items-baseline justify-between gap-4">
             <h2 className="text-[11px] uppercase tracking-[0.12em] text-ink-3">Scored</h2>
             <span className="text-meta text-ink-3">
-              {videos.length} {videos.length === 1 ? "video" : "videos"}
+              {videos.length} {videos.length === 1 ? "video" : "videos"} · {groups.length}{" "}
+              {groups.length === 1 ? "run" : "runs"}
             </span>
           </div>
-          <div className="mt-3 flex flex-col gap-2">
-            {videos.map((video) => (
-              <VideoRow key={`${video.token}:${video.adId}`} video={video} />
+
+          <div className="mt-3 flex flex-col gap-8">
+            {groups.map((group) => (
+              <div key={group.token}>
+                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-ui font-medium text-ink">{group.batchName}</div>
+                    <div className="mt-0.5 text-meta text-ink-3">
+                      {group.scale === "within_item" || group.ofN < 2
+                        ? "Scored on its own"
+                        : `${group.ofN} cuts, ranked inside this run`}
+                    </div>
+                  </div>
+                  {group.ofN >= 2 ? (
+                    <Link
+                      href={`/dashboard/runs/${group.token}`}
+                      className="shrink-0 text-meta text-ink-3 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
+                    >
+                      Open full run
+                    </Link>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {group.videos.map((video) => (
+                    <VideoRow key={`${video.token}:${video.adId}`} video={video} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
 
           <p className="mt-7 max-w-[62ch] text-pretty text-meta text-ink-3">
             Scores are percentiles inside the run a cut was scored in, so a number is only
             comparable to the other cuts beside it in that run — not across the library.
-            That is why this list is ordered by date.
+            That is why this list is ordered by date, and grouped by run.
           </p>
         </section>
       ) : null}

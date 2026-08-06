@@ -73,6 +73,7 @@ export default async function EditPage({
           sourcePoster={video.posterUrl}
           sourceDurationS={video.durationS}
           sourceScore={video.score}
+          shareHref={`/r/${video.token}`}
         />
       ) : (
         <div className="mt-9 rounded-2xl border border-line bg-fill p-6">

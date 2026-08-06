@@ -11,11 +11,13 @@ export function NavLink({ href, label }: { href: string; label: string }) {
   const pathname = usePathname();
 
   // /dashboard must not light up while you are inside /dashboard/upload, but it SHOULD
-  // stay lit on /dashboard/v/<token>/<ad>, which is a video — a child of the library.
-  // So: exact match for the root, prefix match for everything else.
+  // stay lit on /dashboard/v/<token>/<ad> and /dashboard/runs/<token> — both are children
+  // of the library. Exact match for the root, prefix match for everything else.
   const active =
     href === "/dashboard"
-      ? pathname === "/dashboard" || pathname.startsWith("/dashboard/v/")
+      ? pathname === "/dashboard" ||
+        pathname.startsWith("/dashboard/v/") ||
+        pathname.startsWith("/dashboard/runs/")
       : pathname === href || pathname.startsWith(`${href}/`);
 
   return (

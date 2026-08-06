@@ -10,18 +10,25 @@
 // decides whether this row is visible, and a token belonging to someone else returns null
 // exactly like a token that does not exist. Both become the same notFound().
 //
-// THE ORDER OF THE PAGE follows docs/DESIGN-SYSTEM.md § "Thesis-first read-out": the
-// result opens the page, the controls sit under it. Score first, then the film and its
-// curve, then the components, then what to do about it.
+// Multi-ad runs also have /dashboard/runs/<token>, which mounts the full ResultReport
+// instruments. This page stays the cut-deep-dive: thesis-first score, player, components,
+// hook, comprehension, weak spots, takeaways, brief, limits, then the edit hand-off.
 
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import PlayerPanel from "@/components/preflight/PlayerPanel";
+import BriefEcho from "@/components/dashboard/BriefEcho";
+import ComprehensionPins from "@/components/dashboard/ComprehensionPins";
+import HookCallout from "@/components/dashboard/HookCallout";
+import PlainTakeaways from "@/components/dashboard/PlainTakeaways";
+import RunLimits from "@/components/dashboard/RunLimits";
 import ScoreBreakdown from "@/components/dashboard/ScoreBreakdown";
+import ShotDiagnosisStrip from "@/components/dashboard/ShotDiagnosisStrip";
 import WeakSpots from "@/components/dashboard/WeakSpots";
+import PlayerPanel from "@/components/preflight/PlayerPanel";
 import { loadVideo } from "@/lib/dashboard";
+import { loadEditRuns } from "@/lib/edit-cuts";
 import { RANKING_FLOOR } from "@/lib/batch";
 
 export const dynamic = "force-dynamic";
@@ -36,19 +43,34 @@ export default async function VideoPage({
   params: Promise<{ token: string; adId: string }>;
 }) {
   const { token, adId } = await params;
-  const detail = await loadVideo(token, decodeURIComponent(adId));
+  const decodedAdId = decodeURIComponent(adId);
+  const detail = await loadVideo(token, decodedAdId);
   if (!detail) notFound();
 
   const { video, ad, report } = detail;
+  const editRuns = await loadEditRuns(token, decodedAdId);
+  const editRun =
+    editRuns.find((r) => r.status === "done" && (r.cuts.length > 0 || r.shots.length > 0)) ??
+    null;
 
   return (
     <div className="mx-auto max-w-[980px] px-[clamp(18px,5vw,32px)] pb-24 pt-[clamp(24px,4vw,36px)]">
-      <Link
-        href="/dashboard"
-        className="text-meta text-ink-3 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
-      >
-        ← All videos
-      </Link>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Link
+          href="/dashboard"
+          className="text-meta text-ink-3 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
+        >
+          ← All videos
+        </Link>
+        {video.ofN >= 2 ? (
+          <Link
+            href={`/dashboard/runs/${video.token}?ad=${encodeURIComponent(video.adId)}`}
+            className="text-meta text-ink-3 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
+          >
+            Full run · {video.ofN} cuts
+          </Link>
+        ) : null}
+      </div>
 
       <div className="mt-5 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div className="min-w-0">
@@ -79,9 +101,45 @@ export default async function VideoPage({
         <PlayerPanel ad={ad} report={report} active />
       </section>
 
+      <PlainTakeaways ad={ad} report={report} />
+
       <ScoreBreakdown scores={ad.scores} weights={report.weights} />
 
+      <HookCallout
+        scores={ad.scores}
+        weight={report.weights?.hook ?? 0.4}
+        ofN={video.ofN}
+      />
+
+      <ComprehensionPins ad={ad} report={report} />
+
       <WeakSpots spots={ad.weakSpots} durationS={ad.durationS} />
+
+      {editRun ? (
+        <section className="mt-12 border-t border-line pt-8">
+          <h2 className="text-[11px] uppercase tracking-[0.12em] text-ink-3">
+            Per-shot diagnosis
+          </h2>
+          <p className="mt-3 max-w-[62ch] text-pretty text-body text-ink-2">
+            What the score does when each removable shot is dropped, from the edit candidates
+            already scored for this cut. Positive means cutting it raises the score: that beat
+            is dragging the film down.
+          </p>
+          <div className="mt-6">
+            <ShotDiagnosisStrip
+              shots={editRun.shots}
+              cuts={editRun.cuts}
+              candidates={editRun.candidates}
+              baseScore={editRun.baseScore}
+              title={video.title}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <BriefEcho report={report} />
+
+      <RunLimits ad={ad} report={report} />
 
       <section className="mt-12 border-t border-line pt-8">
         <h2 className="text-section text-ink">
