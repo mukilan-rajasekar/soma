@@ -92,6 +92,14 @@ else
   fail "no .venv — see the pytest step above for the two setup lines"
 fi
 
+# ---- 4b. shot/candidate pairing ---------------------------------------------
+# The Studio strip pairs each shot with the remove-candidate that covers it. It used to
+# fall back to pairing by ARRAY INDEX, which put one shot's delta under another shot's
+# timestamp and made the summary line recommend cutting a beat the search never named.
+# Pure function over fixtures — no build, no server, no network. Node strips the types.
+step "shot/candidate pairing"
+node --experimental-strip-types scripts/check-shot-cells.mts || fail "shot/candidate pairing"
+
 # ---- 5. smoke ---------------------------------------------------------------
 if [[ "$BUILD_OK" == "0" ]]; then
   step "smoke (skipped — build failed, smoke would only echo it)"
