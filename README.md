@@ -23,6 +23,72 @@ delivers it at `/r/<token>`, `/generate` creates persisted generation runs at `/
 `/edit` searches re-cuts either from the shipped demo campaign or directly from a delivered
 customer batch via `/edit?batch=<token>&ad=<id>`.
 
+### The logged-in product (`/dashboard`)
+
+`/sign-in` → `/dashboard` → a video → its re-cuts. Accounts are Supabase Auth (email +
+password) with cookie sessions via `@supabase/ssr`.
+
+| Route | What it is |
+|---|---|
+| `/sign-in`, `/sign-up` | Email + password. Outside the `(site)` group, so no marketing chrome. |
+| `/dashboard` | The library: every video the account owns, newest first, plus runs in flight. |
+| `/dashboard/v/<token>/<adId>` | One video — player + arc on a shared clock, score breakdown, weak spots. |
+| `/dashboard/v/<token>/<adId>/edit` | The re-cuts, with the original as a first-class option. |
+| `/dashboard/upload` | The same intake as `/upload`, but the run is stamped with `user_id`. |
+
+Two rules make this safe to reason about, and both are load-bearing:
+
+- **Two addresses, one run.** `/r/<token>` is a capability URL — holding it *is* the
+  authorization, it needs no account, and it is unchanged. `/dashboard` is addressed by
+  *you*. A run can have both. Migration `0008_accounts.sql` explains why `user_id` is
+  nullable rather than back-filled.
+- **Two clients, and never the wrong one.** Token-addressed reads use `serviceClient()`
+  (service_role, bypasses RLS). Everything under `/dashboard` uses `sessionClient()`
+  (cookie-scoped, so `auth.uid()` is real and the 0008 policies run). One dashboard query
+  written with `serviceClient()` out of habit returns every customer's rows and no policy
+  would stop it — that is the tenancy bug to watch for in review.
+
+Session refresh lives in **`src/proxy.ts`**, not `middleware.ts`: Next.js 16 renamed the
+convention, and a `middleware.ts` here would be dead code whose only symptom is users
+being silently logged out at token expiry.
+
+Env for these routes (the app reads **none** of the `SUPABASE_*` names the Python half uses):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=       # same value as SUPABASE_URL in .env
+NEXT_PUBLIC_SUPABASE_ANON_KEY=  # same value as SUPABASE_ANON_KEY in .env — publishable
+SUPABASE_SECRET_KEY=            # same value as SUPABASE_SERVICE_ROLE_KEY in .env — server only
+```
+
+Then apply `supabase/migrations/0008_accounts.sql` and enable the email provider in the
+Supabase dashboard. With the env unset the dashboard renders a "not configured" state
+rather than a stack trace, and `/sign-in` says so plainly.
+
+### Getting one ad into a dashboard
+
+`scripts/ingest_partner_ad.py` takes a single mp4 and a brief and produces everything the
+logged-in product reads — shots, rendered re-cuts, one scoring run, storage objects, and
+the `batches` / `uploads` / `edit_runs` / `edit_cuts` rows, owned by a real account.
+
+```bash
+./.venv/bin/python scripts/ingest_partner_ad.py partner.mp4 brief.json \
+    --owner-email founder@brand.com
+
+./.venv/bin/python scripts/ingest_partner_ad.py partner.mp4 brief.json \
+    --owner-email founder@brand.com --skip-score --dry-run   # plumbing only, no model, no writes
+```
+
+It **renders before it scores**, which is the opposite of `tools/edit/search.py` and is
+deliberate: an estimate needs an arc, an arc needs a scoring run, and a scoring run of one
+ad exits (`normalize_within_batch` refuses fewer than three, because a percentile over one
+item is not a number). Scoring the original together with its own re-cuts satisfies that
+honestly — the batch is apples-to-apples by construction — and every delta it produces is
+`measured` rather than estimated, because each cut really was encoded and really was run
+through the model.
+
+It needs ffmpeg and, unless `--skip-score` is passed, the TRIBE stack. It runs on the
+scorer box, never on the request path.
+
 Run it locally:
 
 ```bash
