@@ -50,6 +50,10 @@ export type DashboardVideo = {
   rank: number;
   ofN: number;
   score: number;
+  /** Components that make up `score`. Same batch-relative percentiles. */
+  hook: number;
+  processing: number;
+  clarity: number;
   durationS: number;
   posterUrl: string | null;
   scoredAt: string | null;
@@ -185,6 +189,9 @@ export async function loadLibrary(): Promise<DashboardLibrary> {
         rank: ad.rank ?? i + 1,
         ofN: ads.length,
         score: ad.scores.preflight,
+        hook: ad.scores.hook,
+        processing: ad.scores.processing,
+        clarity: ad.scores.clarity,
         durationS: ad.durationS,
         posterUrl: ad.poster ?? null,
         scoredAt: row.completed_at ?? report.generatedAt ?? null,
@@ -256,6 +263,9 @@ export async function loadVideo(
       rank: ad.rank ?? index + 1,
       ofN: ads.length,
       score: ad.scores.preflight,
+      hook: ad.scores.hook,
+      processing: ad.scores.processing,
+      clarity: ad.scores.clarity,
       durationS: ad.durationS,
       posterUrl: resolve(ad.poster),
       scoredAt: row.completed_at ?? row.report.generatedAt ?? null,
@@ -264,5 +274,60 @@ export async function loadVideo(
     ad: { ...ad, video: resolve(ad.video), poster: resolve(ad.poster) },
     report: row.report,
     videoUrl: resolve(ad.video),
+  };
+}
+
+export type DashboardRun = {
+  token: string;
+  batchName: string;
+  report: PreflightReport;
+  generatedAt: string | null;
+  scale: ScoreScale;
+};
+
+/**
+ * A whole finished run with every cut's media signed, or null when the user does not own it.
+ *
+ * Same null-collapsing rule as loadVideo: missing, unfinished, and not-yours are identical
+ * to the caller so the token space cannot be probed from the dashboard.
+ */
+export async function loadRun(token: string): Promise<DashboardRun | null> {
+  if (!isShareToken(token)) return null;
+
+  const supabase = await sessionClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("batches")
+    .select(BATCH_COLUMNS)
+    .eq("share_token", token)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const row = data as BatchRow;
+  if (row.status !== "done" || !row.report) return null;
+
+  const report = row.report;
+  const keys = report.ads.flatMap((a) => [a.video ?? "", a.poster ?? ""]);
+  const signed = await signKeys(keys);
+  const resolve = (key: string | null | undefined): string | null => {
+    if (!key) return null;
+    if (key.startsWith("/") || key.startsWith("http")) return key;
+    return signed.get(key) ?? null;
+  };
+
+  return {
+    token: row.share_token,
+    batchName: batchLabel(row),
+    generatedAt: row.completed_at ?? report.generatedAt ?? null,
+    scale: scaleOf(report),
+    report: {
+      ...report,
+      ads: report.ads.map((a) => ({
+        ...a,
+        video: resolve(a.video),
+        poster: resolve(a.poster),
+      })),
+    },
   };
 }

@@ -24,5 +24,18 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardUploadPage() {
-  return <BatchUpload />;
+  return (
+    <div className="mx-auto max-w-[860px] px-[clamp(18px,5vw,32px)] pb-16 pt-[clamp(28px,5vw,44px)]">
+      <h1 className="text-balance text-hero text-ink">
+        Send a <span className="font-serif font-normal italic">batch</span>.
+      </h1>
+      <p className="mt-4 max-w-[58ch] text-pretty text-body text-ink-2">
+        Upload the cuts, name the brand and the offer, and the run lands in your library
+        when scoring finishes — same intake as the public form, owned by this account.
+      </p>
+      <div className="mt-10">
+        <BatchUpload />
+      </div>
+    </div>
+  );
 }

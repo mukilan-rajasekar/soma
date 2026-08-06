@@ -75,13 +75,7 @@ function clarityIsBlind(report: PreflightReport): boolean {
   return flagged.length === report.ads.length && report.ads.length > 0;
 }
 
-export default function ResultReport({
-  report,
-  batchName,
-  generatedAt,
-  batchToken,
-  editsAvailable,
-}: {
+export type ResultReportProps = {
   report: PreflightReport;
   batchName: string;
   generatedAt: string | null;
@@ -91,9 +85,44 @@ export default function ResultReport({
    *  to a form that 404s, so they are omitted rather than shipped broken.
    *  See src/lib/edit-capability.ts. */
   editsAvailable: boolean;
-}) {
-  const [selectedId, setSelectedId] = useState(report.bestId);
+  /** Open on this cut instead of the batch winner. Used by the Studio run page when the
+   *  visitor arrived from a specific library row. */
+  initialAdId?: string;
+  /** Override the edit hand-off URL. Studio points at /dashboard/v/.../edit so a signed-in
+   *  session never leaves the owned surface for the beta-gated /edit form. */
+  editHrefForAd?: (adId: string) => string;
+  /** When true, skip the live BatchEditPreview fetch (Python on the host) and render
+   *  `shotDiagnosis` instead. That is the Vercel-safe path: candidates were precomputed
+   *  on the scorer box and live in edit_cuts. */
+  preferPrecomputedEdits?: boolean;
+  /** Static shot diagnosis for preferPrecomputedEdits. Null/undefined hides the block. */
+  shotDiagnosis?: React.ReactNode;
+  backHref?: string;
+  backLabel?: string;
+};
+
+export default function ResultReport({
+  report,
+  batchName,
+  generatedAt,
+  batchToken,
+  editsAvailable,
+  initialAdId,
+  editHrefForAd,
+  preferPrecomputedEdits = false,
+  shotDiagnosis,
+  backHref,
+  backLabel = "← All videos",
+}: ResultReportProps) {
+  const fallbackId =
+    initialAdId && report.ads.some((a) => a.id === initialAdId)
+      ? initialAdId
+      : report.bestId;
+  const [selectedId, setSelectedId] = useState(fallbackId);
   const selected = report.ads.find((a) => a.id === selectedId) ?? report.ads[0];
+  const editHref =
+    editHrefForAd ??
+    ((adId: string) => `/edit?batch=${batchToken}&ad=${encodeURIComponent(adId)}`);
 
   // Section numbers are assigned in render order rather than hard-coded. Two blocks are
   // conditional — the brief (only if one was submitted) and the two edit blocks (only on a
@@ -126,10 +155,19 @@ export default function ResultReport({
 
   return (
     <div className="mx-auto max-w-[1100px] px-[clamp(18px,5vw,40px)] pb-32 pt-[clamp(28px,6vh,64px)]">
+      {backHref ? (
+        <Link
+          href={backHref}
+          className="text-meta text-ink-3 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
+        >
+          {backLabel}
+        </Link>
+      ) : null}
+
       {/* ── the verdict ───────────────────────────────────────────────────────
           What they paid for, above the fold, in one sentence. Everything below is
           the evidence for this line. */}
-      <header>
+      <header className={backHref ? "mt-5" : undefined}>
         <div className="text-[12px] uppercase tracking-[0.07em] text-ink-3">
           Read-out · {report.batch?.nAds ?? report.ads.length} cuts
           {generatedAt ? ` · ${new Date(generatedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : ""}
@@ -263,7 +301,17 @@ export default function ResultReport({
           they gave every real customer an error panel followed by buttons that 404.
           They appear only where the stack exists. See src/lib/edit-capability.ts for
           the flag and for the fix-forward (precompute the candidates on the box). */}
-      {editsAvailable ? (
+      {preferPrecomputedEdits && shotDiagnosis ? (
+        <Block
+          title="Per-shot edit diagnosis"
+          n={nextN()}
+          lede="Remove-shot deltas from the re-cuts already scored for this run. A shot whose removal raises the score is dragging the cut down. These are estimates unless the cut was measured."
+        >
+          {shotDiagnosis}
+        </Block>
+      ) : null}
+
+      {!preferPrecomputedEdits && editsAvailable ? (
         <Block
           title="Per-shot edit diagnosis"
           n={nextN()}
@@ -278,11 +326,11 @@ export default function ResultReport({
         </Block>
       ) : null}
 
-      {editsAvailable ? (
+      {editsAvailable || preferPrecomputedEdits ? (
         <Block
           title="Search the best re-cut"
           n={nextN()}
-          lede="Any delivered cut can now hand off directly into edit search. Start from the winner, or from the cut with the clearest drag."
+          lede="Any delivered cut can hand off into the edit space. Start from the winner, or from the cut with the clearest drag."
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {ordered.map((ad) => (
@@ -299,7 +347,7 @@ export default function ResultReport({
                     : "No weak spot was long enough to flag, but the edit search can still test alternate openings and trims."}
                 </p>
                 <Link
-                  href={`/edit?batch=${batchToken}&ad=${ad.id}`}
+                  href={editHref(ad.id)}
                   className="mt-4 inline-flex rounded-xl border border-line-2 px-4 py-[10px] text-[13px] font-medium text-ink transition-colors hover:border-ink"
                 >
                   Search edits for this cut

@@ -8,6 +8,10 @@
 // already reads correctly rather than a new pattern — same 38×31 poster at `rounded-xl`
 // with a hairline, same 1px `bg-line` track with an ink fill, same `tabular-nums`.
 //
+// Secondary tracks under the composite bar are the three score components. They are the
+// same percentiles that ScoreBreakdown prints on the cut page, so a library skim and a
+// deep-dive cannot disagree.
+//
 // WHAT IS DROPPED: RunnerRow's staggered entrance transition. On the demo that stagger is
 // the point — it is a beat in a scripted animation being recorded. In a library of
 // arbitrary length it becomes a wave of movement every time you navigate back, which is
@@ -32,6 +36,22 @@ function scoredOn(iso: string | null): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function MiniTrack({ label, value }: { label: string; value: number }) {
+  return (
+    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+      <span className="w-7 shrink-0 text-[10px] uppercase tracking-[0.06em] text-ink-3">
+        {label}
+      </span>
+      <span className="block h-0.5 min-w-0 flex-1 overflow-hidden rounded-full bg-line">
+        <span
+          className="block h-full rounded-full bg-ink/70"
+          style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+        />
+      </span>
+    </span>
+  );
 }
 
 export default function VideoRow({ video }: { video: DashboardVideo }) {
@@ -66,6 +86,11 @@ export default function VideoRow({ video }: { video: DashboardVideo }) {
             className="block h-full rounded-full bg-ink"
             style={{ width: `${Math.max(0, Math.min(100, video.score))}%` }}
           />
+        </span>
+        <span className="mt-2 flex max-w-[320px] gap-2">
+          <MiniTrack label="Hk" value={video.hook} />
+          <MiniTrack label="Pr" value={video.processing} />
+          <MiniTrack label="Cl" value={video.clarity} />
         </span>
       </span>
 

@@ -39,6 +39,24 @@ export type EditCut = {
   posterUrl: string | null;
 };
 
+export type EditShot = {
+  start: number;
+  end: number;
+  without: number | null;
+  delta: number | null;
+};
+
+/** A scored edit candidate from result.candidates when the search path persisted them.
+ *  Ingest/seed usually omit this; edit_cuts still carries the rendered winners. */
+export type EditCandidate = {
+  kind: string;
+  label: string;
+  estScore: number | null;
+  estDelta: number | null;
+  measured: boolean;
+  removed: [number, number][];
+};
+
 export type EditRun = {
   token: string;
   status: "queued" | "processing" | "done" | "failed";
@@ -47,6 +65,15 @@ export type EditRun = {
   error: string | null;
   /** The score of the film before any edit, so a delta has something to be a delta from. */
   baseScore: number | null;
+  /**
+   * Shot boundaries from the ingest/search result. Customer writers store {start,end}
+   * only — demo-style without/delta leave-one-out is NOT in this array. Deltas are merged
+   * on read from result.candidates (kind "remove") or left null for the UI to fill from
+   * edit_cuts.
+   */
+  shots: EditShot[];
+  /** Present when tools/edit/search.py wrote the full payload; empty for thin ingest rows. */
+  candidates: EditCandidate[];
   cuts: EditCut[];
 };
 
@@ -55,7 +82,11 @@ type EditRunRow = {
   share_token: string;
   ad_id: string;
   status: EditRun["status"];
-  result: { baseScore?: unknown; shots?: unknown } | null;
+  result: {
+    baseScore?: unknown;
+    shots?: unknown;
+    candidates?: unknown;
+  } | null;
   error: string | null;
   created_at: string;
   completed_at: string | null;
@@ -147,13 +178,101 @@ export async function loadEditRuns(batchToken: string, adId: string): Promise<Ed
     byRun.set(cut.edit_run_id, list);
   }
 
-  return runs.map((run) => ({
-    token: run.share_token,
-    status: run.status,
-    createdAt: run.created_at,
-    completedAt: run.completed_at,
-    error: run.error,
-    baseScore: typeof run.result?.baseScore === "number" ? run.result.baseScore : null,
-    cuts: byRun.get(run.id) ?? [],
-  }));
+  return runs.map((run) => {
+    const candidates = parseCandidates(run.result?.candidates);
+    const shots = enrichShots(parseShots(run.result?.shots), candidates);
+    return {
+      token: run.share_token,
+      status: run.status,
+      createdAt: run.created_at,
+      completedAt: run.completed_at,
+      error: run.error,
+      baseScore: typeof run.result?.baseScore === "number" ? run.result.baseScore : null,
+      shots,
+      candidates,
+      cuts: byRun.get(run.id) ?? [],
+    };
+  });
+}
+
+function parseShots(raw: unknown): EditShot[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((s) => {
+      const row = s as { start?: unknown; end?: unknown; without?: unknown; delta?: unknown };
+      const start = typeof row.start === "number" ? row.start : null;
+      const end = typeof row.end === "number" ? row.end : null;
+      if (start === null || end === null) return null;
+      return {
+        start,
+        end,
+        without: typeof row.without === "number" ? row.without : null,
+        delta: typeof row.delta === "number" ? row.delta : null,
+      };
+    })
+    .filter((s): s is EditShot => s !== null);
+}
+
+function parseCandidates(raw: unknown): EditCandidate[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((c) => {
+      const row = c as {
+        kind?: unknown;
+        label?: unknown;
+        est_score?: unknown;
+        est_delta?: unknown;
+        measured?: unknown;
+        confidence?: unknown;
+        removed?: unknown;
+      };
+      if (typeof row.kind !== "string" || typeof row.label !== "string") return null;
+      const removed = Array.isArray(row.removed)
+        ? row.removed
+            .map((pair) => {
+              if (!Array.isArray(pair) || pair.length < 2) return null;
+              const a = Number(pair[0]);
+              const b = Number(pair[1]);
+              return Number.isFinite(a) && Number.isFinite(b) ? ([a, b] as [number, number]) : null;
+            })
+            .filter((p): p is [number, number] => p !== null)
+        : [];
+      const measured =
+        row.measured === true ||
+        (typeof row.confidence === "string" && row.confidence === "measured");
+      return {
+        kind: row.kind,
+        label: row.label,
+        estScore: typeof row.est_score === "number" ? row.est_score : null,
+        estDelta: typeof row.est_delta === "number" ? row.est_delta : null,
+        measured,
+        removed,
+      };
+    })
+    .filter((c): c is EditCandidate => c !== null);
+}
+
+/** Attach remove-candidate deltas onto matching shot boundaries when LOO fields are absent. */
+function enrichShots(shots: EditShot[], candidates: EditCandidate[]): EditShot[] {
+  if (!shots.length) return shots;
+  const removes = candidates.filter((c) => c.kind === "remove" && c.estDelta !== null);
+  if (!removes.length) return shots;
+
+  return shots.map((shot) => {
+    if (shot.delta !== null) return shot;
+    const match = removes.find((c) =>
+      c.removed.some(
+        ([a, b]) => Math.abs(a - shot.start) < 0.05 && Math.abs(b - shot.end) < 0.05,
+      ),
+    );
+    if (!match || match.estDelta === null) return shot;
+    return {
+      ...shot,
+      delta: match.estDelta,
+      without:
+        match.estScore !== null
+          ? match.estScore
+          : shot.without,
+    };
+  });
 }
