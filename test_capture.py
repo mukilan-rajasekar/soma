@@ -24,7 +24,9 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from tools.capture.recorder import STAGE_KEYS, Recorder, sha256_of      # noqa: E402
-from tools.capture.summarize import CAPTURE, fold, read_events, serialize  # noqa: E402
+from tools.capture.summarize import (                                   # noqa: E402
+    CAPTURE, REDACTED, fold, read_events, redact_argv, redact_env, serialize,
+)
 
 
 def events_of(path: Path):
@@ -159,6 +161,63 @@ def test_fold_is_deterministic(tmp_path):
     assert serialize(fold(evs)) == serialize(fold(evs))
 
 
+def test_redact_argv_hides_owner_email_and_keeps_the_flag():
+    """ /run prints argv; a partner email must not survive the publish fold."""
+    argv = [
+        "scripts/ingest_partner_ad.py",
+        "ad.mp4",
+        "brief.json",
+        "--owner-email",
+        "founder@brand.com",
+        "--dry-run",
+        "--token=sekrit",
+        "other@example.com",
+    ]
+    out = redact_argv(argv)
+    assert out == [
+        "scripts/ingest_partner_ad.py",
+        "ad.mp4",
+        "brief.json",
+        "--owner-email",
+        REDACTED,
+        "--dry-run",
+        f"--token={REDACTED}",
+        REDACTED,
+    ]
+    assert "founder@brand.com" not in out
+    assert "sekrit" not in out
+
+
+def test_fold_redacts_owner_email_from_argv_and_env(tmp_path):
+    rec = Recorder(
+        tmp_path, "pii",
+        argv=["scripts/ingest_partner_ad.py", "--owner-email", "founder@brand.com"],
+    )
+    rec.env(extra={"ownerEmail": "founder@brand.com", "dryRun": True})
+    with rec.stage("probe", "t"):
+        pass
+    rec.finish()
+    folded = fold(events_of(rec.path))
+    assert folded["argv"] == [
+        "scripts/ingest_partner_ad.py", "--owner-email", REDACTED,
+    ]
+    assert folded["env"]["ownerEmail"] == REDACTED
+    assert folded["env"]["dryRun"] is True
+    assert "founder@brand.com" not in serialize(folded)
+
+
+def test_redact_env_leaves_compute_fingerprint_alone():
+    env = redact_env({
+        "host": "box",
+        "dryRun": True,
+        "ownerEmail": "x@y.z",
+        "torch": {"present": False},
+    })
+    assert env["ownerEmail"] == REDACTED
+    assert env["host"] == "box"
+    assert env["torch"] == {"present": False}
+
+
 def test_fold_refuses_a_stage_the_page_cannot_title(tmp_path):
     rec = make(tmp_path)
     with rec.stage("probe", "t"):
@@ -195,6 +254,10 @@ def test_committed_capture_exists_and_is_internally_consistent():
         assert s["key"] in STAGE_KEYS
         if s["status"] != "ok":
             assert (s["reason"] or "").strip(), f"{s['key']} is {s['status']} with no reason"
+    # The committed capture is public; an email here is an email on /run.
+    blob = CAPTURE.read_text()
+    assert "@" not in "".join(cap.get("argv") or []), blob
+    assert cap.get("env", {}).get("ownerEmail") in (None, REDACTED)
 
 
 def test_committed_capture_still_matches_its_source():

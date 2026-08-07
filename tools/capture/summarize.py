@@ -29,11 +29,15 @@ having: **the page cannot say anything the run did not.**
 The fold is deliberately lossless-ish rather than clever. It groups events under their
 stage, keeps every log line, and computes nothing except elapsed time and counts. There
 is no place here to launder a number.
+
+One deliberate loss: argv values for identity/secret flags (and env extras like
+ownerEmail) become `<redacted>` before they reach run-capture.json. The recorder keeps
+the real values locally; the committed capture and /run are public, so they must not.
 """
 
 import argparse
 import json
-import shutil
+import re
 import sys
 from pathlib import Path
 
@@ -58,6 +62,83 @@ CAPTURES = ROOT / "captures"
 # committed page does not need forty thousand lines to be credible. The cut is recorded
 # (`logTruncated`) so the page can say it happened rather than implying the tool was quiet.
 MAX_LOG_LINES = 40
+
+# The recorder keeps argv and env extras verbatim for local debugging. /run and the
+# committed capture are public, so the fold redacts values that are identifiers or
+# secrets before they cross that boundary. Flags keep their names; only values go.
+REDACTED = "<redacted>"
+_SENSITIVE_FLAGS = frozenset({
+    "--owner-email", "--email",
+    "--token", "--access-token", "--api-key", "--api_key",
+    "--password", "--secret", "--auth",
+})
+_SENSITIVE_ENV_KEYS = frozenset({
+    "ownerEmail", "email", "token", "accessToken", "apiKey", "password", "secret",
+})
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def redact_argv(argv):
+    """Replace secret/PII flag values (and bare emails) so /run can show the command."""
+    out, hide_next = [], False
+    for raw in argv or []:
+        a = str(raw)
+        if hide_next:
+            out.append(REDACTED)
+            hide_next = False
+            continue
+        if a.startswith("--") and "=" in a:
+            flag, _, val = a.partition("=")
+            if flag in _SENSITIVE_FLAGS or _EMAIL_RE.match(val):
+                out.append(f"{flag}={REDACTED}")
+                continue
+        if a in _SENSITIVE_FLAGS:
+            out.append(a)
+            hide_next = True
+            continue
+        if _EMAIL_RE.match(a):
+            out.append(REDACTED)
+            continue
+        out.append(a)
+    if hide_next:
+        out.append(REDACTED)
+    return out
+
+
+def redact_env(env):
+    """Drop identifier/secret extras from the env fingerprint that /run imports."""
+    if not env:
+        return {}
+    out = {}
+    for k, v in env.items():
+        key = str(k)
+        low = key.lower()
+        if (key in _SENSITIVE_ENV_KEYS
+                or low.endswith("email")
+                or "token" in low
+                or "secret" in low
+                or "password" in low
+                or "apikey" in low):
+            out[key] = REDACTED
+        else:
+            out[key] = v
+    return out
+
+
+def redact_events(events):
+    """Same redaction applied to a run.jsonl event list (for the committed source copy)."""
+    out = []
+    for e in events:
+        e = dict(e)
+        kind = e.get("kind")
+        if kind == "run.begin":
+            e["argv"] = redact_argv(e.get("argv") or [])
+        elif kind == "env":
+            meta = {k: e[k] for k in ("seq", "tMs", "kind") if k in e}
+            body = {k: v for k, v in e.items() if k not in meta}
+            e = {**meta, **redact_env(body)}
+        out.append(e)
+    return out
 
 
 def fold(events, source=None):
@@ -103,13 +184,14 @@ def fold(events, source=None):
                          "Add them to STAGE_KEYS and to src/lib/run-capture.ts.")
 
     ran = [stages[k] for k in order]
+    env_body = {k: v for k, v in (env or {}).items() if k not in ("seq", "tMs", "kind")}
     out = {
         "runId": begin.get("runId"),
         "startedAt": begin.get("startedAt"),
-        "argv": begin.get("argv", []),
+        "argv": redact_argv(begin.get("argv", [])),
         "status": (end or {}).get("status", "incomplete"),
         "elapsedMs": (end or {}).get("elapsedMs"),
-        "env": {k: v for k, v in (env or {}).items() if k not in ("seq", "tMs", "kind")},
+        "env": redact_env(env_body),
         "stages": ran,
         "counts": {
             "ok": sum(1 for s in ran if s["status"] == "ok"),
@@ -167,7 +249,11 @@ def main():
                     "     The committed page data points at a run.jsonl that is not in the tree.\n"
                     "     Re-run the pipeline with --capture, or commit the run.jsonl it produced.")
 
-    events = read_events(src)
+    # Redact before fold/keep: the recorder's local run.jsonl may hold owner emails
+    # and tokens for debugging, but anything that lands in captures/ or
+    # run-capture.json is public and must not.
+    raw = read_events(src)
+    events = redact_events(raw)
 
     if args.write:
         # Adopt the source into the tree first, then fold from where it will actually
@@ -176,10 +262,14 @@ def main():
         if not run_id:
             return fail("the capture has no runId; it cannot be filed.")
         kept = CAPTURES / str(run_id) / "run.jsonl"
-        if src.resolve() != kept.resolve():
-            kept.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(src, kept)
-            print(f"kept  {kept.relative_to(ROOT)}")
+        kept.parent.mkdir(parents=True, exist_ok=True)
+        # Always rewrite: even when src already is the kept path, a prior commit may
+        # still hold pre-redaction bytes that --check would otherwise re-fold unclean.
+        kept.write_text(
+            "".join(json.dumps(e, ensure_ascii=False, default=str) + "\n" for e in events),
+            encoding="utf-8",
+        )
+        print(f"kept  {kept.relative_to(ROOT)}")
         folded = fold(events, source=str(kept.relative_to(ROOT)))
         CAPTURE.parent.mkdir(parents=True, exist_ok=True)
         CAPTURE.write_text(serialize(folded))
@@ -193,6 +283,13 @@ def main():
     if args.check:
         if not CAPTURE.exists():
             return fail(f"no {CAPTURE.relative_to(ROOT)}; /run has nothing to render.")
+        # The kept source is itself public; redacting only the fold would leave emails
+        # in captures/<id>/run.jsonl for anyone who clones the repo.
+        if raw != events:
+            return fail(
+                f"{src.relative_to(ROOT)} still holds private argv/env values.\n"
+                "     The committed source is public, same as the page.\n"
+                f"     Fix: .venv/bin/python tools/capture/summarize.py {src.relative_to(ROOT)} --write")
         if CAPTURE.read_text() != serialize(folded):
             return fail(
                 f"{CAPTURE.relative_to(ROOT)} does not match a fresh fold of {src.relative_to(ROOT)}.\n"
