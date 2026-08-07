@@ -117,8 +117,11 @@ class TikTokClient:
             "campaign_name": name,
             "objective_type": objective,
             "budget_mode": budget_mode,
-            "operation_status": "DISABLE",
             **extra,
+            # After **extra on purpose: a spec that smuggles operation_status ENABLE
+            # into a create must not override the pause-first invariant (same fix as
+            # meta_client's status pin).
+            "operation_status": "DISABLE",
         }
         if budget_mode != "BUDGET_MODE_INFINITE":
             if budget is None:
@@ -152,8 +155,8 @@ class TikTokClient:
             "billing_event": billing_event,
             "bid_type": extra.pop("bid_type", "BID_TYPE_NO_BID"),
             "pacing": extra.pop("pacing", "PACING_MODE_SMOOTH"),
-            "operation_status": "DISABLE",
             **extra,
+            "operation_status": "DISABLE",
         }
         return self._with_id(self._post("adgroup/create/", payload), "adgroup_id")
 
@@ -197,8 +200,8 @@ class TikTokClient:
             "advertiser_id": self.advertiser_id,
             "adgroup_id": adgroup_id,
             "creatives": [creative],
-            "operation_status": "DISABLE",
             **extra,
+            "operation_status": "DISABLE",
         }
         return self._with_id(self._post("ad/create/", payload), "ad_ids", "ad_id")
 
