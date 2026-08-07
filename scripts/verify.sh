@@ -100,6 +100,60 @@ fi
 step "shot/candidate pairing"
 node --experimental-strip-types scripts/check-shot-cells.mts || fail "shot/candidate pairing"
 
+# ---- 4c. /run matches the run it claims to show -----------------------------
+# src/data/run-capture.json is DERIVED from a committed run.jsonl that the pipeline wrote
+# while it ran. Nothing stops someone editing the derived file so the page reads better —
+# turning a skipped encoder stage into a completed one is a two-line diff and the page
+# would render it without complaint. This re-folds the source and fails if they disagree,
+# which is what makes /run evidence rather than another set of claims.
+step "/run matches its capture"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python tools/capture/summarize.py --check || fail "/run matches its capture"
+else
+  fail "no .venv — see the pytest step above for the two setup lines"
+fi
+
+# The lane statistics quoted in docs/strategy/ and docs/GTM/ — vertex counts, lane coupling,
+# how much of each lane the visual lane explains, the Dice overlap of the legacy ROI masks
+# against Schaefer — used to live only in prose. That is the failure PLAN.md 0.3 catalogues:
+# a figure on a public surface with nothing behind it. They are now folded from the preds
+# tensors on disk, and this re-folds them and fails on drift, so the documents cannot quietly
+# disagree with the arithmetic they cite.
+step "strategy figures match the tensors"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python tools/readout/lane_stats.py --check || fail "strategy figures match the tensors"
+else
+  fail "no .venv — see the pytest step above for the two setup lines"
+fi
+
+# The demo is allowed to quote committed artifacts, not founder-attested round numbers
+# that the repo cannot reproduce. This scans TSX only and needs no network, so it sits in
+# the cheap artifact gate beside the other honesty checks.
+step "demo marketing claims are artifact-backed"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python tools/demo/check_claims.py || fail "demo marketing claims are artifact-backed"
+else
+  fail "no .venv — see the pytest step above for the two setup lines"
+fi
+
+# PLAN.md gate 4 is the switch: until a named permissive fallback backbone has a cost,
+# Serve may not contain fee rows. Fixture-driven, because CI has no production database.
+step "Serve licence gate"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python tools/serve/check_licence_gate.py || fail "Serve licence gate"
+else
+  fail "no .venv — see the pytest step above for the two setup lines"
+fi
+
+# A served ad's prediction is a frozen launch-time record, not a pointer to whatever the
+# current scorer would say today. The fixture check keeps that provenance visible.
+step "Serve frozen predictions"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python tools/serve/check_frozen.py || fail "Serve frozen predictions"
+else
+  fail "no .venv — see the pytest step above for the two setup lines"
+fi
+
 # ---- 5. smoke ---------------------------------------------------------------
 if [[ "$BUILD_OK" == "0" ]]; then
   step "smoke (skipped — build failed, smoke would only echo it)"

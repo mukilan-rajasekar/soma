@@ -47,8 +47,8 @@ export const LANES: readonly LaneDef[] = [
   {
     key: "surprise",
     label: "Surprise",
-    region: "ventral",
-    note: "the jolt of something unexpected",
+    region: "insula/ACC",
+    note: "Destrieux proxy used by /demo, not preflight's Schaefer salience lane",
     colorToken: "accent2",
     border: "dashed",
     width: 2,

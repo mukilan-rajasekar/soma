@@ -337,9 +337,10 @@ Do not skip past these; each one changes the plan behind it.
 - **Building our own encoder from scratch.** `STRATEGY-PROPRIETARY-MODEL.md:32` costs
   it at $0.6M to tens of millions in scanner time. The fallback in 3A.1 is a swap onto
   an existing permissive backbone, which is a different and much smaller project.
-- **Campaign management / ad serving.** It is the right long-term shape of Shawn's
-  two-sided marketplace argument, and it is three products away. The path there runs
-  through the library, not around it.
+- **Campaign management / ad serving is now the destination.** The prior "three products
+  away" deferral is reversed. Staged path:
+  `docs/strategy/BUILD-PLAN-FULL-SERVICE.md` (S0→S6). Analysis-only remains a supported
+  entry.
 - **Self-serve before the concierge path is boring.** Two partners and a human in the
   loop is the correct amount of manual for this stage. Automate the parts that have
   already broken twice, not the parts we imagine breaking.

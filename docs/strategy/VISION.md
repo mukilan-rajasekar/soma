@@ -26,27 +26,29 @@ the cost and time.**
 4. Compare variants side by side, iterate the edit, re-run. Cheap enough to test
    every cut instead of only the one you can afford to panel.
 
-## The product surface (the three things a user can do)
+## The product surface (Analyze / Improve / Serve)
 
-Soma is a **platform** with one engine — the brain-response read-out — wrapped in three
-jobs. The read-out is the **scoring function** ("which cut holds attention / lands the
-message?"); capabilities 2 and 3 point generation and editing at that judge. Honesty
-register still applies: only #1's *analysis* is close to today; #2 and #3 are the
-platform roadmap, built on external generators/editors with Soma as the scorer.
+Soma is a **full-service ad platform** with one engine — the brain-response read-out —
+wrapped in three jobs: **Analyze** creative, **Improve** it, then **Serve** it and learn
+from what happened. Analysis-only is not a downgrade; it is the supported entry point and
+the only layer that runs end to end today. The long-term product is the closed loop.
 
-1. **Bring your own videos → get the best one.** Drop in pre-existing ads/variants;
-   Soma ranks them on attention, comprehension, and weak-spots and tells you which to
-   ship. Closest to today's product (the read-out + variant compare). *Status: the
-   mechanic is real; the ranking's predictive validity is what we're validating.*
-2. **Generate from scratch with natural language + props.** Describe the ad (and hand
-   over brand props/assets); Soma spins up many candidates via **pre-trained
-   generators primed with tribe/creator context** (so it knows good hooks, attention
-   holds, and comprehension patterns) and surfaces the strongest. *Status: roadmap —
-   Soma is the scorer over third-party generation, not a pixel model of our own.*
-3. **AI ad editing (applies to #1 and #2).** Selectively splice, reorder shots, or add
-   text; auto-generate edit options, run each through the model, and splice the best.
-   **Does not require pixel generation** — reordering/captioning is enough to win. *Status:
-   roadmap — the value is the read-out choosing among edits, not novel footage.*
+The detailed strategy and build order live in
+**`STRATEGY-FULL-SERVICE.md`** and **`BUILD-PLAN-FULL-SERVICE.md`**. This page is the
+vision; those files are the staged plan and the honesty register.
+
+1. **Analyze — bring your own videos → get the best one.** Drop in pre-existing
+   ads/variants; Soma ranks them on attention, comprehension, and weak-spots and tells
+   you which to ship. *Status: this is closest to today's product (the read-out + variant
+   compare); the ranking's predictive validity is what we're validating.*
+2. **Improve — make small, scored changes.** Splice, reorder shots, tighten hooks, and
+   compare the edited candidates against the same read-out. *Status: partial roadmap —
+   bounded ffmpeg recuts exist, but choosing edits from the diagnostic rather than from a
+   blind spread is still being built.*
+3. **Serve — run the ad and fold outcomes back in.** Soma eventually manages
+   distribution, records platform outcomes beside frozen predictions, and learns which
+   diagnostic signals translate to commercial results. *Status: destination, not current
+   capability; the read-only outcome table and dashboard are the first build step.*
 
 ## Model posture (what's running the read-out)
 
@@ -57,11 +59,16 @@ licensing constraint the frozen stack carries). Full plan: **`STRATEGY-PROPRIETA
 
 ## How we sell it right now (service posture + who buys)
 
-- **Concierge, not self-serve.** We operate a **concierge model with a waitlist** — we run
-  the pipeline for the customer and hand back the read-out. AI-native services shape: we
-  sell the *outcome/work*, not a tool the customer has to drive.
-- **ICP = large companies that run lots of ads** (more ads → more time saved, no panel
-  campaigns to stand up, more variants de-risked before spend). That is who this is *for*.
+- **Concierge Analyze first.** We operate a concierge model: customers send creative, we
+  run the pipeline, and we hand back the read-out. Analysis-only remains a supported
+  purchase even as the product direction becomes Analyze / Improve / Serve.
+- **Improve and Serve are the expansion path.** The sales motion should be honest:
+  Analyze is available now; Improve is partly built; Serve is the destination that turns
+  predictions into an outcome data flywheel. The staged path is
+  **`BUILD-PLAN-FULL-SERVICE.md`**; the argument for why this is the company is
+  **`STRATEGY-FULL-SERVICE.md`**.
+- **ICP = large companies that run lots of ads** (more ads → more time saved, more
+  variants de-risked, and eventually more outcome labels). That is who this is *for*.
 - **Reality today: the waitlist is small companies**, on purpose — they're easier to
   process and scale to real results, and there's an **access problem** (we don't have
   Pepsi-exec access yet). Small-co now is the on-ramp to the large-co ICP, not a pivot.

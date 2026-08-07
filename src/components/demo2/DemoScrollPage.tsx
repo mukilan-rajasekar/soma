@@ -62,8 +62,7 @@
 // it there. Both are flagged where they are rendered.
 //
 // Every number comes from public/demo/report.json, which tools/demo/build_report.py computes
-// from real frozen-TRIBE output, except the three founder-attested stats in the database
-// beat (flagged inline there).
+// from real frozen-TRIBE output. The database beat reads report.corpus directly.
 //
 // Copy rule for this file and everything it renders: NO em dashes. Commas, colons, full
 // stops and parentheses instead. If you are adding a sentence here, it has to hold together
@@ -776,25 +775,12 @@ export default function DemoScrollPage({
       eyebrow: "The database",
       heading: <>Every ad that comes through makes the model <span className="font-serif font-normal italic">sharper</span>.</>,
       lede: "The read-out is the product; the database behind it is what a public model cannot buy.",
-      // Three stats, not four. The dropped one was "Advertisers indexed 3,115 / the corpus
-      // behind the model": 3,115 counts ADS, not advertisers — advertiser_summary.csv has 917
-      // attributions, 38 of them with footage — so the label was wrong about its own number
-      // and is removed rather than relabelled.
-      // The remaining three are founder-attested (docs/strategy/PRODUCT.md), which is why they
-      // are typed literals rather than read from report.json. One note for whoever edits this
-      // next: "from our design partners" describes provenance this repo cannot corroborate —
-      // ad_fetch_bb.py populates the corpus by scraping TikTok Creative Center, and
-      // report.corpus.ads is 700, which is a different 700 from the 500 claimed here. It is
-      // here because it was asked for directly.
-      // Three tiles, one anatomy. They used to have three: bars render only when a tile has a
-      // `tone`, so the two counts had none and 92% had one, which left the three sub-labels
-      // sitting at different heights across the row and made a deliberate grid look like a
-      // rendering accident. The 75% baseline notch made it worse: an unlabelled hairline drawn
-      // in paper over the fill, which at the 640px this is watched at reads as a seam in the
-      // bar rather than as a reference point.
-      // Bars are gone from this beat entirely. Two of these three numbers have no 0-100 scale
-      // for a bar to be a fraction OF, so it was never measuring anything here. §02's hook
-      // tiles keep theirs, where 0-100 is real and the green/red pair IS the argument.
+      // These counts now come from report.json, not founder-attested literals. report.corpus is
+      // the artifact boundary: if the corpus changes, the tiles change with it, and no static
+      // partner-count, waitlist-count or accuracy claim can drift into the page unnoticed.
+      // Bars stay out of this beat entirely. Corpus sizes have no 0-100 scale for a bar to be
+      // a fraction OF, so it would not measure anything here. §02's hook tiles keep theirs,
+      // where 0-100 is real and the green/red pair IS the argument.
       // This used to be a heading and one row of numbers, and framed for the walkthrough it was
       // the emptiest shot on the page: ~310px of blank paper below the tiles, about a third of
       // the screen, under the largest claim the page makes. Padding was tried and reverted — it
@@ -803,19 +789,10 @@ export default function DemoScrollPage({
       // report.json's batch, each with the score the model gave it.
       body: (revealed) => (
         <div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Stat big lg value={500} suffix="" label="Ads in the live database" sub="from our design partners" active={revealed} />
-            <Stat big lg value={100} suffix="+" label="Founders and companies" sub="on the waitlist" active={revealed} />
-            <Stat big lg value={92} suffix="%" label="Prediction accuracy" sub="up from a 75% baseline" active={revealed} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Stat big lg value={report.corpus.ads} suffix="" label="Ads in the demo corpus" sub="from report.corpus.ads" active={revealed} />
+            <Stat big lg value={report.corpus.advertisers} suffix="" label="Advertiser entries indexed" sub="from report.corpus.advertisers" active={revealed} />
           </div>
-          {/* A paragraph about the published retention null sat here, as the counterweight to
-              the 92% tile above: nothing else on the page ever misses, and a page on which
-              nothing ever misses is one a technical reader discounts. Removed at the founder's
-              call — it is a diligence point, made better out loud than in 74 characters of grey
-              type under a wall of ads, and /demo still carries it in full inside the vendor
-              checklist (VendorChecklist.tsx, "What did you test that didn't work?") where a
-              cold reader arrives at it with the sources beside it. If it ever comes back, that
-              is the wording to reuse rather than a fresh paraphrase. */}
           <CorpusWall batch={batch} active={revealed} />
         </div>
       ),
