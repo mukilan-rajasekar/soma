@@ -78,3 +78,27 @@ def test_committed_parity_corpus_matches_the_engine():
         "fixtures/pricing_cases.json drifted from pricing.cases(); regenerate it and "
         "update src/lib/pricing.ts in the same commit"
     )
+
+
+def test_funded_caps_are_media_only_and_conserve():
+    q = quote(
+        {"platforms": ["meta", "tiktok"], "weekly_spend_micros": 1_000_000_001, "goal": "low_cost_testing"}
+    )
+    from tools.serve.pricing import funded_caps
+
+    caps = funded_caps(q)
+    assert sum(c["lifetime_cap_micros"] for c in caps) == q["weekly_spend_micros"]
+    # The margin never becomes spendable media: caps sum strictly below the price.
+    assert sum(c["lifetime_cap_micros"] for c in caps) < q["weekly_price_micros"]
+    for c in caps:
+        assert c["daily_cap_micros"] * 7 >= c["lifetime_cap_micros"]
+        assert c["source"] == "funded_week_media"
+
+
+def test_funded_caps_refuse_an_empty_split():
+    from tools.serve.pricing import funded_caps
+
+    import pytest as _pytest
+
+    with _pytest.raises(ValueError, match="no platform split"):
+        funded_caps({"platforms": [], "weekly_spend_micros": 0})

@@ -1,6 +1,7 @@
 import { acquireRunSlot, betaAccessDenied } from "@/lib/beta-gate";
 import { loadBatchEditSource } from "@/lib/edit-source";
 import { serviceClient } from "@/lib/supabase/server";
+import { currentUser } from "@/lib/supabase/session";
 import { runEditSearch, validateEditInput, type EditRunInput } from "@/lib/edit-runner";
 
 type Incoming = {
@@ -13,8 +14,10 @@ type Incoming = {
 export async function POST(request: Request) {
   // Gated before anything else: this route also takes a customer batch token and signs
   // their footage out of private storage, so an unauthenticated caller must not even
-  // reach the point of resolving one.
-  const denied = betaAccessDenied(request);
+  // reach the point of resolving one. Studio sessions count; the shared beta token is
+  // for the public /edit form only.
+  const user = await currentUser();
+  const denied = betaAccessDenied(request, { signedIn: !!user });
   if (denied) return denied;
 
   const body = (await request.json().catch(() => ({}))) as Incoming;
@@ -59,6 +62,7 @@ export async function POST(request: Request) {
       batch_share_token: batchToken,
       status: "processing",
       started_at: new Date().toISOString(),
+      ...(user ? { user_id: user.id } : {}),
     })
     .select("id, share_token")
     .single();
