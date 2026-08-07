@@ -10,3 +10,4 @@ access and legal gates only; it is not evidence that Serve is live.
 | Counsel on CC BY-NC pilot | yes | no | Need a legal answer before quoting fees or treating an unpaid pilot as cleared. |
 | Full-tier heartbeat | yes | no | `tools/serve/heartbeat.py` exists; production timer and credentials still need setup. |
 | App Review for write access | yes | no | Required before Soma creates or edits ads through the API. |
+| TikTok developer app + Marketing API access | yes | no | `tools/serve/tiktok_client.py` exists (dry-run only, DISABLE-first); endpoint shapes must be re-verified against the sandbox when access lands. |
