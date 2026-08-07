@@ -4,7 +4,7 @@
     "ingest-runs/f8fd93b2f0bd/videos/ad_01.mp4",
     "/private/tmp/claude-501/-Users-mukilan/28276212-eda7-499c-aaab-e978c85199f6/scratchpad/brief.json",
     "--owner-email",
-    "mukilan.rajasekar@gmail.com",
+    "<redacted>",
     "--dry-run"
   ],
   "counts": {
@@ -22,7 +22,7 @@
     "ffmpeg": "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers",
     "git": "07da935",
     "host": "Mukilans-MacBook-Air-2439.local",
-    "ownerEmail": "mukilan.rajasekar@gmail.com",
+    "ownerEmail": "<redacted>",
     "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
     "python": "3.13.13",
     "tesseract": null,
