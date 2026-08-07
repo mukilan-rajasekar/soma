@@ -51,6 +51,33 @@ def test_dry_run_creates_paused_campaign_adset_and_ad():
     assert recorder.calls[3]["headers"]["file_url"] == "https://signed.example/ad.mp4"
 
 
+def test_create_status_cannot_be_overridden_to_active():
+    """Launch specs must not create ACTIVE objects via **extra — that bypasses the spend guard."""
+    recorder = DryRunRecorder()
+    client = MetaClient(
+        access_token="token",
+        ad_account_id="act_123",
+        dry_run=True,
+        recorder=recorder,
+    )
+
+    client.create_campaign(name="Campaign", objective="OUTCOME_TRAFFIC", status="ACTIVE")
+    client.create_adset(
+        name="Ad set",
+        campaign_id="camp_1",
+        daily_budget=1000,
+        billing_event="IMPRESSIONS",
+        optimization_goal="LINK_CLICKS",
+        targeting={"geo_locations": {"countries": ["US"]}},
+        status="ACTIVE",
+    )
+    client.create_ad(name="Ad", adset_id="adset_1", creative_id="creative_1", status="ACTIVE")
+
+    payloads = [call["payload"] for call in recorder.calls]
+    assert all(p["status"] == "PAUSED" for p in payloads)
+    assert all(p.get("status") != "ACTIVE" for p in payloads)
+
+
 def test_ad_account_id_is_normalized_for_dry_run_url():
     recorder = DryRunRecorder()
     client = MetaClient(access_token="token", ad_account_id="123", dry_run=True, recorder=recorder)
