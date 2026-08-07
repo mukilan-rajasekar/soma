@@ -1,0 +1,61 @@
+[
+  {
+    "expect": {"method": "POST", "url_contains": "/act_123/insights"},
+    "body": {"report_run_id": "run_42"},
+    "headers": {
+      "X-Business-Use-Case-Usage": "{\"123\":[{\"type\":\"ads_insights\",\"call_count\":2,\"estimated_time_to_regain_access\":0}]}"
+    }
+  },
+  {
+    "expect": {"method": "GET", "url_contains": "/run_42"},
+    "body": {
+      "id": "run_42",
+      "async_status": "Job Running",
+      "async_percent_completion": 40
+    },
+    "headers": {
+      "X-Business-Use-Case-Usage": "{\"123\":[{\"type\":\"ads_insights\",\"call_count\":80,\"estimated_time_to_regain_access\":2}]}"
+    }
+  },
+  {
+    "expect": {"method": "GET", "url_contains": "/run_42"},
+    "body": {
+      "id": "run_42",
+      "async_status": "Job Completed",
+      "async_percent_completion": 100
+    },
+    "headers": {}
+  },
+  {
+    "expect": {"method": "GET", "url_contains": "/run_42/insights"},
+    "body": {
+      "data": [
+        {
+          "ad_id": "ad_9",
+          "ad_name": "Hook A",
+          "impressions": "1000",
+          "reach": "800",
+          "frequency": "1.25",
+          "spend": "12.34",
+          "clicks": "42",
+          "actions": [
+            {"action_type": "link_click", "value": "40"},
+            {"action_type": "purchase", "value": "3"}
+          ],
+          "action_values": [
+            {"action_type": "purchase", "value": "45.50"}
+          ],
+          "video_p25_watched_actions": [{"action_type": "video_view", "value": "500"}],
+          "video_thruplay_watched_actions": [{"action_type": "video_view", "value": "120"}]
+        },
+        {
+          "ad_id": "ad_unlinked",
+          "impressions": "50",
+          "spend": "1.00",
+          "clicks": "1"
+        }
+      ]
+    },
+    "headers": {}
+  }
+]
