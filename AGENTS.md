@@ -60,3 +60,10 @@ author/committer identity — never Cursor Agent / Codex co-author lines.
 - Next reads `.env.local` then `.env`; the Python half reads `.env` only.
 - Session refresh is `src/proxy.ts`, not `middleware.ts` (Next 16).
 - Serve live Meta writes need `SOMA_SERVE_LIVE=1`; `--activate` needs a spend-cap fixture.
+- Corpus meta: `rho(ad age, days_running)=+0.54`; duration+age+ffmpeg alone reach rho 0.515.
+- An OOF prediction partialled on its own covariates runs ~-0.25 under a shuffled label:
+  that is shrinkage, not leakage, so a shuffle-control gate must be ONE-SIDED.
+- train.py drops an ad whose video find_video() cannot resolve with NO message: a
+  half-populated videos/ trains on fewer ads and reports the smaller n as the plan.
+- `demo/train.py train` re-extracts from the mp4 and never reads the features JSONs;
+  the cache key is a sha1 of the source video, so no file means no cache hit either.
