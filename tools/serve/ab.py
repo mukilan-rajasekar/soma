@@ -130,12 +130,19 @@ def evaluate(fixture: dict[str, Any]) -> dict[str, Any]:
         all(a["impressions"] >= MIN_IMPRESSIONS_PER_ARM for a in arms)
         and sum(a["clicks"] for a in arms) >= MIN_CLICKS_TOTAL
     )
+    # Picking the best of k variants and testing only that comparison at raw alpha is
+    # the classic multiple-comparisons inflation (Greptile P1: a deterministic
+    # equal-rate four-arm fixture crowned a winner at raw p=0.036). Bonferroni over the
+    # k non-control arms is conservative and simple, which is the right trade for a
+    # tool whose whole personality is refusing to overclaim.
+    comparisons = max(1, len(arms) - 1)
+    adjusted_alpha = ALPHA / comparisons
     decision = "insufficient_n"
     winner = None
     if floors_met:
         best = max(arms, key=lambda a: (a["ctr"] or 0.0))
         test = best.get("vs_control")
-        if best is not control and test and test["p_value"] < ALPHA and test["delta"] > 0:
+        if best is not control and test and test["p_value"] < adjusted_alpha and test["delta"] > 0:
             decision = "winner"
             winner = best["arm_key"]
         else:
@@ -144,6 +151,8 @@ def evaluate(fixture: dict[str, Any]) -> dict[str, Any]:
     return {
         "metric": "ctr",
         "alpha": ALPHA,
+        "comparisons": comparisons,
+        "adjusted_alpha": adjusted_alpha,
         "floors": {
             "min_impressions_per_arm": MIN_IMPRESSIONS_PER_ARM,
             "min_clicks_total": MIN_CLICKS_TOTAL,
