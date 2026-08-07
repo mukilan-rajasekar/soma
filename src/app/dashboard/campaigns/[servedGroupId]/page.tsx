@@ -1,6 +1,7 @@
 // /dashboard/campaigns/<servedGroupId> — one served variant group.
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import PredictedVsRealized from "@/components/dashboard/PredictedVsRealized";
@@ -41,6 +42,15 @@ export default async function DashboardCampaignPage({
         Variant group <span className="tabular-nums">{group.id}</span>. Predictions are the
         frozen launch-time rows from served_ads; realized metrics are the latest current
         outcome rows for each reporting window.
+      </p>
+
+      <p className="mt-3">
+        <Link
+          href="/dashboard/campaigns"
+          className="text-meta text-ink-3 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
+        >
+          ← All campaigns
+        </Link>
       </p>
 
       <section className="mt-10">

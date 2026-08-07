@@ -423,6 +423,81 @@ export async function listServedAdsForBrand(brandId: string): Promise<ServedAd[]
   return rows.map((row) => servedAdFrom(row, versions));
 }
 
+/** One variant group across the signed-in user's brands, with spend rolled up from the
+ *  current outcomes view. Spend is summed across arms; currency is taken from the first
+ *  non-null outcome row rather than converted — mixing currencies would invent a number. */
+export type CampaignGroupSummary = {
+  id: string;
+  brand: Brand;
+  platform: string;
+  ads: ServedAd[];
+  impressions: number;
+  clicks: number;
+  spendMicros: number;
+  currency: string | null;
+  outcomeWindows: number;
+};
+
+export async function listCampaignGroupsForUser(): Promise<CampaignGroupSummary[]> {
+  const brands = await listBrandsForUser();
+  if (brands.length === 0) return [];
+
+  const groups: CampaignGroupSummary[] = [];
+  for (const brand of brands) {
+    const ads = await listServedAdsForBrand(brand.id);
+    const byGroup = new Map<string, ServedAd[]>();
+    const order: string[] = [];
+    for (const ad of ads) {
+      const id = ad.variantGroup ?? ad.id;
+      if (!byGroup.has(id)) {
+        byGroup.set(id, []);
+        order.push(id);
+      }
+      byGroup.get(id)!.push(ad);
+    }
+
+    for (const id of order) {
+      const groupAds = byGroup.get(id)!;
+      const pairs = await Promise.all(
+        groupAds.map(async (ad) => [ad.id, await getOutcomesForServedAd(ad.id)] as const),
+      );
+      let impressions = 0;
+      let clicks = 0;
+      let spendMicros = 0;
+      let currency: string | null = null;
+      let outcomeWindows = 0;
+      for (const [, outcomes] of pairs) {
+        for (const row of outcomes) {
+          outcomeWindows += 1;
+          impressions += row.impressions ?? 0;
+          clicks += row.clicks ?? 0;
+          spendMicros += row.spendMicros ?? 0;
+          if (!currency && row.currency) currency = row.currency;
+        }
+      }
+      groups.push({
+        id,
+        brand,
+        platform: groupAds[0]?.platform ?? "unknown",
+        ads: groupAds,
+        impressions,
+        clicks,
+        spendMicros,
+        currency,
+        outcomeWindows,
+      });
+    }
+  }
+
+  // Newest served creative in the group first — createdAt is launch-adjacent for v0.
+  groups.sort((a, b) => {
+    const aT = Math.max(...a.ads.map((ad) => Date.parse(ad.createdAt) || 0));
+    const bT = Math.max(...b.ads.map((ad) => Date.parse(ad.createdAt) || 0));
+    return bT - aT;
+  });
+  return groups;
+}
+
 export async function getOutcomesForServedAd(servedAdId: string): Promise<Outcome[]> {
   const supabase = await sessionClient();
   if (!supabase) return [];

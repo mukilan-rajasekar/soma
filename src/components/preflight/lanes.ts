@@ -14,7 +14,7 @@
 // docs/DESIGN-SYSTEM.md ("colour + dash, not hue alone").
 
 import type { ColorToken } from "./tokens";
-import type { ArcScale, PreflightAd } from "./types";
+import type { ArcScale, PreflightAd, PreflightArc } from "./types";
 
 /** demo/process_batch.py:85 HOOK_WINDOW_S — the first 3 s scored as the hook. Not in the
  *  artifact, so it is restated here; if that constant changes, change this. */
@@ -90,7 +90,11 @@ export const laneByKey = (key: LaneKey): LaneDef =>
   LANES.find((l) => l.key === key) ?? LANES[0];
 
 /** The lane's samples for one ad, or undefined when the run didn't produce it. Parallel
- *  to `ad.timestamps` in every case. */
+ *  to `ad.timestamps` in every case.
+ *
+ *  Comprehension accepts both keys: process_batch.py emits `higher_order` into
+ *  batches.report, while report.ts's /preflight normalizer stores `higherOrder`.
+ *  Studio reads the DB blob without that pass, so camelCase-only used to drop the lane. */
 export function laneValues(
   ad: PreflightAd,
   key: LaneKey,
@@ -98,7 +102,11 @@ export function laneValues(
 ): number[] | undefined {
   if (key === "attention") return ad.arc?.[scale];
   if (key === "surprise") return ad.lanes?.salventattn?.[scale];
-  return ad.lanes?.higherOrder?.[scale];
+  const bag = ad.lanes as
+    | (Partial<Record<"higherOrder" | "higher_order", PreflightArc>> &
+        NonNullable<PreflightAd["lanes"]>)
+    | undefined;
+  return bag?.higherOrder?.[scale] ?? bag?.higher_order?.[scale];
 }
 
 /**

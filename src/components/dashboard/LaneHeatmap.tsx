@@ -15,18 +15,14 @@
 // playhead, no hover state — and the read-out page should only ship client JS that pays
 // for itself in interactivity.
 //
-// LANE-KEY FALLBACK: reports stored in batches.report come straight from
-// demo/process_batch.py, which emits snake_case lane keys, and the dashboard does not
-// pass them through report.ts's camelCase normalization (that path exists for the
-// committed /preflight artifact). So the comprehension lane can arrive here as
-// `higher_order`, which laneValues() — reading the normalized `higherOrder` — would
-// silently drop.
+// laneValues() accepts both higherOrder (normalized /preflight) and higher_order
+// (raw batches.report from process_batch.py), so this component does not re-implement
+// the fallback.
 
 import { LANES, laneValues } from "@/components/preflight/lanes";
 import {
   fmtT,
   type PreflightAd,
-  type PreflightArc,
   type PreflightReport,
 } from "@/components/preflight/types";
 import { BADGE } from "@/lib/readout-phrase";
@@ -79,13 +75,7 @@ export default function LaneHeatmap({
 
   const rows: LaneRow[] = [];
   for (const lane of LANES) {
-    const values =
-      laneValues(ad, lane.key, scale) ??
-      (lane.key === "comprehension"
-        ? (ad.lanes as Record<string, PreflightArc | undefined> | undefined)?.higher_order?.[
-            scale
-          ]
-        : undefined);
+    const values = laneValues(ad, lane.key, scale);
     if (!values || values.length === 0) continue;
 
     const cells = secondBins(ad.timestamps, values, seconds);
