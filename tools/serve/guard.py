@@ -54,8 +54,10 @@ def check_spend(observed_spend_micros: int, caps: SpendCaps, *, mode: str = "wou
     ]
     active_caps = [cap for cap in cap_values if cap is not None]
     cap = min(active_caps) if active_caps else None
+    # No configured cap is NOT permission to spend. Activation without a numeric ceiling
+    # is how a sandbox account becomes a live bill; refuse rather than "ok".
     if cap is None:
-        return GuardDecision(True, "ok", observed, None, caps.currency, "no cap configured")
+        return GuardDecision(False, "would_pause", observed, None, caps.currency, "no cap configured")
     if observed >= cap:
         action = "pause" if mode == "pause" else "would_pause"
         return GuardDecision(False, action, observed, cap, caps.currency, "spend cap reached")
@@ -65,6 +67,11 @@ def check_spend(observed_spend_micros: int, caps: SpendCaps, *, mode: str = "wou
 def check_ok(observed_spend_micros: int = 0, caps: SpendCaps | None = None, *, mode: str = "would_pause") -> GuardDecision:
     decision = check_spend(observed_spend_micros, caps or SpendCaps(), mode=mode)
     if not decision.ok:
+        if decision.cap_micros is None:
+            raise RuntimeError(
+                "Spend guard blocked activation: no daily or lifetime cap configured. "
+                "Pass a guard fixture (or spend_guards row) before flipping ACTIVE."
+            )
         raise RuntimeError(
             f"Spend guard blocked activation: {decision.observed_spend_micros} >= {decision.cap_micros} "
             f"{decision.currency} micros ({decision.action})."

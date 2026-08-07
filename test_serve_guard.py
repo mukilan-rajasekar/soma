@@ -63,3 +63,18 @@ def test_fixture_caps_drive_decision(tmp_path):
 def test_check_ok_raises_when_over_cap():
     with pytest.raises(RuntimeError, match="Spend guard blocked activation"):
         check_ok(1200, SpendCaps(daily_cap_micros=1000))
+
+
+def test_no_cap_is_not_permission_to_spend():
+    decision = check_spend(0, SpendCaps())
+    assert decision.ok is False
+    assert decision.reason == "no cap configured"
+    with pytest.raises(RuntimeError, match="no daily or lifetime cap"):
+        check_ok(0, SpendCaps())
+
+
+def test_activate_requires_guard_fixture():
+    from tools.serve import launch
+
+    with pytest.raises(RuntimeError, match="requires --guard-fixture"):
+        launch.activate("ad_1", fixture=None, dry_run=True)

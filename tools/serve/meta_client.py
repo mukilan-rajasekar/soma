@@ -55,6 +55,12 @@ class MetaClient:
         self.recorder = recorder or DryRunRecorder()
         if not self.dry_run and (not self.access_token or not self.ad_account_id.strip("act_")):
             raise RuntimeError("Set META_ACCESS_TOKEN and META_AD_ACCOUNT_ID, or pass dry_run=True.")
+        # Live Graph writes require an explicit kill-switch. Tokens alone are not enough:
+        # a mis-set shell env must not create or activate ads by accident.
+        if not self.dry_run and os.environ.get("SOMA_SERVE_LIVE", "").strip() != "1":
+            raise RuntimeError(
+                "Refusing live Meta writes: set SOMA_SERVE_LIVE=1 to enable, or pass dry_run=True."
+            )
 
     def _url(self, path: str) -> str:
         return f"https://graph.facebook.com/{self.api_version}/{path.lstrip('/')}"
@@ -66,6 +72,8 @@ class MetaClient:
             h.update(headers)
         if self.dry_run:
             return self.recorder.record("POST", url, payload, h)
+        if os.environ.get("SOMA_SERVE_LIVE", "").strip() != "1":
+            raise RuntimeError("Refusing live Meta writes: SOMA_SERVE_LIVE is not 1.")
 
         body = dict(payload)
         body["access_token"] = self.access_token

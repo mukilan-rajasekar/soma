@@ -40,14 +40,20 @@ def create_from_spec(path: Path, *, dry_run: bool) -> dict[str, object]:
 
 
 def activate(external_ad_id: str, *, fixture: Path | None, dry_run: bool) -> dict[str, object]:
-    if fixture:
-        decision = guard.decision_from_fixture(fixture, external_ad_id=external_ad_id, mode="would_pause")
-        if not decision.ok:
-            raise RuntimeError(
-                f"Spend guard blocked activation: {decision.observed_spend_micros} >= {decision.cap_micros}"
-            )
-    else:
-        decision = guard.check_ok()
+    # Activation without an explicit cap check is a spend hole: guard.check_ok() used to
+    # return ok when no caps were configured. Refuse that path entirely.
+    if fixture is None:
+        raise RuntimeError(
+            "--activate requires --guard-fixture with observed spend and a daily/lifetime "
+            "cap. Refusing to flip ACTIVE with no ceiling."
+        )
+    decision = guard.decision_from_fixture(fixture, external_ad_id=external_ad_id, mode="would_pause")
+    if not decision.ok:
+        if decision.cap_micros is None:
+            raise RuntimeError("Spend guard blocked activation: fixture has no cap configured")
+        raise RuntimeError(
+            f"Spend guard blocked activation: {decision.observed_spend_micros} >= {decision.cap_micros}"
+        )
 
     client = MetaClient(dry_run=dry_run)
     result = client.set_ad_status(external_ad_id=external_ad_id, status="ACTIVE")

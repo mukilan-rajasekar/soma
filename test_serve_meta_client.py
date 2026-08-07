@@ -2,6 +2,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
@@ -56,3 +58,9 @@ def test_ad_account_id_is_normalized_for_dry_run_url():
     client.create_campaign(name="Campaign", objective="OUTCOME_TRAFFIC")
 
     assert "/act_123/campaigns" in recorder.calls[0]["url"]
+
+
+def test_live_writes_require_soma_serve_live(monkeypatch):
+    monkeypatch.delenv("SOMA_SERVE_LIVE", raising=False)
+    with pytest.raises(RuntimeError, match="SOMA_SERVE_LIVE"):
+        MetaClient(access_token="token", ad_account_id="act_123", dry_run=False)
