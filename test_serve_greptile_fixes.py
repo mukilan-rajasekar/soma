@@ -125,3 +125,82 @@ def test_activation_is_clamped_by_the_funded_week(tmp_path):
     # A quote with no allocation for the platform refuses outright.
     with pytest.raises(RuntimeError, match="no 'tiktok' allocation"):
         launch.activate("ad_1", fixture=under, dry_run=True, platform="tiktok", funded_quote=quote_path)
+
+
+# ---- round 2 (review of PRs #15/#16) -------------------------------------------
+
+from tools.edit import run_rescore as rr  # noqa: E402
+
+
+def test_rescore_requested_cuts_must_exist_not_just_any_mp4(tmp_path):
+    (tmp_path / "job1" / "rendered").mkdir(parents=True)
+    (tmp_path / "job1" / "rendered" / "stale.mp4").write_bytes(b"x")
+    runner = rr.workdir_verify_runner(tmp_path)
+    out = runner({"job_id": "job1", "cut_ids": ["requested-cut"]})
+    assert out["ok"] is False and out["measured"] is False
+    assert "requested cuts missing" in out["error"]
+    assert "requested-cut.mp4" in out["error"]
+
+
+def test_rescore_every_requested_cut_must_measure(tmp_path, monkeypatch):
+    rendered = tmp_path / "job2" / "rendered"
+    rendered.mkdir(parents=True)
+    for cid in ("c1", "c2"):
+        (rendered / f"{cid}.mp4").write_bytes(b"x")
+
+    def half_verify(files, out_dir, ad, cands, *, manifest_meta=None):
+        cands[0][0].measured = True  # c1 only
+
+    import tools.edit.search as search_mod
+
+    monkeypatch.setattr(search_mod, "verify_batch", half_verify)
+    out = rr.workdir_verify_runner(tmp_path)({"job_id": "job2", "cut_ids": ["c1", "c2"]})
+    assert out["ok"] is False
+    assert "not measured" in out["error"] and "c2" in out["error"]
+
+
+def test_rescore_verify_crash_marks_the_job_failed(tmp_path, monkeypatch):
+    failed = {}
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "key")
+    monkeypatch.setattr(rr, "reap", lambda *a, **k: 0)
+    monkeypatch.setattr(rr, "claim_oldest_queued", lambda *a, **k: {"id": "j9", "cut_ids": []})
+    monkeypatch.setattr(rr, "mark_done", lambda *a, **k: (_ for _ in ()).throw(AssertionError("done!")))
+    monkeypatch.setattr(rr, "mark_failed", lambda b, k, jid, err, **kw: failed.update(job=jid, error=err))
+
+    def boom(workdir):
+        def _r(plan):
+            raise RuntimeError("subprocess exploded")
+
+        return _r
+
+    monkeypatch.setattr(rr, "workdir_verify_runner", boom)
+    rc = rr.main(["--execute", "--workdir", str(tmp_path)])
+    assert rc == 1
+    assert failed["job"] == "j9"
+    assert "verify raised" in failed["error"] and "exploded" in failed["error"]
+
+
+def test_activation_without_funded_quote_needs_the_explicit_flag(tmp_path):
+    fixture = tmp_path / "g.json"
+    fixture.write_text(json.dumps([{
+        "external_ad_id": "ad_1", "observed_spend_micros": 50,
+        "lifetime_cap_micros": 1_000, "currency": "USD",
+    }]), encoding="utf8")
+    with pytest.raises(RuntimeError, match="0.6 prepaid week"):
+        launch.activate("ad_1", fixture=fixture, dry_run=True, platform="meta")
+    ok = launch.activate("ad_1", fixture=fixture, dry_run=True, platform="meta", allow_unfunded=True)
+    assert ok["guard"]["ok"] is True
+
+
+def test_activation_refuses_cross_currency_cap_comparison(tmp_path):
+    q = quote({"platforms": ["meta"], "weekly_spend_micros": 700, "goal": "low_cost_testing"})
+    quote_path = tmp_path / "q.json"
+    quote_path.write_text(json.dumps(q), encoding="utf8")
+    fixture = tmp_path / "g.json"
+    fixture.write_text(json.dumps([{
+        "external_ad_id": "ad_1", "observed_spend_micros": 50,
+        "lifetime_cap_micros": 1_000, "currency": "KWD",
+    }]), encoding="utf8")
+    with pytest.raises(RuntimeError, match="currency mismatch"):
+        launch.activate("ad_1", fixture=fixture, dry_run=True, platform="meta", funded_quote=quote_path)

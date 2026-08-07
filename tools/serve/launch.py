@@ -65,6 +65,7 @@ def activate(
     dry_run: bool,
     platform: str = "meta",
     funded_quote: Path | None = None,
+    allow_unfunded: bool = False,
 ) -> dict[str, object]:
     # Activation without an explicit cap check is a spend hole: guard.check_ok() used to
     # return ok when no caps were configured. Refuse that path entirely.
@@ -72,6 +73,15 @@ def activate(
         raise RuntimeError(
             "--activate requires --guard-fixture with observed spend and a daily/lifetime "
             "cap. Refusing to flip ACTIVE with no ceiling."
+        )
+    # §0.6: a client campaign week activates only after it is funded, and the funded
+    # quote is where the media ceiling comes from. Activating on a fixture alone made
+    # the funded check optional (Greptile P1); now the unfunded path is an explicit,
+    # named exception for Soma-funded pilot spend, not a default.
+    if funded_quote is None and not allow_unfunded:
+        raise RuntimeError(
+            "--activate requires --funded-quote (§0.6 prepaid week). Pass "
+            "--allow-unfunded only for Soma-funded pilot spend that no client paid for."
         )
     decision = guard.decision_from_fixture(fixture, external_ad_id=external_ad_id, mode="would_pause")
     if not decision.ok:
@@ -93,6 +103,11 @@ def activate(
         if caps_row is None:
             raise RuntimeError(
                 f"funded quote has no {platform!r} allocation; refusing to activate on it"
+            )
+        if decision.currency and caps_row["currency"] and decision.currency != caps_row["currency"]:
+            raise RuntimeError(
+                f"currency mismatch: guard fixture reports {decision.currency} but the "
+                f"funded quote is {caps_row['currency']}; refusing to compare micros across currencies"
             )
         funded_decision = guard.check_spend(
             decision.observed_spend_micros,
@@ -129,6 +144,11 @@ def parser() -> argparse.ArgumentParser:
         help="campaign quote JSON; its media allocation becomes a second activation ceiling (§0.6)",
     )
     p.add_argument(
+        "--allow-unfunded",
+        action="store_true",
+        help="activate without a funded quote - Soma-funded pilot spend only (§0.6)",
+    )
+    p.add_argument(
         "--platform",
         choices=("meta", "tiktok"),
         default="meta",
@@ -150,6 +170,7 @@ def main(argv: list[str] | None = None) -> int:
                 dry_run=args.dry_run,
                 platform=args.platform,
                 funded_quote=args.funded_quote,
+                allow_unfunded=args.allow_unfunded,
             )
     except Exception as exc:
         print(f"launch failed: {exc}", file=sys.stderr)
