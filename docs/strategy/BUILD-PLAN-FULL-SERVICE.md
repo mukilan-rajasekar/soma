@@ -441,17 +441,38 @@ judgment that recurring revenue tied to managed spend is the business.
 the accepted-quote → funded-campaign flow are founder/finance decisions not invented
 here.]`
 
-### 0.6 The legal/finance decision that is not engineering's to make
+### 0.6 The media-principal structure: the prepaid week
 
-Who owns the ad account and whose money buys the media. Client-owned + client-funded makes
-Soma an agent: revenue is the fee, no float, no chargeback exposure. Soma-funded
-pass-through makes Soma a media reseller: it fronts cash, carries credit risk, and grosses
-up revenue (a principal-vs-agent determination). Policy 10.5 forecloses the simplest
-version outright — "Don't combine multiple end advertisers or their Meta business assets
-in the same ad account."
+The bundled price (§0.5's superseded-decision record) makes the old client-owned,
+client-funded assumption unavailable: one all-inclusive number means Soma's account
+spends the media. The structure that survives that with the smallest legal surface is
+the **prepaid week**, and it is engineering-enforceable, which is why it is decided
+here and not left as an open question:
 
-The plan below assumes **client-owned, client-funded, Soma as agent**, because it is the
-only structure that needs no answer to a question engineering cannot answer.
+1. **Prepaid, never fronted.** A campaign week activates only after the client has paid
+   that week's bundled price in full. Soma extends no credit and books no media
+   receivable — there is no float and no chargeback exposure on money not yet received.
+   `campaign_subscriptions` is scheduling truth; a funded-week record (with payment
+   reference) is the activation predicate when billing opens.
+2. **Funded media is the spend ceiling, in code.** The media component of a funded week
+   (the quote's `weekly_spend_micros`, NOT the price) becomes the spend-guard caps:
+   per-platform lifetime cap = that platform's funded media for the week, daily cap =
+   ceil(weekly/7). `tools/serve/pricing.py funded_caps()` derives the caps from the
+   quote, and the existing guard — which already refuses activation without caps —
+   enforces that Soma cannot spend money it has not collected. The margin is never in
+   the caps: fee money is not spendable media by construction.
+3. **Disclosed margin.** The quote UI itemizes media vs margin and the MSA states the
+   margin as the service fee. Separately-stated margin over prepaid pass-through media
+   is the fact pattern that best supports net revenue recognition — that determination
+   is still counsel's, but engineering hands them the cleanest version of it.
+4. **One end advertiser per ad account, still.** Policy 10.5 ("Don't combine multiple
+   end advertisers … in the same ad account") binds regardless of who funds: one
+   Soma-managed ad account per client brand, never pooled.
+
+**What remains for counsel, sharpened rather than removed:** revenue recognition
+(gross vs net under the prepaid disclosed-margin structure), money-transmission
+exposure of holding prepaid campaign funds, and platform ToS on managed spend at a
+margin. `[NEEDS COUNSEL — same pass as the licence question.]`
 
 ### 0.7 The before/after demo — what has to be built or captured
 

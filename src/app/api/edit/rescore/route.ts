@@ -1,4 +1,4 @@
-import { acquireRunSlot } from "@/lib/beta-gate";
+import { acquireRunSlot, betaAccessDenied } from "@/lib/beta-gate";
 import { serviceClient } from "@/lib/supabase/server";
 import { currentUser, sessionClient } from "@/lib/supabase/session";
 
@@ -31,6 +31,10 @@ function cutIdsFrom(value: unknown): string[] {
 
 export async function POST(request: Request) {
   const user = await currentUser();
+  // Rescore is Studio-only: enqueue needs a session. The shared beta token is not enough
+  // on its own because the job is owned through edit_runs.user_id / RLS.
+  const denied = betaAccessDenied(request, { signedIn: !!user });
+  if (denied) return denied;
   if (!user) {
     return Response.json({ error: "Sign in to enqueue a rescore." }, { status: 401 });
   }

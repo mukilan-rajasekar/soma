@@ -107,6 +107,37 @@ def quote(spec: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def funded_caps(q: dict[str, Any]) -> list[dict[str, Any]]:
+    """Spend-guard caps derived from a quote's MEDIA component - the prepaid-week rule.
+
+    §0.6: a funded week's media is the ceiling, and the margin is never spendable. Per
+    platform: lifetime cap = that platform's weekly media allocation, daily cap =
+    ceil(weekly / 7). The rows are shaped for the spend_guards table (0014) and for
+    guard.decision_from_fixture's cap fields, so the same numbers gate both the ledger
+    and the activation path. Deliberately NOT in the TS mirror or the parity corpus:
+    caps belong to the serve box, not the browser.
+    """
+    platforms = q.get("platforms") or []
+    if not platforms:
+        raise ValueError("quote has no platform split; refuse to derive caps from nothing")
+    caps = []
+    for row in platforms:
+        weekly = int(row["weekly_spend_micros"])
+        if weekly <= 0:
+            raise ValueError(f"platform {row.get('platform')!r} has non-positive media; no cap derivable")
+        caps.append(
+            {
+                "platform": row["platform"],
+                "lifetime_cap_micros": weekly,
+                "daily_cap_micros": -(-weekly // 7),
+                "currency": q.get("currency") or "USD",
+                "source": "funded_week_media",
+            }
+        )
+    assert sum(c["lifetime_cap_micros"] for c in caps) == int(q["weekly_spend_micros"])
+    return caps
+
+
 def cases() -> list[dict[str, Any]]:
     """Deterministic parity corpus for the TS mirror. Edge-heavy on purpose: odd spends
     that do not split evenly, margin 0, the max margin, and a fractional margin whose
@@ -125,6 +156,7 @@ def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Bundled weekly campaign pricing.")
     action = p.add_mutually_exclusive_group(required=True)
     action.add_argument("--quote", type=Path, help="JSON brief: platforms, weekly_spend_micros, goal")
+    action.add_argument("--caps", type=Path, help="JSON quote: emit prepaid-week spend-guard caps")
     action.add_argument("--cases", action="store_true", help="emit the parity corpus")
     p.add_argument("--out", type=Path, help="write result JSON")
     return p
@@ -135,6 +167,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.cases:
             result: Any = cases()
+        elif args.caps:
+            result = funded_caps(json.loads(args.caps.read_text(encoding="utf8")))
         else:
             result = quote(json.loads(args.quote.read_text(encoding="utf8")))
     except Exception as exc:

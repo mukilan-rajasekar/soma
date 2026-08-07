@@ -1,4 +1,5 @@
 import { acquireRunSlot, betaAccessDenied } from "@/lib/beta-gate";
+import { currentUser } from "@/lib/supabase/session";
 import { runGeneratePipeline, toGenerateBrief, validateGenerateInput } from "@/lib/generate-runner";
 
 export const runtime = "nodejs";
@@ -13,7 +14,8 @@ type Incoming = {
 };
 
 export async function POST(request: Request) {
-  const denied = betaAccessDenied(request);
+  const user = await currentUser();
+  const denied = betaAccessDenied(request, { signedIn: !!user });
   if (denied) return denied;
 
   const body = (await request.json().catch(() => ({}))) as Incoming;

@@ -90,8 +90,22 @@ const notFound = () =>
 
 /**
  * Returns a Response to send when the caller may NOT run a beta, or null when they may.
+ *
+ * Three doors, same slots afterward:
+ *   1. local / non-production host
+ *   2. shared SOMA_BETA_TOKEN (header or ?k=) — for the public /edit and /generate forms
+ *   3. signedIn — Studio session. Browser clients never send the beta header (and must
+ *      not: putting the shared secret in client JS would make the gate decorative), so a
+ *      partner who already signed in was 404'd in production even with the token set.
+ *      Session auth is the door that makes Improve real for them without opening the
+ *      process-spawner to strangers.
  */
-export function betaAccessDenied(request: Request): Response | null {
+export function betaAccessDenied(
+  request: Request,
+  opts?: { signedIn?: boolean },
+): Response | null {
+  if (opts?.signedIn) return null;
+
   const secret = configuredToken();
 
   if (!secret) {
