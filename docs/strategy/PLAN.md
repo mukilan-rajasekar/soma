@@ -3,6 +3,13 @@
 Written 2026-07-30. Supersedes `WEEK-PLAN.md`, whose deadline (Jul 27) has passed.
 Grounded in the Tola/Shawn Kung conversation and a full audit of this repo.
 
+**How this relates to the living product plan.** For Analyze → Improve → Serve
+*engineering* (schemas, stages S0–S6, Serve write path), the living document is
+[`BUILD-PLAN-FULL-SERVICE.md`](BUILD-PLAN-FULL-SERVICE.md). This PLAN remains the
+spine for **Tracks A (science) and C (narrative/GTM)** and for the honesty audit of
+what the repo could claim in July 2026. Serve is no longer deferred here (see
+“deliberately not doing”); file-level Serve work follows the BUILD-PLAN.
+
 **The spine of this plan:** one GPU job and one design-partner test answer the two
 questions everything else waits on. The GPU job says whether the brain signal
 predicts ad outcomes at real n. The partner test produces the first outside-in

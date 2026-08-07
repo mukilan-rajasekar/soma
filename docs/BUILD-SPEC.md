@@ -1,11 +1,15 @@
 # soma — BUILD-SPEC
 
+> **Historical.** Implementation blueprint for the old `muki/product-features` branch.
+> **Not** the single source of truth for the product today. Prefer `README.md`,
+> `docs/INDEX.md`, `docs/ARCHITECTURE.md`, and `docs/strategy/BUILD-PLAN-FULL-SERVICE.md`.
+> Kept for Next.js convention notes that still apply (App Router, proxy vs middleware).
+
 Implementation blueprint for the `muki/product-features` branch. Next.js 16.2.11 (App Router,
 Turbopack, `src/`), React 19.2.4, Tailwind v4 (single `@import "tailwindcss"`, no config file),
 three.js r0.185.1, `@supabase/supabase-js` 2.110.8, TypeScript strict, `@/*` → `./src/*`.
 
-This is the single source of truth. Every implementer reads sections A + the appendix first, then
-their phase. **Before writing any Next.js code, read the cited files under
+**Before writing any Next.js code, read the cited files under
 `node_modules/next/dist/docs/01-app/`** — this Next version has real breaking changes vs older Next.
 
 ---
