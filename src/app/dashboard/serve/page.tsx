@@ -1,23 +1,30 @@
 // /dashboard/serve — what the serve pipeline is doing, brand by brand.
 //
-// Three read-only feeds per brand: the platform job queue (did the box pick the work up),
-// the spend-guard audit trail (did the guard have to act), and the experiments with their
+// Four read-only feeds per brand: the priced campaigns (quotes and the subscriptions
+// they turned into), the platform job queue (did the box pick the work up), the
+// spend-guard audit trail (did the guard have to act), and the experiments with their
 // budget arms (what is being tested against what). Everything reads through the
 // session-scoped loaders in src/lib/serve.ts, so brand_members — not application code —
-// decides which rows exist for this user; migrations 0014/0015 give browsers SELECT and
-// nothing else, which is why this page has no buttons.
+// decides which rows exist for this user; migrations 0014/0015/0016 give browsers SELECT
+// and nothing else, which is why the only button here is a link to the brief form.
 //
 // Money renders as major units at two decimals (micros / 1e6) with no currency symbol:
 // guard_events does not carry a currency — that lives on spend_guards — and stamping "$"
 // on a EUR brand's cap would be a small lie in the one place this page must not tell any.
+// Campaign rows are the exception, and deliberately: migration 0016 stamps a currency on
+// every quote and subscription, so their prices can say "$" when it is dollars.
 
 import Link from "next/link";
 
 import {
   listBrandsForUser,
+  listCampaignQuotesForBrand,
+  listCampaignSubscriptionsForBrand,
   listExperimentsForBrand,
   listGuardEventsForBrand,
   listServeJobsForBrand,
+  type CampaignQuote,
+  type CampaignSubscription,
   type GuardEvent,
   type ServeExperiment,
   type ServeJob,
@@ -26,6 +33,8 @@ import {
 type BrandServeStatus = {
   id: string;
   name: string;
+  quotes: CampaignQuote[];
+  subscriptions: CampaignSubscription[];
   jobs: ServeJob[];
   guardEvents: GuardEvent[];
   experiments: ServeExperiment[];
@@ -54,16 +63,48 @@ function pct(fraction: number): string {
   return `${Math.round(fraction * 100)}%`;
 }
 
+/** Campaign money carries its currency (migration 0016), so unlike the guard rows it may
+ *  say "$" — but only when it is actually dollars. Anything else keeps the code. */
+function price(micros: number, currency: string): string {
+  const major = (micros / 1e6).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return currency === "USD" ? `$${major}` : `${major} ${currency}`;
+}
+
+/** current_period_end and valid_until are dates, not timestamps; parse the parts rather
+ *  than let Date treat "2026-08-07" as UTC midnight and render yesterday west of it. */
+function day(dateOnly: string): string {
+  const [y, m, d] = dateOnly.split("-").map(Number);
+  if (!y || !m || !d) return dateOnly;
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** The goal is stored as the pricing enum; render it as the words the form used. */
+function goalLabel(goal: string): string {
+  if (goal === "aggressive_conversions") return "aggressive conversions";
+  if (goal === "low_cost_testing") return "low-cost testing";
+  return goal.replace(/_/g, " ");
+}
+
 export default async function DashboardServePage() {
   const brands = await listBrandsForUser();
   const cards: BrandServeStatus[] = await Promise.all(
     brands.map(async (brand) => {
-      const [jobs, guardEvents, experiments] = await Promise.all([
+      const [quotes, subscriptions, jobs, guardEvents, experiments] = await Promise.all([
+        listCampaignQuotesForBrand(brand.id),
+        listCampaignSubscriptionsForBrand(brand.id),
         listServeJobsForBrand(brand.id),
         listGuardEventsForBrand(brand.id),
         listExperimentsForBrand(brand.id),
       ]);
-      return { id: brand.id, name: brand.name, jobs, guardEvents, experiments };
+      return { id: brand.id, name: brand.name, quotes, subscriptions, jobs, guardEvents, experiments };
     }),
   );
 
@@ -101,6 +142,85 @@ export default async function DashboardServePage() {
             </h2>
 
             <div className="mt-5 flex flex-col gap-4">
+              <article className="rounded-2xl border border-line bg-fill p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-ui font-medium text-ink">Campaigns</h3>
+                  <Link
+                    href="/dashboard/campaigns/new"
+                    className="inline-block rounded-xl bg-ink px-3.5 py-2 text-meta font-medium text-white transition-colors hover:bg-ink/85"
+                  >
+                    New campaign
+                  </Link>
+                </div>
+
+                {brand.quotes.length > 0 ? (
+                  <ul className="mt-4 flex flex-col gap-3">
+                    {brand.quotes.map((q) => (
+                      <li
+                        key={q.id}
+                        className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
+                      >
+                        <span className="text-ui text-ink">
+                          <span className="tabular-nums">
+                            {price(q.weeklyPriceMicros, q.currency)}
+                          </span>
+                          <span className="text-ink-3"> / week</span>
+                        </span>
+                        <span className="flex shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1 text-meta text-ink-3">
+                          <span>{q.platforms.join(" + ") || "—"}</span>
+                          <span>{goalLabel(q.goal)}</span>
+                          <span>{when(q.createdAt)}</span>
+                          <span className="rounded-full border border-line bg-paper px-2.5 py-0.5 text-[10px] uppercase tracking-[0.1em]">
+                            {q.status}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-4 max-w-[56ch] text-pretty text-body text-ink-2">
+                    No campaign has been priced for this brand yet. A short brief at{" "}
+                    <Link
+                      href="/dashboard/campaigns/new"
+                      className="text-ink underline decoration-line-2 underline-offset-2 transition-colors hover:decoration-ink"
+                    >
+                      New campaign
+                    </Link>{" "}
+                    turns a weekly media budget into one all-inclusive weekly price.
+                  </p>
+                )}
+
+                {brand.subscriptions.length > 0 ? (
+                  <div className="mt-5 border-t border-line pt-4">
+                    <h4 className="text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                      Subscriptions
+                    </h4>
+                    <ul className="mt-3 flex flex-col gap-2">
+                      {brand.subscriptions.map((sub) => (
+                        <li
+                          key={sub.id}
+                          className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-meta"
+                        >
+                          <span className="text-ink">
+                            <span className="uppercase tracking-[0.08em]">{sub.status}</span>
+                            {" — "}
+                            <span className="tabular-nums">
+                              {price(sub.weeklyPriceMicros, sub.currency)}
+                            </span>{" "}
+                            / week
+                          </span>
+                          <span className="shrink-0 text-ink-3">
+                            period ends {day(sub.currentPeriodEnd)} ·{" "}
+                            <span className="tabular-nums">{sub.renewals}</span>{" "}
+                            {sub.renewals === 1 ? "renewal" : "renewals"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </article>
+
               <article className="rounded-2xl border border-line bg-fill p-5">
                 <div className="flex items-baseline justify-between gap-4">
                   <h3 className="text-ui font-medium text-ink">Platform jobs</h3>

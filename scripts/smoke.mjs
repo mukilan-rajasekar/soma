@@ -48,6 +48,7 @@ const ROUTES = [
   { path: '/dashboard', expectRedirectTo: '/sign-in' },
   { path: '/dashboard/brands', expectRedirectTo: '/sign-in' },
   { path: '/dashboard/campaigns', expectRedirectTo: '/sign-in' },
+  { path: '/dashboard/campaigns/new', expectRedirectTo: '/sign-in' },
   { path: '/dashboard/serve', expectRedirectTo: '/sign-in' },
   { path: '/dashboard/runs/' + '0'.repeat(32), expectRedirectTo: '/sign-in' },
   // The recorded pipeline run. Its content comes from src/data/run-capture.json, so the

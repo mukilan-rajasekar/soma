@@ -123,6 +123,40 @@ export type ServeExperiment = {
   arms: ServeExperimentArm[];
 };
 
+/** One priced campaign for a brand (migration 0016): the quote row stitched with the
+ *  brief it answered. The platforms and goal live on the brief — what was asked for —
+ *  while the money lives on the quote, frozen at quote time; both halves belong in one
+ *  row because a price without its ask is unreadable. */
+export type CampaignQuote = {
+  id: string;
+  briefId: string;
+  platforms: string[];
+  goal: string;
+  weeklySpendMicros: number;
+  marginPct: number;
+  marginMicros: number;
+  weeklyPriceMicros: number;
+  currency: string;
+  status: "quoted" | "accepted" | "expired" | string;
+  validUntil: string | null;
+  createdAt: string;
+};
+
+/** One renew-until-paused subscription (migration 0016). Scheduling truth only: the
+ *  period advances in whole weeks and renewals counts how many times it has. Nothing
+ *  here says "paid", because invoicing stays behind the PLAN.md licence gate. */
+export type CampaignSubscription = {
+  id: string;
+  quoteId: string;
+  status: "active" | "paused" | "canceled" | string;
+  weeklyPriceMicros: number;
+  currency: string;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  renewals: number;
+  createdAt: string;
+};
+
 const BRAND_COLUMNS =
   "id, name, training_consent, training_consent_source, training_consent_at, created_at";
 
@@ -139,6 +173,14 @@ const GUARD_EVENT_COLUMNS = "id, action, observed_spend_micros, cap_micros, crea
 const EXPERIMENT_COLUMNS = "id, name, platform, status, holdout_pct";
 
 const EXPERIMENT_ARM_COLUMNS = "id, experiment_id, arm_key, is_control, budget_share";
+
+const CAMPAIGN_QUOTE_COLUMNS =
+  "id, brief_id, weekly_spend_micros, margin_pct, margin_micros, weekly_price_micros, currency, status, valid_until, created_at";
+
+const CAMPAIGN_BRIEF_COLUMNS = "id, platforms, goal";
+
+const CAMPAIGN_SUBSCRIPTION_COLUMNS =
+  "id, quote_id, status, weekly_price_micros, currency, current_period_start, current_period_end, renewals, created_at";
 
 type BrandRow = {
   id: string;
@@ -233,6 +275,37 @@ type ExperimentArmRow = {
   arm_key: string;
   is_control: boolean;
   budget_share: number | string;
+};
+
+type CampaignQuoteRow = {
+  id: string;
+  brief_id: string;
+  weekly_spend_micros: number;
+  margin_pct: number | string;
+  margin_micros: number;
+  weekly_price_micros: number;
+  currency: string;
+  status: string;
+  valid_until: string | null;
+  created_at: string;
+};
+
+type CampaignBriefRow = {
+  id: string;
+  platforms: string[] | null;
+  goal: string | null;
+};
+
+type CampaignSubscriptionRow = {
+  id: string;
+  quote_id: string;
+  status: string;
+  weekly_price_micros: number;
+  currency: string;
+  current_period_start: string;
+  current_period_end: string;
+  renewals: number;
+  created_at: string;
 };
 
 type BatchReportRow = {
@@ -623,5 +696,86 @@ export async function listExperimentsForBrand(brandId: string): Promise<ServeExp
     holdoutPct:
       typeof row.holdout_pct === "number" ? row.holdout_pct : Number(row.holdout_pct),
     arms: armsByExperiment.get(row.id) ?? [],
+  }));
+}
+
+/** Priced campaigns for one brand, newest first, capped at 20 — a pricing history, not a
+ *  ledger. Briefs come back in one .in() query rather than one per quote, same shape as
+ *  listExperimentsForBrand; a quote whose brief is unreadable still returns, with
+ *  platforms: [] and an empty goal, because the money half is the half that must not
+ *  vanish from an audit view. */
+export async function listCampaignQuotesForBrand(brandId: string): Promise<CampaignQuote[]> {
+  const supabase = await sessionClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("campaign_quotes")
+    .select(CAMPAIGN_QUOTE_COLUMNS)
+    .eq("brand_id", brandId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error || !data) return [];
+  const rows = data as CampaignQuoteRow[];
+  if (rows.length === 0) return [];
+
+  const { data: briefData, error: briefError } = await supabase
+    .from("campaign_briefs")
+    .select(CAMPAIGN_BRIEF_COLUMNS)
+    .in("id", [...new Set(rows.map((r) => r.brief_id))]);
+
+  const briefsById = new Map<string, CampaignBriefRow>();
+  if (!briefError && briefData) {
+    for (const brief of briefData as CampaignBriefRow[]) briefsById.set(brief.id, brief);
+  }
+
+  return rows.map((row) => {
+    const brief = briefsById.get(row.brief_id);
+    return {
+      id: row.id,
+      briefId: row.brief_id,
+      platforms: brief?.platforms ?? [],
+      goal: brief?.goal ?? "",
+      weeklySpendMicros: row.weekly_spend_micros,
+      // numeric comes back as number or string depending on the client; same guard as
+      // selection_p above.
+      marginPct: typeof row.margin_pct === "number" ? row.margin_pct : Number(row.margin_pct),
+      marginMicros: row.margin_micros,
+      weeklyPriceMicros: row.weekly_price_micros,
+      currency: row.currency,
+      status: row.status,
+      validUntil: row.valid_until,
+      createdAt: row.created_at,
+    };
+  });
+}
+
+/** Subscriptions for one brand, newest first. Each row is the standing order a quote
+ *  turned into — status, the frozen weekly price, and how far the current period runs.
+ *  Read-only here for the same reason as serve_jobs: a subscription schedules spending
+ *  money, so browsers get SELECT and nothing else. */
+export async function listCampaignSubscriptionsForBrand(
+  brandId: string,
+): Promise<CampaignSubscription[]> {
+  const supabase = await sessionClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("campaign_subscriptions")
+    .select(CAMPAIGN_SUBSCRIPTION_COLUMNS)
+    .eq("brand_id", brandId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as CampaignSubscriptionRow[]).map((row) => ({
+    id: row.id,
+    quoteId: row.quote_id,
+    status: row.status,
+    weeklyPriceMicros: row.weekly_price_micros,
+    currency: row.currency,
+    currentPeriodStart: row.current_period_start,
+    currentPeriodEnd: row.current_period_end,
+    renewals: row.renewals,
+    createdAt: row.created_at,
   }));
 }

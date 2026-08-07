@@ -88,9 +88,11 @@ export function quote(spec: QuoteSpec): Quote {
   for (let i = 0; i < remainder; i += 1) split[i] += 1;
 
   // trunc(marginPct * 100) matches Python's int(margin_pct * 100): basis-point
-  // granularity, truncated the same way on both sides.
+  // granularity, truncated the same way on both sides. BigInt() calls, not n-literals:
+  // tsconfig targets ES2017, where the literal syntax is a TS2737 even though the
+  // runtime BigInt is fine.
   const bp = BigInt(Math.trunc(marginPct * 100));
-  const marginMicros = Number((BigInt(spend) * bp + 9_999n) / 10_000n);
+  const marginMicros = Number((BigInt(spend) * bp + BigInt(9_999)) / BigInt(10_000));
 
   return {
     currency,
