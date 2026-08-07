@@ -10,15 +10,23 @@
 // colour. docs/DESIGN-SYSTEM.md is explicit that `neg` exists only for signed data where
 // zero is a real reference point, and a weak spot is a region, not a polarity. Tinting
 // these red would make them read as errors rather than as the softest parts of a film.
+//
+// Sentences come from src/lib/readout-phrase.ts so the badge and wording stay shared with
+// Stage 2 windows. Lane defaults to "attention" (primary arc); pass `lane` when the spot
+// was found on SalVentAttn / another network.
 
 import { fmtT, type WeakSpot } from "@/components/preflight/types";
+import { phraseForWindow } from "@/lib/readout-phrase";
 
 export default function WeakSpots({
   spots,
   durationS,
+  lane = "attention",
 }: {
   spots: WeakSpot[];
   durationS: number;
+  /** Network the spots were detected on — drives phrase anatomy, not the band geometry. */
+  lane?: string;
 }) {
   if (!spots.length || !Number.isFinite(durationS) || durationS <= 0) return null;
 
@@ -42,6 +50,14 @@ export default function WeakSpots({
               key={`${spot.start}-${i}`}
               className="absolute inset-y-0 bg-line"
               style={{ left: pct(spot.start), width: pct(Math.max(0, spot.end - spot.start)) }}
+              title={
+                phraseForWindow({
+                  startS: spot.start,
+                  endS: spot.end,
+                  lane,
+                  depth: spot.depth,
+                }).sentence
+              }
             />
           ))}
         </div>
@@ -51,20 +67,33 @@ export default function WeakSpots({
           <span>{fmtT(durationS)}</span>
         </div>
 
-        <ul className="mt-4 flex flex-col gap-2">
-          {spots.map((spot, i) => (
-            <li
-              key={`row-${spot.start}-${i}`}
-              className="flex items-baseline justify-between gap-4 text-meta"
-            >
-              <span className="tabular-nums text-ink">
-                {fmtT(spot.start)} – {fmtT(spot.end)}
-              </span>
-              <span className="text-ink-3">
-                <span className="tabular-nums">{spot.secs.toFixed(1)}s</span> below median
-              </span>
-            </li>
-          ))}
+        <ul className="mt-4 flex flex-col gap-3">
+          {spots.map((spot, i) => {
+            const phrase = phraseForWindow({
+              startS: spot.start,
+              endS: spot.end,
+              lane,
+              depth: spot.depth,
+            });
+            return (
+              <li key={`row-${spot.start}-${i}`} className="flex flex-col gap-1 text-meta">
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="tabular-nums text-ink">
+                    {fmtT(spot.start)} – {fmtT(spot.end)}
+                  </span>
+                  <span className="text-ink-3">
+                    <span className="tabular-nums">{spot.secs.toFixed(1)}s</span> below median
+                  </span>
+                </div>
+                <p className="max-w-[62ch] text-pretty text-[12px] leading-snug text-ink-2">
+                  {phrase.sentence}
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.08em] text-ink-3">
+                  {phrase.badge}
+                </p>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </section>

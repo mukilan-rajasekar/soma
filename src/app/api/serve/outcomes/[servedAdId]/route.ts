@@ -11,7 +11,7 @@ const noStore = { "Cache-Control": "no-store" };
 
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/api/serve/outcomes/[servedAdId]">,
+  ctx: { params: Promise<{ servedAdId: string }> },
 ) {
   const { servedAdId } = await ctx.params;
   const outcomes = await getOutcomesForServedAd(servedAdId);

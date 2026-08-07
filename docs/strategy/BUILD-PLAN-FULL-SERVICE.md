@@ -1,8 +1,12 @@
 # BUILD PLAN — Analyze / Improve / Serve
 
-Written 2026-08-06. A staged engineering plan for turning the current ANALYZE-only
-concierge product into the three-part product the founders described: analyze, improve,
-serve.
+Written 2026-08-06. **Living product engineering plan** for turning the ANALYZE-only
+concierge product into analyze → improve → serve. Agent / human “what to build next”
+for product work starts here (see also `docs/INDEX.md`).
+
+Companion strategy: `STRATEGY-FULL-SERVICE.md`. Access checklist: `SERVE-ACCESS.md`.
+Science / GTM Tracks A and C remain sequenced in `PLAN.md` (2026-07-30); this file owns
+Serve staging and schema.
 
 **What this document is.** A build order with real file paths, real table shapes, and a
 verification step per stage that fits the existing gate (`scripts/verify.sh`). It
@@ -31,10 +35,9 @@ timepoints at TR = 1.0 s). **No ad is in that set.** The same fold over the 29 s
 gives materially different numbers and is *not* a committed artifact, so nothing here
 quotes the committed figures as if they described ads. See §2.4.
 
-**It contradicts a written decision.** `docs/strategy/PLAN.md:340-342` lists "Campaign
-management / ad serving" under *What we are deliberately not doing* and calls it "three
-products away." This plan reverses that. PLAN.md must be edited to say so — a plan that
-silently contradicts another plan in the same directory is worse than either.
+**It once contradicted PLAN.md.** An earlier PLAN listed “Campaign management / ad serving”
+under *What we are deliberately not doing*. PLAN.md now points here as the destination;
+keep both documents in sync if that bullet moves again.
 
 ---
 

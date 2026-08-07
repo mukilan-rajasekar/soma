@@ -1,5 +1,9 @@
 # WEEK-PLAN — crank it out (Day 2 → submit Day 11)
 
+> **Historical.** Deadline was Mon Jul 27, 2026 (already passed). Superseded by
+> `docs/strategy/PLAN.md` (science/GTM) and `docs/strategy/BUILD-PLAN-FULL-SERVICE.md`
+> (product engineering). Do not schedule work from this file; kept for provenance.
+
 Today = **Thu Jul 17 (Day 2)**. On-time deadline = **Mon Jul 27, 8:00 PM PT**.
 Submit **early, Sun Jul 26 (Day 11)**. Three founders, parallel tracks.
 

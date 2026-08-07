@@ -3,7 +3,7 @@
 Two things live in this repo:
 
 1. **The site** — a [Next.js 16](https://nextjs.org) product/marketing site (`src/`, `public/`),
-   live at **[usesoma.work](https://usesoma.work)**.
+   live at **[www.usesoma.work](https://www.usesoma.work)**.
 2. **The pipeline** — a Python inference pipeline that turns a video into a Meta TRIBE v2
    brain-activation arc, then into a trained attention read-out.
 
@@ -234,10 +234,17 @@ as "validated."
 
 ## Docs
 
-- `docs/strategy/` — `VISION.md`, `PRODUCT.md`, `ROADMAP.md`, `COMPETITORS.md`, `OPPORTUNITIES.md`.
-- `docs/science/` — the locked pre-registration and its addendum.
-- `docs/pipeline/` — `INFERENCE-PIPELINE.md`, the pipeline walkthrough.
-- `docs/DESIGN-SYSTEM.md` — the current design source of truth. `docs/BUILD-SPEC.md` — build spec.
+Start at [`docs/INDEX.md`](docs/INDEX.md). Short map:
+
+- **What to build next (product):** `docs/strategy/BUILD-PLAN-FULL-SERVICE.md`
+- **Science / GTM spine:** `docs/strategy/PLAN.md`
+- **Architecture:** `docs/ARCHITECTURE.md`
+- **Python roles:** `pipeline/README.md`
+- **Migrations (incl. intentional 0009/0013 gaps):** `supabase/migrations/README.md`
+- `docs/strategy/` — also `VISION.md`, `PRODUCT.md`, `ROADMAP.md`, Serve companions
+- `docs/science/` — locked pre-registrations
+- `docs/pipeline/` — `INFERENCE-PIPELINE.md`
+- `docs/DESIGN-SYSTEM.md` — visual SoT. `docs/BUILD-SPEC.md` is **historical** (old branch scaffold), not the product SoT.
 
 ## Author
 
