@@ -88,13 +88,15 @@ class MetaClient:
         return json.loads(raw) if raw else {}
 
     def create_campaign(self, *, name: str, objective: str, buying_type: str = "AUCTION", **extra: Any):
+        # status is forced after **extra so a launch spec cannot create ACTIVE objects
+        # and bypass launch.py's spend-cap activation guard.
         payload = {
             "name": name,
             "objective": objective,
             "buying_type": buying_type,
-            "status": "PAUSED",
             "special_ad_categories": extra.pop("special_ad_categories", []),
             **extra,
+            "status": "PAUSED",
         }
         return self._post(f"{self.ad_account_id}/campaigns", payload)
 
@@ -116,8 +118,8 @@ class MetaClient:
             "billing_event": billing_event,
             "optimization_goal": optimization_goal,
             "targeting": targeting,
-            "status": "PAUSED",
             **extra,
+            "status": "PAUSED",
         }
         return self._post(f"{self.ad_account_id}/adsets", payload)
 
@@ -159,8 +161,8 @@ class MetaClient:
             "name": name,
             "adset_id": adset_id,
             "creative": {"creative_id": creative_id},
-            "status": "PAUSED",
             **extra,
+            "status": "PAUSED",
         }
         return self._post(f"{self.ad_account_id}/ads", payload)
 
