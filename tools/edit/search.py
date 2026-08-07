@@ -40,7 +40,8 @@ sys.path.insert(0, str(ROOT))
 
 from tools.edit import render as rnd                      # noqa: E402
 from tools.edit.ops import (                              # noqa: E402
-    enumerate_candidates, estimate, rank, shots_from_boundaries, total_seconds,
+    enumerate_audio_candidates, enumerate_candidates, estimate, rank,
+    shots_from_boundaries, total_seconds,
 )
 
 # A rendered cut must match the timeline it was scored from. Segments are trimmed on
@@ -166,6 +167,10 @@ def main():
     ap.add_argument("--top", type=int, default=3, help="how many to render")
     ap.add_argument("--no-reorder", action="store_true",
                     help="removals and trims only; skip the weaker reorder estimates")
+    ap.add_argument("--audio", action="store_true",
+                    help="also enumerate audio-only candidates (mute/duck one beat); "
+                         "these are unestimated by construction and only --verify can "
+                         "attach a real number to them")
     ap.add_argument("--verify", action="store_true",
                     help="re-score the rendered cuts through the real pipeline (needs TRIBE)")
     ap.add_argument("--estimate-only", action="store_true",
@@ -225,6 +230,11 @@ def main():
 
     # ── search ───────────────────────────────────────────────────────────────
     cands = enumerate_candidates(shots, allow_reorder=not args.no_reorder)
+    if args.audio:
+        if rnd.has_audio(video):
+            cands += enumerate_audio_candidates(shots)
+        else:
+            print("note: --audio requested but the source has no audio track; skipping")
     for c in cands:
         estimate(
             c,
@@ -254,7 +264,7 @@ def main():
         for i, c in enumerate(ranked[:args.top]):
             dst = out_dir / f"{ad_id}_edit{i + 1}_{c.kind}.mp4"
             try:
-                rnd.render(c.timeline, video, dst)
+                rnd.render(c.timeline, video, dst, audio_ops=c.audio_ops or None)
             except RuntimeError as e:
                 print(f"  ! {c.label}: {e}")
                 continue

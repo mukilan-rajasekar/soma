@@ -75,6 +75,11 @@ CONFIDENCE = {
     "trim_head": "estimate",
     "hoist": "weak estimate",       # the shot is moved into a context it was never predicted in
     "swap": "weak estimate",
+    # The arc was computed WITH this soundtrack, so re-slicing it cannot say what a
+    # soundtrack change does. These carry est_delta 0 by construction and only the
+    # verify stage can attach a real number to them.
+    "mute_shot": "unestimated",
+    "duck_shot": "unestimated",
 }
 
 
@@ -87,6 +92,10 @@ class Candidate:
     timeline: Timeline
     #: Source segments this edit removes, for explaining the edit in words.
     removed: Timeline = field(default_factory=list)
+    #: Audio-only operations in SOURCE time: {"op": "mute"|"duck", "start", "end"}.
+    #: The timeline is untouched — an audio op changes the soundtrack, not the frames —
+    #: and the renderer remaps these into output time before applying them.
+    audio_ops: list = field(default_factory=list)
     est_score: float = 0.0
     est_delta: float = 0.0
     #: How much film survives, in seconds.
@@ -242,6 +251,63 @@ def enumerate_candidates(shots: Timeline, *, allow_reorder: bool = True) -> list
             confidence=CONFIDENCE["trim_head"],
         ))
 
+    return out
+
+
+def enumerate_audio_candidates(shots: Timeline) -> list[Candidate]:
+    """Audio-only edits: silence or duck one shot's soundtrack, keeping every frame.
+
+    Two ops per shot, so 2n candidates. Their honesty story is different from the cut
+    family's and the difference is the point: the arc these candidates would be estimated
+    against was computed WITH the original soundtrack, so the estimator has nothing true
+    to say about them — estimate() will hand back est_delta 0 because the timeline is
+    unchanged, and CONFIDENCE labels them "unestimated". They exist because audio IS in
+    the model's input (process_batch runs TRIBE on audio+video and the stimulus
+    fingerprint hashes the soundtrack), which means the verify stage can measure them for
+    real. Enumerate, render, measure — never pretend to predict.
+    """
+    out: list[Candidate] = []
+    timeline = list(shots)
+    for a, b in shots:
+        out.append(Candidate(
+            kind="mute_shot",
+            label=f"Silence the {_fmt((a, b))} beat",
+            timeline=timeline,
+            removed=[],
+            audio_ops=[{"op": "mute", "start": a, "end": b}],
+            confidence=CONFIDENCE["mute_shot"],
+        ))
+        out.append(Candidate(
+            kind="duck_shot",
+            label=f"Duck the {_fmt((a, b))} beat to -12 dB",
+            timeline=timeline,
+            removed=[],
+            audio_ops=[{"op": "duck", "start": a, "end": b}],
+            confidence=CONFIDENCE["duck_shot"],
+        ))
+    return out
+
+
+def audio_ops_to_output_time(timeline: Timeline, audio_ops: list) -> list:
+    """SOURCE-time audio ops mapped into OUTPUT time by walking the timeline in play order.
+
+    Same reasoning as _remap_brand: anything timed against the source has to travel with
+    its segment through cuts and reorders, or the renderer would mute the wrong seconds
+    of a hoisted edit. An op whose interval was entirely cut simply disappears.
+    """
+    out = []
+    for op in audio_ops:
+        s, e = float(op["start"]), float(op["end"])
+        elapsed = 0.0
+        for a, b in timeline:
+            lo, hi = max(a, s), min(b, e)
+            if hi > lo:
+                out.append({
+                    "op": op["op"],
+                    "start": round(elapsed + (lo - a), 3),
+                    "end": round(elapsed + (hi - a), 3),
+                })
+            elapsed += b - a
     return out
 
 
