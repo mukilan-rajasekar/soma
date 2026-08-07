@@ -1,0 +1,17 @@
+{
+  "ad_9": {
+    "id": "ad_9",
+    "effective_status": "DISAPPROVED",
+    "configured_status": "ACTIVE",
+    "ad_review_feedback": {
+      "global": {
+        "TEXT_OVERLAY": "Too much text"
+      }
+    }
+  },
+  "ad_10": {
+    "id": "ad_10",
+    "effective_status": "ACTIVE",
+    "configured_status": "ACTIVE"
+  }
+}
