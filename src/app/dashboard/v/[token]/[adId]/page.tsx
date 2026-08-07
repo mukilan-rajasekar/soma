@@ -11,8 +11,9 @@
 // exactly like a token that does not exist. Both become the same notFound().
 //
 // Multi-ad runs also have /dashboard/runs/<token>, which mounts the full ResultReport
-// instruments. This page stays the cut-deep-dive: thesis-first score, player, components,
-// hook, comprehension, weak spots, takeaways, brief, limits, then the edit hand-off.
+// instruments. This page stays the cut-deep-dive: thesis-first score, player, lane
+// heatmap, components, hook, comprehension, weak spots, takeaways, brief, limits, then
+// the edit hand-off.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -21,6 +22,7 @@ import { notFound } from "next/navigation";
 import BriefEcho from "@/components/dashboard/BriefEcho";
 import ComprehensionPins from "@/components/dashboard/ComprehensionPins";
 import HookCallout from "@/components/dashboard/HookCallout";
+import LaneHeatmap from "@/components/dashboard/LaneHeatmap";
 import PlainTakeaways from "@/components/dashboard/PlainTakeaways";
 import RunLimits from "@/components/dashboard/RunLimits";
 import ScoreBreakdown from "@/components/dashboard/ScoreBreakdown";
@@ -100,6 +102,8 @@ export default async function VideoPage({
       <section className="mt-10 border-t border-line pt-8">
         <PlayerPanel ad={ad} report={report} active />
       </section>
+
+      <LaneHeatmap ad={ad} report={report} />
 
       <PlainTakeaways ad={ad} report={report} />
 

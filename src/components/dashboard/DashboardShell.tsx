@@ -22,6 +22,8 @@ import { NavLink } from "./NavLink";
 const NAV = [
   { href: "/dashboard", label: "Videos" },
   { href: "/dashboard/brands", label: "Brands" },
+  { href: "/dashboard/campaigns", label: "Campaigns" },
+  { href: "/dashboard/serve", label: "Serve" },
   { href: "/dashboard/upload", label: "Upload" },
 ] as const;
 

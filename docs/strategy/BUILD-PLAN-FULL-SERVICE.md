@@ -396,32 +396,50 @@ no `brand_fees` row may exist (fixture-driven, same posture as `check_frozen.py`
 the switch. That check is satisfiable today — gate 4 is a committed line with a definite
 state — which is exactly why the enforceable half of this section is the fee half.
 
-### 0.5 Pricing is a flat fee, not a percentage of spend
+### 0.5 Pricing is a bundled weekly price per campaign — SUPERSEDED DECISION RECORD
 
-This is a decision, and it lands in the schema, so it belongs here rather than in a deck.
+**Founder decision, 2026-08-07, after the Serve expansion and the Shawn Kung
+discussions.** Pricing is now: the onboarding brief (reach, duration, platforms, goal)
+returns **a single all-inclusive weekly price per campaign** — bundled media spend
+across every chosen network **plus a margin (default 20%) on serving costs** — renewing
+weekly until paused. One number, one bill; the client never manages per-platform
+finances. Implemented in migration `0016_campaign_pricing.sql`, `tools/serve/pricing.py`
+(canonical), `src/lib/pricing.ts` (mirror, parity-gated in verify), and
+`tools/serve/renewals.py`.
 
-A percentage-of-spend fee has exactly the incentive gradient the strategy condemns in
-agencies, and it falsifies the single strongest sentence available to this company. Price
-instead as:
+**What this supersedes, preserved because it was a real argument.** The first version of
+this section priced Soma as a flat monthly fee with media passed through at cost, so
+that *"our fee never rises when your budget rises"* was literally true, and the schema
+enforced it (`brand_fees.media_markup_pct = 0`, migration 0011 — the constraint stands
+untouched on that now-legacy table). The argument was about incentive gradients: a fee
+indexed to spend gives the vendor a reason to want the budget spent. That argument has
+not been refuted; it has been **outweighed** by what inbound demand actually asks for —
+one bundled number covering spend they no longer want to manage — and by the founder's
+judgment that recurring revenue tied to managed spend is the business.
 
-- a **flat monthly platform fee per managed brand**,
-- a **per-asset fee per creative scored** and **per recut delivered**,
-- **media passed through at cost**, with the invoice showing the platform charge
-  unmarked-up.
+**Consequences that must be owned, not papered over:**
 
-Then this is literally true: *"Our fee never rises when your budget rises — we are the only
-party in your chain with no reason to want your money spent."*
+1. **The "never rises" sentence is retired everywhere.** It is false under this model,
+   and no surface may carry it. The honest replacement: *"one weekly price, everything
+   included, pause any time."* (`docs/strategy/STRATEGY-FULL-SERVICE.md` carries a
+   supersession banner listing every section whose economics need re-derivation.)
+2. **Soma becomes a media principal, not an agent.** Bundling spend inside Soma's own
+   price means Soma fronts platform costs, carries credit and refund risk, and likely
+   grosses up revenue. §0.6's legal/finance question is therefore REOPENED and larger
+   than before — revenue recognition, money-transmission exposure, and platform ToS on
+   reselling all need the same counsel pass the licence already does.
+3. **The holdout rebate math in §6.3 no longer composes.** Its two-term formula was
+   derived against a flat fee F; against a bundled weekly price it needs re-derivation
+   before any contract quotes it. `[NEEDS REWORK — §6.3 rebate under bundled pricing.]`
+4. **The licence gate is unchanged and still blocks invoices.** A quote is not an
+   invoice: `campaign_quotes` rows may exist, `campaign_subscriptions` may be planned,
+   and `renewals.py --execute` refuses while PLAN.md gate 4 stands. Pilots yes,
+   invoices no — that boundary survives the pricing model because it never was about
+   the pricing model.
 
-**Say "never rises", not "does not move", and the reason is in §6.3.** The holdout rebate's
-second term is indexed to spend and only ever *reduces* Soma's fee. "Does not move" is
-therefore false the day that clause is signed; "never rises" is true forever and carries
-the entire competitive point. A sentence that survives its own contract is worth more than
-a stronger one that has to be retired, and every surface in this packet should carry the
-version that survives.
-
-The `brand_fees` table in §4.1 encodes exactly this shape, and it has no
-`percent_of_spend` column on purpose. `[FILL: the three price points — monthly platform
-fee, per-asset scoring fee, per-recut fee. Founder decision; no number is invented here.]`
+`[FILL: the default margin is 20% by decision; minimum campaign size, payment terms, and
+the accepted-quote → funded-campaign flow are founder/finance decisions not invented
+here.]`
 
 ### 0.6 The legal/finance decision that is not engineering's to make
 
@@ -1442,11 +1460,13 @@ create table if not exists public.brand_members (
 alter table public.batches   add column if not exists brand_id uuid references public.brands(id) on delete set null;
 alter table public.edit_runs add column if not exists brand_id uuid references public.brands(id) on delete set null;
 
--- PRICING IS A FLAT FEE. There is no percent_of_spend column and that is the point
--- (see 0.5): a percentage-of-spend fee has exactly the incentive gradient this company's
--- pitch condemns in agencies, and it falsifies the strongest sentence available --
--- "our fee never rises when your budget rises." (0.5 explains why it is "never rises"
--- rather than "does not move": 6.3's rebate has one spend-linked term, downward only.)
+-- LEGACY TABLE AS OF 0016 (see 0.5's supersession record). This DDL encoded the
+-- original flat-fee decision -- no percent_of_spend column, media_markup_pct forced to
+-- zero -- and it shipped as 0011 before the founder superseded that model with the
+-- bundled weekly price (0016: campaign_briefs / campaign_quotes /
+-- campaign_subscriptions, margin on the quote). brand_fees stays as shipped: its
+-- constraint is true OF THIS TABLE, no live row exists (the licence gate forbids any),
+-- and rewriting applied-migration history is how schemas start lying.
 --
 -- TWO COLUMNS, BECAUSE THE REBATE RULE HAS TWO TERMS. 6.3: Rebate = h*F + h*S*g. Term one
 -- reduces the monthly fee by the holdout percentage (h=0.10 -> a 10% lower fee, every
@@ -1456,8 +1476,9 @@ alter table public.edit_runs add column if not exists brand_id uuid references p
 -- failed to find. Storing only holdout_rebate_pct makes the rule uncomputable and invites
 -- the reading "rebate = h * spend", which at h=0.10 on $200k spend is $20k against a $12k
 -- fee. Term two is the only spend-linked component in the contract and it only ever
--- REDUCES Soma's fee, which is why 0.5's sentence is "never rises when your budget rises".
--- Disclosed in the MSA, recorded here so the invoice and the experiment cannot drift apart.
+-- REDUCES Soma's fee -- the downward-only property the retired flat-fee sentence rested
+-- on. Disclosed in the MSA, recorded here so the invoice and the experiment cannot drift
+-- apart. (Rebate constants need re-derivation under 0016's bundled pricing; see 6.3.)
 create table if not exists public.brand_fees (
   id                    uuid primary key default gen_random_uuid(),
   brand_id              uuid not null references public.brands(id) on delete cascade,
@@ -1953,8 +1974,14 @@ score. Four distinct problems, which are usually conflated:
   `variant_group`, at least one variant is drawn uniformly from the candidate pool rather
   than by score. That arm is the only unbiased training data the company will ever have.
 
-  It is also a real cost imposed on a client to build an asset Soma owns, which is an
-  undisclosed conflict of interest and the exact inverse of the flat-fee argument in §0.5.
+  It is also a real cost imposed on a client to build an asset Soma owns — a conflict
+  that must be disclosed whatever the pricing model.
+
+  `[NEEDS REWORK — the rebate arithmetic below was derived against the superseded flat
+  fee F (§0.5's decision record, 2026-08-07). Under bundled weekly pricing the fee and
+  the media are one number, so both terms need re-derivation against the margin
+  component before any contract quotes this rule. The disclosure obligation and the
+  two-term structure survive; the constants do not.]`
 
   **Resolution, with the arithmetic written out, because an earlier draft's phrasing was
   read as something far larger than the rule intends.** "Rebated by the holdout fraction of

@@ -19,6 +19,8 @@ to be idempotent where practical (`if not exists`, `drop policy if exists`).
 | `0011_brands.sql` | Brands, members, fees; `brand_id` on batches/edit_runs |
 | `0012_outcomes.sql` | `served_ads`, `outcomes`, `outcomes_current` |
 | `0014_serve_jobs.sql` | `serve_jobs`, `spend_guards`, `guard_events` |
+| `0015_serve_experiments.sql` | `serve_experiments`, `serve_experiment_arms` (A/B splits) |
+| `0016_campaign_pricing.sql` | `campaign_briefs`, `campaign_quotes`, `campaign_subscriptions` (bundled weekly pricing) |
 
 ## Intentional gaps — do not invent these numbers
 

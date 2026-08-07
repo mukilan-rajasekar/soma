@@ -1,0 +1,30 @@
+[
+  {
+    "id": "sa-meta-1",
+    "brand_id": "brand-1",
+    "platform": "meta",
+    "external_ad_account_id": "act_123",
+    "external_ad_id": "ad_9",
+    "prediction": {"score": 72},
+    "scorer_version": "demo-v0",
+    "encoder": "tribe-v2",
+    "assignment": "model",
+    "selection_rule": "softmax_topk",
+    "selection_rule_params": {},
+    "selection_p": 0.4
+  },
+  {
+    "id": "sa-meta-2",
+    "brand_id": "brand-1",
+    "platform": "meta",
+    "external_ad_account_id": "act_123",
+    "external_ad_id": "ad_10",
+    "prediction": {"score": 61},
+    "scorer_version": "demo-v0",
+    "encoder": "tribe-v2",
+    "assignment": "random",
+    "selection_rule": "epsilon_greedy",
+    "selection_rule_params": {"epsilon": 0.2},
+    "selection_p": 0.2
+  }
+]

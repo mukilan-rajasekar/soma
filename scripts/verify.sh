@@ -100,6 +100,13 @@ fi
 step "shot/candidate pairing"
 node --experimental-strip-types scripts/check-shot-cells.mts || fail "shot/candidate pairing"
 
+# The bundled-price math lives twice by necessity: tools/serve/pricing.py is canonical
+# and src/lib/pricing.ts serves the onboarding flow at request time. A quote whose
+# stored identity (price = spend + margin) disagrees between the two would violate
+# 0016's schema check on insert. Pure function over the committed corpus.
+step "pricing parity (py vs ts)"
+node --experimental-strip-types scripts/check-pricing-parity.mts || fail "pricing parity"
+
 # ---- 4c. /run matches the run it claims to show -----------------------------
 # src/data/run-capture.json is DERIVED from a committed run.jsonl that the pipeline wrote
 # while it ran. Nothing stops someone editing the derived file so the page reads better —

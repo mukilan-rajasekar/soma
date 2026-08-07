@@ -23,6 +23,16 @@ GATE_LINE = "Named fallback backbone with a cost"
 failures: list[str] = []
 
 
+def licence_blocked() -> bool:
+    """True while PLAN.md still carries gate 4's marker line.
+
+    Import this rather than re-reading PLAN.md elsewhere: one string, one reader, one
+    switch. renewals.py uses it to refuse --execute — a weekly subscription that
+    advances is a bill in waiting, and bills are what the gate blocks.
+    """
+    return GATE_LINE in PLAN.read_text(encoding="utf8")
+
+
 def note(ok: bool, label: str, detail: str = "") -> None:
     if ok:
         print(f"  \033[32m✓\033[0m {label}")
@@ -32,8 +42,7 @@ def note(ok: bool, label: str, detail: str = "") -> None:
 
 
 def main() -> int:
-    plan = PLAN.read_text(encoding="utf8")
-    gate_open = GATE_LINE in plan
+    gate_open = licence_blocked()
     note(True, f"PLAN.md licence gate is {'open' if gate_open else 'resolved'}")
 
     if not gate_open:

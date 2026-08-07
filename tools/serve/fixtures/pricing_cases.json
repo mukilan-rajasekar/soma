@@ -1,0 +1,181 @@
+[
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": null,
+      "goal": "aggressive_conversions",
+      "margin_micros": 100000000,
+      "margin_pct": 20.0,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 500000000
+        }
+      ],
+      "playbook": {
+        "arms": 2,
+        "billing_event": "IMPRESSIONS",
+        "holdout_pct": 0.0,
+        "optimization_goal": "CONVERSIONS"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 600000000,
+      "weekly_spend_micros": 500000000
+    },
+    "spec": {
+      "goal": "aggressive_conversions",
+      "platforms": [
+        "meta"
+      ],
+      "weekly_spend_micros": 500000000
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": null,
+      "goal": "low_cost_testing",
+      "margin_micros": 200000001,
+      "margin_pct": 20.0,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 500000001
+        },
+        {
+          "platform": "tiktok",
+          "weekly_spend_micros": 500000000
+        }
+      ],
+      "playbook": {
+        "arms": 3,
+        "billing_event": "CPC",
+        "holdout_pct": 0.1,
+        "optimization_goal": "CLICK"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 1200000002,
+      "weekly_spend_micros": 1000000001
+    },
+    "spec": {
+      "goal": "low_cost_testing",
+      "platforms": [
+        "meta",
+        "tiktok"
+      ],
+      "weekly_spend_micros": 1000000001
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": null,
+      "goal": "low_cost_testing",
+      "margin_micros": 0,
+      "margin_pct": 0.0,
+      "platforms": [
+        {
+          "platform": "tiktok",
+          "weekly_spend_micros": 333333333
+        }
+      ],
+      "playbook": {
+        "arms": 3,
+        "billing_event": "CPC",
+        "holdout_pct": 0.1,
+        "optimization_goal": "CLICK"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 333333333,
+      "weekly_spend_micros": 333333333
+    },
+    "spec": {
+      "goal": "low_cost_testing",
+      "margin_pct": 0,
+      "platforms": [
+        "tiktok"
+      ],
+      "weekly_spend_micros": 333333333
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": null,
+      "goal": "aggressive_conversions",
+      "margin_micros": 4,
+      "margin_pct": 50.0,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 4
+        },
+        {
+          "platform": "tiktok",
+          "weekly_spend_micros": 3
+        }
+      ],
+      "playbook": {
+        "arms": 2,
+        "billing_event": "IMPRESSIONS",
+        "holdout_pct": 0.0,
+        "optimization_goal": "CONVERSIONS"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 11,
+      "weekly_spend_micros": 7
+    },
+    "spec": {
+      "goal": "aggressive_conversions",
+      "margin_pct": 50,
+      "platforms": [
+        "meta",
+        "tiktok"
+      ],
+      "weekly_spend_micros": 7
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": 4,
+      "goal": "low_cost_testing",
+      "margin_micros": 125000000,
+      "margin_pct": 12.5,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 500000000
+        },
+        {
+          "platform": "tiktok",
+          "weekly_spend_micros": 499999999
+        }
+      ],
+      "playbook": {
+        "arms": 3,
+        "billing_event": "CPC",
+        "holdout_pct": 0.1,
+        "optimization_goal": "CLICK"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 1124999999,
+      "weekly_spend_micros": 999999999
+    },
+    "spec": {
+      "duration_weeks": 4,
+      "goal": "low_cost_testing",
+      "margin_pct": 12.5,
+      "platforms": [
+        "meta",
+        "tiktok"
+      ],
+      "weekly_spend_micros": 999999999
+    }
+  }
+]
