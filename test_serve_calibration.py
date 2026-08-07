@@ -4,6 +4,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
@@ -11,8 +13,8 @@ from tools.serve.calibration import spearman, summarize_fixture  # noqa: E402
 
 
 def test_spearman_handles_perfect_rank():
-    assert spearman([1, 2, 3], [10, 20, 30]) == 1.0
-    assert spearman([1, 2, 3], [30, 20, 10]) == -1.0
+    assert spearman([1, 2, 3], [10, 20, 30]) == pytest.approx(1.0)
+    assert spearman([1, 2, 3], [30, 20, 10]) == pytest.approx(-1.0)
 
 
 def test_positive_fixture_reports_signal():
