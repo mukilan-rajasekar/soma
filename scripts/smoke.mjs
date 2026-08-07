@@ -47,6 +47,12 @@ const ROUTES = [
   // check, so both must land on /sign-in for a visitor with no cookie.
   { path: '/dashboard', expectRedirectTo: '/sign-in' },
   { path: '/dashboard/runs/' + '0'.repeat(32), expectRedirectTo: '/sign-in' },
+  // The recorded pipeline run. Its content comes from src/data/run-capture.json, so the
+  // text floor is really an assertion that the capture is still wired in: an empty or
+  // truncated capture renders a page with headings and no stages, which is exactly the
+  // failure a floor catches. The number stays modest on purpose — a longer run has more
+  // stages and more log, so this must not encode the size of one particular capture.
+  { path: '/run', minText: 1200, minCanvas: 0, minScroll: 1400, needsH1: true },
 ];
 
 // A cancelled media preload is normal browser behaviour, not a defect.

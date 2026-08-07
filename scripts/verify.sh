@@ -100,6 +100,19 @@ fi
 step "shot/candidate pairing"
 node --experimental-strip-types scripts/check-shot-cells.mts || fail "shot/candidate pairing"
 
+# ---- 4c. /run matches the run it claims to show -----------------------------
+# src/data/run-capture.json is DERIVED from a committed run.jsonl that the pipeline wrote
+# while it ran. Nothing stops someone editing the derived file so the page reads better —
+# turning a skipped encoder stage into a completed one is a two-line diff and the page
+# would render it without complaint. This re-folds the source and fails if they disagree,
+# which is what makes /run evidence rather than another set of claims.
+step "/run matches its capture"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python tools/capture/summarize.py --check || fail "/run matches its capture"
+else
+  fail "no .venv — see the pytest step above for the two setup lines"
+fi
+
 # ---- 5. smoke ---------------------------------------------------------------
 if [[ "$BUILD_OK" == "0" ]]; then
   step "smoke (skipped — build failed, smoke would only echo it)"
