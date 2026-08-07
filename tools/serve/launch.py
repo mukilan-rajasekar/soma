@@ -20,6 +20,7 @@ if str(ROOT) not in sys.path:
 
 from tools.serve import guard
 from tools.serve.meta_client import MetaClient
+from tools.serve.pricing import funded_caps
 from tools.serve.tiktok_client import TikTokClient
 
 
@@ -58,7 +59,12 @@ def create_from_spec(path: Path, *, dry_run: bool, platform: str = "meta") -> di
 
 
 def activate(
-    external_ad_id: str, *, fixture: Path | None, dry_run: bool, platform: str = "meta"
+    external_ad_id: str,
+    *,
+    fixture: Path | None,
+    dry_run: bool,
+    platform: str = "meta",
+    funded_quote: Path | None = None,
 ) -> dict[str, object]:
     # Activation without an explicit cap check is a spend hole: guard.check_ok() used to
     # return ok when no caps were configured. Refuse that path entirely.
@@ -75,9 +81,40 @@ def activate(
             f"Spend guard blocked activation: {decision.observed_spend_micros} >= {decision.cap_micros}"
         )
 
+    # The prepaid-week rule (BUILD-PLAN §0.6) is only real if it reaches THIS path: a
+    # hand-written guard fixture must not be able to carry looser caps than the funded
+    # week's media. With --funded-quote, the quote's per-platform media allocation is a
+    # second ceiling checked against the same observed spend (Greptile P1: funded caps
+    # previously never reached activation).
+    funded_decision = None
+    if funded_quote is not None:
+        q = json.loads(funded_quote.read_text(encoding="utf8"))
+        caps_row = next((c for c in funded_caps(q) if c["platform"] == platform), None)
+        if caps_row is None:
+            raise RuntimeError(
+                f"funded quote has no {platform!r} allocation; refusing to activate on it"
+            )
+        funded_decision = guard.check_spend(
+            decision.observed_spend_micros,
+            guard.SpendCaps(
+                daily_cap_micros=caps_row["daily_cap_micros"],
+                lifetime_cap_micros=caps_row["lifetime_cap_micros"],
+                currency=caps_row["currency"],
+            ),
+            mode="would_pause",
+        )
+        if not funded_decision.ok:
+            raise RuntimeError(
+                f"Funded-week cap blocked activation: observed {decision.observed_spend_micros} "
+                f">= funded media cap {funded_decision.cap_micros} for {platform}"
+            )
+
     client = _client(platform, dry_run=dry_run)
     result = client.set_ad_status(external_ad_id=external_ad_id, status="ACTIVE")
-    return {"guard": decision.__dict__, "activation": result}
+    out: dict[str, object] = {"guard": decision.__dict__, "activation": result}
+    if funded_decision is not None:
+        out["funded_guard"] = funded_decision.__dict__
+    return out
 
 
 def parser() -> argparse.ArgumentParser:
@@ -86,6 +123,11 @@ def parser() -> argparse.ArgumentParser:
     action.add_argument("--create", type=Path, help="JSON spec for paused create flow")
     action.add_argument("--activate", help="external Meta ad id to activate after guard check")
     p.add_argument("--guard-fixture", type=Path, help="offline spend/cap fixture for --activate")
+    p.add_argument(
+        "--funded-quote",
+        type=Path,
+        help="campaign quote JSON; its media allocation becomes a second activation ceiling (§0.6)",
+    )
     p.add_argument(
         "--platform",
         choices=("meta", "tiktok"),
@@ -103,7 +145,11 @@ def main(argv: list[str] | None = None) -> int:
             result = create_from_spec(args.create, dry_run=args.dry_run, platform=args.platform)
         else:
             result = activate(
-                args.activate, fixture=args.guard_fixture, dry_run=args.dry_run, platform=args.platform
+                args.activate,
+                fixture=args.guard_fixture,
+                dry_run=args.dry_run,
+                platform=args.platform,
+                funded_quote=args.funded_quote,
             )
     except Exception as exc:
         print(f"launch failed: {exc}", file=sys.stderr)

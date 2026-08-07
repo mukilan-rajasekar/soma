@@ -130,6 +130,19 @@ def apply_mapping(artifact: dict[str, Any], score: float) -> float:
 
 
 def rank(artifact: dict[str, Any], served_ads: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    # The fit refuses cross-brand pooling; the apply side has to refuse cross-brand
+    # LEAKAGE, or one brand's learned mapping quietly reorders another brand's ads
+    # through the CLI (Greptile P1). An ad without a brand_id is tolerated - fixtures
+    # predate the field - but a stated mismatch is a raise, same posture as fit().
+    artifact_brand = str(artifact.get("brand_id") or "")
+    for ad in served_ads:
+        ad_brand = str(ad.get("brand_id") or "")
+        if artifact_brand and ad_brand and ad_brand != artifact_brand:
+            raise ValueError(
+                f"artifact is for brand {artifact_brand} but served ad "
+                f"{ad.get('id')!r} carries brand {ad_brand}; refusing cross-brand rerank "
+                "(Policy 10.7 counsel question is open, BUILD-PLAN §6.6)"
+            )
     rows = []
     for ad in served_ads:
         score = _score(ad.get("prediction") or {})
