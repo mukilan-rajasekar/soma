@@ -1,0 +1,26 @@
+{
+  "served_ads": [
+    {
+      "id": "ad_a",
+      "prediction": { "score": 0.2, "scorer_version": "fixture" }
+    },
+    {
+      "id": "ad_b",
+      "prediction": { "score": 0.9, "scorer_version": "fixture" }
+    },
+    {
+      "id": "ad_c",
+      "prediction": { "score": 0.6, "scorer_version": "fixture" }
+    },
+    {
+      "id": "ad_d",
+      "prediction": { "score": 0.4, "scorer_version": "fixture" }
+    }
+  ],
+  "outcomes": [
+    { "served_ad_id": "ad_a", "impressions": 1000, "clicks": 20, "pulled_at": "2026-08-01T00:00:00Z" },
+    { "served_ad_id": "ad_b", "impressions": 1000, "clicks": 100, "pulled_at": "2026-08-01T00:00:00Z" },
+    { "served_ad_id": "ad_c", "impressions": 1000, "clicks": 60, "pulled_at": "2026-08-01T00:00:00Z" },
+    { "served_ad_id": "ad_d", "impressions": 1000, "clicks": 40, "pulled_at": "2026-08-01T00:00:00Z" }
+  ]
+}
