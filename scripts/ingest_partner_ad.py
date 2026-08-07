@@ -36,11 +36,10 @@ Three things fall out of that, all of them good:
     so nothing here has to be labelled 'estimate'. tools/edit/ops.py refuses to set
     `measured` and only a real scoring pass may — this is that pass.
 
-The candidate set is chosen WITHOUT an arc, because there isn't one yet. It is a
-deterministic, documented spread rather than a search result, and the script says so:
-single-shot removals spread evenly across the film, plus a head trim. The MEASURED scores
-are what rank them afterwards, which is a stronger ordering than an estimate would have
-produced anyway.
+The candidate set can be chosen from weak windows when one is provided from a previous
+report (`--weak-spots`). The first pass still has no arc in this checkout, so it falls back
+to a deterministic spread rather than pretending to be a search result. The MEASURED scores
+from the scoring pass are what rank the rendered cuts afterwards.
 
 USAGE
     ./.venv/bin/python scripts/ingest_partner_ad.py partner.mp4 brief.json \\
@@ -239,19 +238,49 @@ def detect_shots(video: Path, duration: float, threshold=0.28):
     return shots_from_boundaries(sorted(bounds), duration)
 
 
-def choose_candidates(shots, top):
-    """A deterministic spread of edits, chosen WITHOUT an arc.
+def _overlap(a, b):
+    return max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
 
-    There is no arc yet — that is the whole ordering problem in the module docstring — so
-    this cannot be a search result and does not pretend to be one. It takes single-shot
-    removals spread evenly through the film (so the set probes the open, the middle and
-    the close rather than three adjacent shots), then a 1.0s head trim if there is room.
 
-    The MEASURED scores from the scoring run are what rank these afterwards. This function
-    only has to produce a spread worth measuring.
-    """
+def _candidate_key(cand):
+    return (cand["kind"], tuple((round(a, 3), round(b, 3)) for a, b in cand["removed"]))
+
+
+def _remove_candidate(shots, i, *, selection="even_spread", overlap=0.0):
+    timeline = [s for k, s in enumerate(shots) if k != i]
+    if not timeline:
+        return None
+    return {
+        "kind": "remove",
+        "label": f"Drop shot {i + 1} ({shots[i][0]:.1f}-{shots[i][1]:.1f}s)",
+        "timeline": timeline,
+        "removed": [shots[i]],
+        "selection": selection,
+        "weakOverlapS": round(overlap, 3),
+    }
+
+
+def _trim_head_candidate(shots, *, selection="even_spread", overlap=0.0):
+    head = shots[0]
+    if head[1] - head[0] <= 2.0:
+        return None
+    trimmed = [(head[0] + 1.0, head[1]), *shots[1:]]
+    return {
+        "kind": "trim_head",
+        "label": "Trim 1.0s off the open",
+        "timeline": trimmed,
+        "removed": [(head[0], head[0] + 1.0)],
+        "selection": selection,
+        "weakOverlapS": round(overlap, 3),
+    }
+
+
+def even_spread_candidates(shots, top):
+    """Single-shot removals spread through the film, plus a head trim when possible."""
     candidates = []
     n = len(shots)
+    if n == 0 or top <= 0:
+        return candidates
 
     # Evenly spaced indices across the shot list, de-duplicated, order preserved.
     picks, seen = [], set()
@@ -262,27 +291,111 @@ def choose_candidates(shots, top):
             picks.append(i)
 
     for i in picks:
-        timeline = [s for k, s in enumerate(shots) if k != i]
-        if not timeline:
-            continue
-        candidates.append({
-            "kind": "remove",
-            "label": f"Drop shot {i + 1} ({shots[i][0]:.1f}–{shots[i][1]:.1f}s)",
-            "timeline": timeline,
-            "removed": [shots[i]],
-        })
+        cand = _remove_candidate(shots, i)
+        if cand:
+            candidates.append(cand)
 
-    head = shots[0]
-    if head[1] - head[0] > 2.0:
-        trimmed = [(head[0] + 1.0, head[1]), *shots[1:]]
-        candidates.append({
-            "kind": "trim_head",
-            "label": "Trim 1.0s off the open",
-            "timeline": trimmed,
-            "removed": [(head[0], head[0] + 1.0)],
-        })
+    head_trim = _trim_head_candidate(shots)
+    if head_trim:
+        candidates.append(head_trim)
 
     return candidates[:top]
+
+
+def normalize_weak_spots(raw):
+    """Accept [{start,end}], [{start_s,end_s}] or report-shaped weak spot dictionaries."""
+    spots = []
+    for item in raw or []:
+        if not isinstance(item, dict):
+            continue
+        start = item.get("start", item.get("start_s", item.get("startS")))
+        end = item.get("end", item.get("end_s", item.get("endS")))
+        try:
+            a, b = float(start), float(end)
+        except (TypeError, ValueError):
+            continue
+        if b > a:
+            spots.append((a, b))
+    return spots
+
+
+def load_weak_spots(path):
+    if not path:
+        return []
+    data = json.loads(path.read_text())
+    if isinstance(data, dict):
+        for key in ("weakSpots", "weak_spots", "windows"):
+            if key in data:
+                data = data[key]
+                break
+    return normalize_weak_spots(data)
+
+
+def weak_spots_from_report(report, ad_id):
+    """Pull weak windows for an ad out of a previous batch report, if one is supplied."""
+    for ad in (report or {}).get("ads", []):
+        if ad.get("id") == ad_id:
+            return normalize_weak_spots(ad.get("weakSpots") or ad.get("weak_spots") or [])
+    return []
+
+
+def rank_candidates_by_weak_spots(candidates, weak_spots):
+    """Return candidates ordered by overlap with weak windows, highest first."""
+    if not weak_spots:
+        return []
+
+    scored = []
+    for cand in candidates:
+        overlap = sum(_overlap(removed, spot) for removed in cand.get("removed", []) for spot in weak_spots)
+        if overlap <= 0:
+            continue
+        scored.append(({**cand, "selection": "weak_spot", "weakOverlapS": round(overlap, 3)}, overlap))
+    scored.sort(key=lambda pair: (-pair[1], pair[0]["kind"], pair[0]["label"]))
+    return [cand for cand, _ in scored]
+
+
+def choose_candidates(shots, top, weak_spots=None):
+    """Choose edit candidates, preferring cuts that overlap known weak windows.
+
+    A first ingest pass normally has no arc yet, so `weak_spots` is optional and the old
+    even-spread ladder remains the honest fallback. When `--weak-spots` points at a previous
+    report/window export, removals are ranked by overlap duration and an opening weak spot
+    prefers a small head trim.
+    """
+    if not weak_spots:
+        return even_spread_candidates(shots, top)
+
+    ranked = []
+    head_trim = _trim_head_candidate(
+        shots,
+        selection="weak_spot",
+        overlap=sum(_overlap((shots[0][0], shots[0][0] + 1.0), spot) for spot in weak_spots),
+    )
+    open_end = shots[0][0] + 2.0
+    if head_trim and any(spot[0] <= open_end and _overlap((shots[0][0], open_end), spot) > 0 for spot in weak_spots):
+        ranked.append(head_trim)
+
+    all_removals = []
+    for i in range(len(shots)):
+        overlap = sum(_overlap(shots[i], spot) for spot in weak_spots)
+        cand = _remove_candidate(shots, i, selection="weak_spot", overlap=overlap)
+        if cand:
+            all_removals.append(cand)
+    ranked.extend(rank_candidates_by_weak_spots(all_removals, weak_spots))
+
+    if not ranked:
+        return even_spread_candidates(shots, top)
+
+    out, seen = [], set()
+    for cand in ranked + even_spread_candidates(shots, top):
+        key = _candidate_key(cand)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(cand)
+        if len(out) >= top:
+            break
+    return out
 
 
 def poster_for(video: Path, dest: Path, at=0.5):
@@ -344,6 +457,8 @@ def main():
     ap.add_argument("--work-dir", type=Path, default=ROOT / "ingest-runs")
     ap.add_argument("--skip-score", action="store_true",
                     help="render and upload but do not run the model — plumbing only")
+    ap.add_argument("--weak-spots", type=Path,
+                    help="optional previous report/window JSON: list of {start,end} weak intervals")
     ap.add_argument("--dry-run", action="store_true",
                     help="do everything local, write nothing to Supabase")
     # Provenance is on by default. It costs one small file in the work dir, and a run
@@ -423,18 +538,25 @@ def main():
     if not recuttable:
         print("     one shot only — no edit space, so this run delivers the review "
               "without a re-cut ladder")
+    weak_spots = load_weak_spots(args.weak_spots) if args.weak_spots else []
 
     # ── 2. render ────────────────────────────────────────────────────────────
     original = videos_dir / "ad_01.mp4"
     original.write_bytes(args.video.read_bytes())
 
-    candidates = choose_candidates(shots, args.top) if recuttable else []
+    candidates = choose_candidates(shots, args.top, weak_spots=weak_spots) if recuttable else []
+    weak_driven = any(c.get("selection") == "weak_spot" for c in candidates)
+    strategy = (
+        "weak-spot overlap from --weak-spots; even spread fills any remaining cuts"
+        if weak_driven else "even spread of single-shot removals, plus a head trim"
+    )
     print(f"2/6  rendering {len(candidates)} re-cuts")
     rendered = []
     with rec.stage("render", "The re-cut ladder, encoded for real") as st:
         if not recuttable:
             st.skip("one shot only — there is no edit space to render")
-        st.fact(candidates=len(candidates), strategy="even spread of single-shot removals, plus a head trim")
+        st.fact(candidates=len(candidates), strategy=strategy,
+                weakSpots=len(weak_spots), weakSpotSource=str(args.weak_spots) if args.weak_spots else None)
         for i, cand in enumerate(candidates):
             ad_id = f"ad_{i + 2:02d}"
             dst = videos_dir / f"{ad_id}.mp4"

@@ -11,9 +11,8 @@ WHERE EACH SIGNAL COMES FROM (all four are the pipeline's own arithmetic):
   dorsal   attention   arc.activation           <- --roi-mask data/roi_mask_dan.npy
                                                    (dorsal attention network: IPS/FEF/SPL)
   ventral  surprise    arc.affect.arousal       <- data/roi_mask_arousal.npy
-                                                   (Yeo SalVentAttn: anterior insula + ACC —
-                                                   the salience/oddball system that fires on
-                                                   the unexpected)
+                                                   (Destrieux anterior insula + ACC proxy —
+                                                   anatomical, not Schaefer/Yeo SalVentAttn)
   language message     arc.message.semantic_load<- data/roi_mask_language.npy
   levels   absolute    arc.roi_profile[*].value  + arc.roi_baseline (whole-cortex mean)
 
@@ -252,7 +251,7 @@ def lanes_from_preds(preds_path, masks):
 # translation layer exists. Label accordingly and never call it a buy signal.
 REGION_LABELS = {
     "dan": "Dorsal attention",
-    "arousal": "Salience",
+    "arousal": "Arousal (insula/ACC)",
     "language": "Language",
     "dmn": "Default mode",
     "memory": "Memory encoding",
