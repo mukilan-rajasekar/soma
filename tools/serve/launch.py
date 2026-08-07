@@ -20,10 +20,28 @@ if str(ROOT) not in sys.path:
 
 from tools.serve import guard
 from tools.serve.meta_client import MetaClient
+from tools.serve.tiktok_client import TikTokClient
 
 
-def create_from_spec(path: Path, *, dry_run: bool) -> dict[str, object]:
+def _client(platform: str, *, dry_run: bool):
+    if platform == "tiktok":
+        return TikTokClient(dry_run=dry_run)
+    return MetaClient(dry_run=dry_run)
+
+
+def create_from_spec(path: Path, *, dry_run: bool, platform: str = "meta") -> dict[str, object]:
     spec = json.loads(path.read_text(encoding="utf8"))
+
+    if platform == "tiktok":
+        # TikTok has no start/finish upload handshake and no separate creative object:
+        # the creative rides inside ad/create. Four calls, all DISABLE.
+        client = TikTokClient(dry_run=dry_run)
+        campaign = client.create_campaign(**spec["campaign"])
+        adgroup = client.create_adgroup(**{**spec["adgroup"], "campaign_id": campaign["id"]})
+        video = client.upload_video(video_url=spec["video_file_url"])
+        ad = client.create_ad(**{**spec["ad"], "adgroup_id": adgroup["id"], "video_id": video["id"]})
+        return {"campaign": campaign, "adgroup": adgroup, "video": video, "ad": ad}
+
     client = MetaClient(dry_run=dry_run)
 
     campaign = client.create_campaign(**spec["campaign"])
@@ -39,7 +57,9 @@ def create_from_spec(path: Path, *, dry_run: bool) -> dict[str, object]:
     return {"campaign": campaign, "adset": adset, "video": video, "creative": creative, "ad": ad}
 
 
-def activate(external_ad_id: str, *, fixture: Path | None, dry_run: bool) -> dict[str, object]:
+def activate(
+    external_ad_id: str, *, fixture: Path | None, dry_run: bool, platform: str = "meta"
+) -> dict[str, object]:
     # Activation without an explicit cap check is a spend hole: guard.check_ok() used to
     # return ok when no caps were configured. Refuse that path entirely.
     if fixture is None:
@@ -55,7 +75,7 @@ def activate(external_ad_id: str, *, fixture: Path | None, dry_run: bool) -> dic
             f"Spend guard blocked activation: {decision.observed_spend_micros} >= {decision.cap_micros}"
         )
 
-    client = MetaClient(dry_run=dry_run)
+    client = _client(platform, dry_run=dry_run)
     result = client.set_ad_status(external_ad_id=external_ad_id, status="ACTIVE")
     return {"guard": decision.__dict__, "activation": result}
 
@@ -66,7 +86,13 @@ def parser() -> argparse.ArgumentParser:
     action.add_argument("--create", type=Path, help="JSON spec for paused create flow")
     action.add_argument("--activate", help="external Meta ad id to activate after guard check")
     p.add_argument("--guard-fixture", type=Path, help="offline spend/cap fixture for --activate")
-    p.add_argument("--dry-run", action="store_true", help="print Meta payloads without HTTP")
+    p.add_argument(
+        "--platform",
+        choices=("meta", "tiktok"),
+        default="meta",
+        help="ad network to write against (creates stay PAUSED/DISABLE either way)",
+    )
+    p.add_argument("--dry-run", action="store_true", help="print platform payloads without HTTP")
     return p
 
 
@@ -74,9 +100,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
         if args.create:
-            result = create_from_spec(args.create, dry_run=args.dry_run)
+            result = create_from_spec(args.create, dry_run=args.dry_run, platform=args.platform)
         else:
-            result = activate(args.activate, fixture=args.guard_fixture, dry_run=args.dry_run)
+            result = activate(
+                args.activate, fixture=args.guard_fixture, dry_run=args.dry_run, platform=args.platform
+            )
     except Exception as exc:
         print(f"launch failed: {exc}", file=sys.stderr)
         return 1
