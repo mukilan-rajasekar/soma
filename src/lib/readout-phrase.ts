@@ -13,7 +13,9 @@ export type ReadoutPhrase = {
   badge: string;
 };
 
-const BADGE = "PREDICTED · RELATIVE / WITHIN-ITEM · NOT VALIDATED AGAINST OUTCOME";
+// Exported so surfaces that stamp the badge without a window sentence (e.g. the lane
+// heatmap) print the exact same string rather than a near-copy that drifts.
+export const BADGE = "PREDICTED · RELATIVE / WITHIN-ITEM · NOT VALIDATED AGAINST OUTCOME";
 const SALVENTATTN_VERTICES = 2363;
 
 function formatTime(seconds: number): string {

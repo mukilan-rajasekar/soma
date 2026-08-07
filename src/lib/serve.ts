@@ -80,6 +80,49 @@ export type ServedVariantGroup = {
   outcomesByServedAd: Record<string, Outcome[]>;
 };
 
+/** One row in the platform job queue (migration 0014). The known kinds and statuses are
+ *  schema-checked; the union stays open so a kind added by a later migration renders as
+ *  text instead of failing a cast. */
+export type ServeJob = {
+  id: string;
+  kind: "create" | "activate" | "pause" | "poll_status" | string;
+  status: "queued" | "processing" | "done" | "failed" | string;
+  error: string | null;
+  createdAt: string;
+};
+
+/** One spend-guard audit row (migration 0014). Money is integer micros end to end; the
+ *  row does not carry a currency — that lives on spend_guards — so renderers show the
+ *  amount, not a symbol they would have to guess. */
+export type GuardEvent = {
+  id: string;
+  action: "paused" | "would_pause" | "cap_raised" | string;
+  observedSpendMicros: number | null;
+  capMicros: number | null;
+  createdAt: string;
+};
+
+export type ServeExperimentArm = {
+  id: string;
+  armKey: string;
+  isControl: boolean;
+  /** Planned fraction of the post-holdout budget, (0, 1]. The micros actually sent to
+   *  the platform come from tools/serve/ab.py, which owns the rounding. */
+  budgetShare: number;
+};
+
+/** An A/B split and its arms (migration 0015). Deliberately no winner field: a winner is
+ *  a computed claim with thresholds, and it lives in ab.py output artifacts. */
+export type ServeExperiment = {
+  id: string;
+  name: string;
+  platform: "meta" | "tiktok" | string;
+  status: "draft" | "running" | "stopped" | string;
+  /** Fraction of budget held back entirely, [0, 1). */
+  holdoutPct: number;
+  arms: ServeExperimentArm[];
+};
+
 const BRAND_COLUMNS =
   "id, name, training_consent, training_consent_source, training_consent_at, created_at";
 
@@ -88,6 +131,14 @@ const SERVED_AD_COLUMNS =
 
 const OUTCOME_COLUMNS =
   "id, served_ad_id, window_start, window_end, attribution, impressions, reach, frequency, spend_micros, currency, clicks, video_p25, video_p50, video_p75, video_p100, thruplays, conversions, conversion_value_micros, source, pulled_at, revision, raw";
+
+const SERVE_JOB_COLUMNS = "id, kind, status, error, created_at";
+
+const GUARD_EVENT_COLUMNS = "id, action, observed_spend_micros, cap_micros, created_at";
+
+const EXPERIMENT_COLUMNS = "id, name, platform, status, holdout_pct";
+
+const EXPERIMENT_ARM_COLUMNS = "id, experiment_id, arm_key, is_control, budget_share";
 
 type BrandRow = {
   id: string;
@@ -152,6 +203,38 @@ type OutcomeRow = {
   raw: Record<string, unknown> | null;
 };
 
+type ServeJobRow = {
+  id: string;
+  kind: string;
+  status: string;
+  error: string | null;
+  created_at: string;
+};
+
+type GuardEventRow = {
+  id: string;
+  action: string;
+  observed_spend_micros: number | null;
+  cap_micros: number | null;
+  created_at: string;
+};
+
+type ExperimentRow = {
+  id: string;
+  name: string;
+  platform: string;
+  status: string;
+  holdout_pct: number | string;
+};
+
+type ExperimentArmRow = {
+  id: string;
+  experiment_id: string;
+  arm_key: string;
+  is_control: boolean;
+  budget_share: number | string;
+};
+
 type BatchReportRow = {
   id: string;
   report: {
@@ -200,6 +283,26 @@ function outcomeFrom(row: OutcomeRow): Outcome {
     pulledAt: row.pulled_at,
     revision: row.revision,
     raw: row.raw,
+  };
+}
+
+function serveJobFrom(row: ServeJobRow): ServeJob {
+  return {
+    id: row.id,
+    kind: row.kind,
+    status: row.status,
+    error: row.error,
+    createdAt: row.created_at,
+  };
+}
+
+function guardEventFrom(row: GuardEventRow): GuardEvent {
+  return {
+    id: row.id,
+    action: row.action,
+    observedSpendMicros: row.observed_spend_micros,
+    capMicros: row.cap_micros,
+    createdAt: row.created_at,
   };
 }
 
@@ -361,4 +464,89 @@ export async function getVariantGroup(servedGroupId: string): Promise<ServedVari
     ads,
     outcomesByServedAd: Object.fromEntries(pairs),
   };
+}
+
+/** The platform job queue for one brand, newest first. Jobs are written by server code
+ *  and claimed by the serve box; browsers only ever get this read-only view, because a
+ *  job is a request to spend money and RLS on serve_jobs is SELECT-only. */
+export async function listServeJobsForBrand(brandId: string): Promise<ServeJob[]> {
+  const supabase = await sessionClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("serve_jobs")
+    .select(SERVE_JOB_COLUMNS)
+    .eq("brand_id", brandId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as ServeJobRow[]).map(serveJobFrom);
+}
+
+/** The spend-guard audit trail for one brand, newest first. These rows are evidence the
+ *  guard looked, not the caps themselves — repeated would_pause rows are the guard firing
+ *  again while the platform stayed over cap, and they should all be visible. */
+export async function listGuardEventsForBrand(brandId: string): Promise<GuardEvent[]> {
+  const supabase = await sessionClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("guard_events")
+    .select(GUARD_EVENT_COLUMNS)
+    .eq("brand_id", brandId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as GuardEventRow[]).map(guardEventFrom);
+}
+
+/** Experiments for one brand with their arms stitched in, newest experiment first. Arms
+ *  come back in one .in() query rather than one query per experiment; an experiment whose
+ *  arms are missing (a draft, or an RLS-hidden served ad) still returns with arms: []. */
+export async function listExperimentsForBrand(brandId: string): Promise<ServeExperiment[]> {
+  const supabase = await sessionClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("serve_experiments")
+    .select(EXPERIMENT_COLUMNS)
+    .eq("brand_id", brandId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  const rows = data as ExperimentRow[];
+  if (rows.length === 0) return [];
+
+  const { data: armData, error: armError } = await supabase
+    .from("serve_experiment_arms")
+    .select(EXPERIMENT_ARM_COLUMNS)
+    .in("experiment_id", rows.map((r) => r.id))
+    .order("created_at", { ascending: true });
+
+  const armsByExperiment = new Map<string, ServeExperimentArm[]>();
+  if (!armError && armData) {
+    for (const arm of armData as ExperimentArmRow[]) {
+      const list = armsByExperiment.get(arm.experiment_id) ?? [];
+      list.push({
+        id: arm.id,
+        armKey: arm.arm_key,
+        isControl: arm.is_control,
+        // numeric comes back as number or string depending on the client; same guard
+        // as selection_p above.
+        budgetShare:
+          typeof arm.budget_share === "number" ? arm.budget_share : Number(arm.budget_share),
+      });
+      armsByExperiment.set(arm.experiment_id, list);
+    }
+  }
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    platform: row.platform,
+    status: row.status,
+    holdoutPct:
+      typeof row.holdout_pct === "number" ? row.holdout_pct : Number(row.holdout_pct),
+    arms: armsByExperiment.get(row.id) ?? [],
+  }));
 }
