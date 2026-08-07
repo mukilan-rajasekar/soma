@@ -284,7 +284,22 @@ def workdir_verify_runner(workdir: Path) -> Callable[[dict[str, Any]], dict[str,
         job_id = str(plan.get("job_id") or "")
         root = workdir / job_id
         rendered_dir = root / "rendered"
-        files = sorted(rendered_dir.glob("*.mp4")) if rendered_dir.is_dir() else []
+        # A job that names cut_ids is a contract: rendered/<cut_id>.mp4 for every
+        # requested cut, and every one of them measured. Globbing here let a stale
+        # mp4 satisfy a job that asked for something else entirely (Greptile P1) -
+        # "measured" would then describe a file nobody requested.
+        cut_ids = [str(c) for c in (plan.get("cut_ids") or []) if c]
+        if cut_ids:
+            files = [rendered_dir / f"{cid}.mp4" for cid in cut_ids]
+            missing = sorted(f.name for f in files if not f.is_file())
+            if missing:
+                return {
+                    "ok": False,
+                    "measured": False,
+                    "error": f"requested cuts missing from {rendered_dir}: {', '.join(missing)}",
+                }
+        else:
+            files = sorted(rendered_dir.glob("*.mp4")) if rendered_dir.is_dir() else []
         if not files:
             return {
                 "ok": False,
@@ -320,6 +335,14 @@ def workdir_verify_runner(workdir: Path) -> Callable[[dict[str, Any]], dict[str,
                 "ok": False,
                 "measured": False,
                 "error": "verify_batch did not mark candidates measured (TRIBE stack missing?)",
+                "log": f"files={len(files)}",
+            }
+        if cut_ids and not all(after):
+            unmeasured = sorted(c.label for (c, *_), m in zip(rendered, after) if not m)
+            return {
+                "ok": False,
+                "measured": False,
+                "error": f"requested cuts not measured: {', '.join(unmeasured)}",
                 "log": f"files={len(files)}",
             }
         return {
@@ -386,7 +409,12 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps({"claimed": None, "reaped": reaped}, indent=2, sort_keys=True))
             return 0
         planned = plan_job(job)
-        outcome = execute_verify(planned, runner=workdir_verify_runner(args.workdir))
+        try:
+            outcome = execute_verify(planned, runner=workdir_verify_runner(args.workdir))
+        except Exception as exc:
+            # A crashed verify must not strand the claimed row in processing until the
+            # reaper's stale window expires (Greptile P1): persist the failure now.
+            outcome = {"status": "failed", "error": f"verify raised: {exc}", "log": ""}
         if outcome["status"] == "done":
             mark_done(base_url, key, str(job["id"]), run_log=str(outcome.get("log") or ""))
         else:
