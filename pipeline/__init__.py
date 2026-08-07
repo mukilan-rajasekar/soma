@@ -6,4 +6,6 @@ entrypoints via `python -m pipeline.<name>` without a mass move that would break
 
 from __future__ import annotations
 
+from pipeline._run import run_script
+
 __all__ = ["run_script"]

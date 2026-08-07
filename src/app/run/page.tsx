@@ -162,7 +162,7 @@ export default function RunPage() {
 # the gate's check
 .venv/bin/python tools/capture/summarize.py --check
 
-# the command that produced it
+# the command that produced it (private flag values redacted at fold time)
 ${cap.argv.map((a) => a.replace(/^\/.*\/(?=[^/]+$)/, "")).join(" ")}`}
         </pre>
       </section>
