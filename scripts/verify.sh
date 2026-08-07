@@ -126,6 +126,25 @@ else
   fail "no .venv — see the pytest step above for the two setup lines"
 fi
 
+# The demo is allowed to quote committed artifacts, not founder-attested round numbers
+# that the repo cannot reproduce. This scans TSX only and needs no network, so it sits in
+# the cheap artifact gate beside the other honesty checks.
+step "demo marketing claims are artifact-backed"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python tools/demo/check_claims.py || fail "demo marketing claims are artifact-backed"
+else
+  fail "no .venv — see the pytest step above for the two setup lines"
+fi
+
+# PLAN.md gate 4 is the switch: until a named permissive fallback backbone has a cost,
+# Serve may not contain fee rows. Fixture-driven, because CI has no production database.
+step "Serve licence gate"
+if [[ -x .venv/bin/python ]]; then
+  .venv/bin/python tools/serve/check_licence_gate.py || fail "Serve licence gate"
+else
+  fail "no .venv — see the pytest step above for the two setup lines"
+fi
+
 # ---- 5. smoke ---------------------------------------------------------------
 if [[ "$BUILD_OK" == "0" ]]; then
   step "smoke (skipped — build failed, smoke would only echo it)"
