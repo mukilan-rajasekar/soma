@@ -25,8 +25,14 @@ function formatTime(seconds: number): string {
 
 function laneLabel(lane: string): string {
   const key = lane.trim().toLowerCase();
-  if (key === "salventattn" || key === "salience" || key === "surprise") {
+  // Schaefer SalVentAttn is the preflight / process_batch lane. The demo "surprise"
+  // curve is a Destrieux insula/ACC proxy (Dice 0.207 vs SalVentAttn) — naming them
+  // the same network is the atlas collision Stage 2.1 forbids.
+  if (key === "salventattn" || key === "salience") {
     return "salience-network response (Schaefer-2018 SalVentAttn)";
+  }
+  if (key === "surprise" || key === "arousal") {
+    return "arousal response (Destrieux insula/ACC proxy)";
   }
   if (key === "dorsattn" || key === "attention") {
     return "attention response";
