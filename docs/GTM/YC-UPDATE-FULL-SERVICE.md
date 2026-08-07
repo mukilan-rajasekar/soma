@@ -22,6 +22,34 @@
 
 ---
 
+## 2026-08-07 REVISION — founder-supplied update text, and what the repo can back
+
+> **Pricing sections below (§ "One product, three lines of revenue", the flat-fee
+> passages, and every "our fee never rises" sentence) are SUPERSEDED.** The founder
+> replaced the flat-fee model with a **bundled weekly price per campaign** (media spend
+> across networks + default 20% margin on serving costs, renewing weekly until paused).
+> Decision record: `docs/strategy/BUILD-PLAN-FULL-SERVICE.md` §0.5. Implementation:
+> migration `0016`, `tools/serve/pricing.py`, `src/lib/pricing.ts`,
+> `tools/serve/renewals.py`, `/dashboard/campaigns/new`. Do not paste any flat-fee
+> sentence from the sections below; they stand as history until re-drafted.
+
+The founder's current update text (revenue answer) claims, and the repo supports or
+does not, as follows:
+
+| Claim in the update text | Repo verdict |
+|---|---|
+| "Our onboarding flow asks what advertisers want… and we return a single all-inclusive weekly price per campaign" | **True in code** — brief → quote flow exists end-to-end (`0016`, pricing engine + parity gate, `/dashboard/campaigns/new`). Say "our onboarding flow" only after it is deployed to production. |
+| "~20% on top of serving costs" | **True as the default** — `MARGIN_PCT_DEFAULT = 20`, bounds [0, 50], recorded per-quote. |
+| "Campaigns renew weekly until paused" | **True as scheduling** — `renewals.py` advances weekly and refuses live execution while the licence gate is open. No billing exists; do not imply invoices are going out. |
+| "one bill" | **Not yet** — no invoice table, no payment integration, deliberately (PLAN.md gate 4). Safe phrasing: "one number, one bill *when billing opens*" or drop "bill". |
+| "serve and test ads across advertising networks" | Meta + TikTok clients exist, PAUSED/DISABLE-first, dry-run; **no live write has ever run** (Business Verification / App Review / TikTok app all pending — `SERVE-ACCESS.md`). |
+| "their … outcome data are helping us improve the encoder" | **Still an overclaim** — the encoder is frozen; what improves per-brand is the calibration/rerank layer (`brand_calibration.py`). Say "improve our models' recommendations per client" instead. |
+| "$265B … 1% share is $2.5B+/year" | Market math, not a repo fact — fine as TAM framing; do not present the 20% margin and the 1%-of-flow number as the same model in one breath. |
+| "11 more companies … 21 partners", "6 of 10 requested again", "all 10 requested the full platform", "NextXI paid pilot ongoing" | **Sales facts — nothing in the repo evidences any of them.** The house rule (parent doc :21–33) requires these come from records you can produce (emails, CRM, signed pilot). `[NEEDS EVIDENCE — attach the list of 21, the 6 repeat requests, and the NextXI pilot terms before submission.]` |
+| "temporarily paused discussions with our paid pilot waitlist" | Consistent with the licence gate (pilots yes, invoices no) — safe to say, and the gate is the honest reason. |
+
+---
+
 ## SLOT DISCIPLINE — read this before you paste anything
 
 Every number that does not yet exist is written as **`[FILL: what the number is — where it comes

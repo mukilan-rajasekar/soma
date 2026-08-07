@@ -5,6 +5,21 @@ against two adversarial audits and a final verification pass, and folding in the
 Serve specification.
 **Author:** Mukilan Rajasekar
 
+> **PRICING SUPERSEDED — 2026-08-07.** The founder replaced the flat-fee model this
+> document argues for with a **bundled weekly price per campaign**: media spend across
+> the chosen networks plus a default 20% margin on serving costs, one all-inclusive
+> number, renewing weekly until paused (decision record and consequences:
+> `BUILD-PLAN-FULL-SERVICE.md` §0.5; implementation: migration `0016`,
+> `tools/serve/pricing.py`, `src/lib/pricing.ts`, `tools/serve/renewals.py`).
+> Consequences for THIS document: the sentence *"our fee never rises when your budget
+> rises"* is **retired** everywhere it appears (§0 lead, §1.5, §4.2, §8, closing); the
+> incentive-alignment argument it carried must be restated or conceded, not assumed; and
+> every derived number in §4.3 (the $12,000/$10,800 unit economics), §4.6 (the rebate
+> formula constants), and §5 (N-per-operator math) is `[NEEDS REWORK]` against the
+> bundled model. §4.2 below has been rewritten to the new decision; the surrounding
+> sections retain the superseded reasoning as argument history until re-derived — read
+> them as *why the old model was chosen*, not as what is being sold.
+
 **How to read the citations.** Repo claims carry `file:line`. External claims carry a URL, and a
 URL without a fetch date is a claim I have not re-checked for this revision. Anything I modelled
 rather than measured is marked `[ESTIMATE]`. Anything that needs a number nobody has yet is marked
@@ -736,21 +751,29 @@ a public rental rate; not measured on a production box.]`
 entire cost structure is human.** That is simultaneously the best and the worst fact about this
 business.
 
-### 4.2 The pricing model: flat, not a percentage of spend
+### 4.2 The pricing model: a bundled weekly price per campaign (superseded: flat fee)
 
-**Decision: Soma charges a flat monthly platform fee per managed brand, plus a per-asset fee per
-creative scored and per recut delivered. Media passes through at cost, paid by the client directly
-to the platform (§4.8). No component of Soma's fee *increases* with spend** — the single term that
-tracks spend at all is §4.6's holdout rebate, which is a credit against the fee and can only ever
-make Soma poorer as the client spends more.
+**Decision (founder, 2026-08-07, superseding the flat-fee decision below): the
+onboarding brief — reach, duration, platforms, goal — returns a single all-inclusive
+weekly price per campaign. That price bundles media spend across every chosen network
+plus Soma's margin, default 20% on serving costs. One number, one bill; the client
+never manages per-platform finances. Campaigns renew weekly until paused.** Implemented
+in migration `0016_campaign_pricing.sql` and `tools/serve/pricing.py` /
+`src/lib/pricing.ts` (parity-gated); renewals are scheduled by `tools/serve/renewals.py`
+and refuse to execute while the licence gate stands. The buyer-facing sentence is now:
+*"one weekly price, everything included, pause any time."*
 
-This is not a preference, it is the load-bearing structure of the argument in §1.3 Mechanism B and
-of the positioning sentence in §1.5. A percentage-of-spend fee — the 4–8% band the first draft
-proposed — has precisely the incentive gradient this document condemns in agencies and in
-Smartly: if the client doubles spend on a losing creative, the vendor's revenue doubles. **A
-document that leads with "we don't profit from your waste" and then bills on spend is a document
-that gets caught, and the strongest argument in the pitch becomes the moment the founders got
-caught.**
+**The superseded decision, kept as argument history.** The prior revision charged a flat
+monthly platform fee with media at cost, because a fee indexed to spend has the
+incentive gradient this document condemns in agencies: if the client doubles spend on a
+losing creative, the vendor's revenue doubles. That argument was real and it has a real
+cost now that the model is bundled — Soma's margin grows with managed spend, so the
+incentive-alignment claim in §1.3 Mechanism B and §1.5 **cannot be asserted in its old
+form and has been retired**. What can be said honestly instead: the client sees one
+number before committing, the holdout arm is still Soma-funded (§4.6), and the model's
+recommendations are still measured against a random control — alignment by
+*instrumentation*, not by fee structure. A pitch that quietly kept the old sentence on
+top of the new model is a pitch that gets caught.
 
 Note that flat pricing has precedent in the adjacent category: Motion, the creative-analytics
 incumbent, bills a flat monthly fee with a spend *tier boundary* rather than a spend *rate*.
