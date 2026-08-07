@@ -157,3 +157,52 @@ def test_reap_releases_then_fails_past_max_attempts():
     assert http.jobs["retry"]["claimed_at"] is None
     assert http.jobs["dead"]["status"] == "failed"
     assert "lost the job" in http.jobs["dead"]["error"]
+
+
+def test_execute_verify_requires_measured():
+    from tools.edit.run_rescore import execute_verify
+
+    plan = {"job_id": "j1", "cut_ids": ["c1"]}
+    ok = execute_verify(plan, runner=lambda _p: {"ok": True, "measured": True, "log": "ok"})
+    assert ok["status"] == "done"
+
+    no_measure = execute_verify(plan, runner=lambda _p: {"ok": True, "measured": False})
+    assert no_measure["status"] == "failed"
+    assert "did not measure" in no_measure["error"]
+
+    failed = execute_verify(plan, runner=lambda _p: {"ok": False, "error": "no gpu"})
+    assert failed["status"] == "failed"
+    assert failed["error"] == "no gpu"
+
+
+def test_workdir_verify_runner_fails_closed_without_renders(tmp_path):
+    from tools.edit.run_rescore import workdir_verify_runner
+
+    runner = workdir_verify_runner(tmp_path)
+    result = runner({"job_id": "missing", "ad_id": "ad"})
+    assert result["ok"] is False
+    assert result["measured"] is False
+    assert "no rendered" in result["error"]
+
+
+def test_workdir_verify_runner_marks_measured_when_verify_batch_succeeds(tmp_path, monkeypatch):
+    from tools.edit import run_rescore as mod
+
+    job_dir = tmp_path / "j1" / "rendered"
+    job_dir.mkdir(parents=True)
+    (job_dir / "cut_a.mp4").write_bytes(b"fake")
+
+    def fake_verify(files, out_dir, ad, rendered, *, manifest_meta=None):
+        assert len(files) == 1
+        for c, *_ in rendered:
+            c.measured = True
+
+    monkeypatch.setattr("tools.edit.search.verify_batch", fake_verify)
+    # Also patch the late import target used inside the runner.
+    import tools.edit.search as search_mod
+
+    monkeypatch.setattr(search_mod, "verify_batch", fake_verify)
+
+    result = mod.workdir_verify_runner(tmp_path)({"job_id": "j1", "ad_id": "ad"})
+    assert result["ok"] is True
+    assert result["measured"] is True

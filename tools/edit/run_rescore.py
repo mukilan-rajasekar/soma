@@ -239,6 +239,98 @@ def mark_failed(
     )
 
 
+def execute_verify(
+    plan: dict[str, Any],
+    *,
+    runner: Callable[[dict[str, Any]], dict[str, Any]],
+) -> dict[str, Any]:
+    """Run an injectable verify callback. measured=true is required to succeed.
+
+    The runner is the only place allowed to claim an encoder pass happened. Returning
+    ok without measured — or measured without ok — is treated as failure so a stub or
+    estimate path cannot mark the job done.
+    """
+    result = runner(plan)
+    if not isinstance(result, dict):
+        return {"status": "failed", "error": "verify runner returned a non-object"}
+    ok = bool(result.get("ok"))
+    measured = bool(result.get("measured"))
+    log = str(result.get("log") or "")
+    if not ok:
+        return {
+            "status": "failed",
+            "error": str(result.get("error") or "verify failed"),
+            "log": log,
+        }
+    if not measured:
+        return {
+            "status": "failed",
+            "error": "verify runner did not measure — refusing to mark the job done",
+            "log": log,
+        }
+    return {"status": "done", "log": log, "scores": result.get("scores")}
+
+
+def workdir_verify_runner(workdir: Path) -> Callable[[dict[str, Any]], dict[str, Any]]:
+    """Build a runner that re-scores rendered mp4s under workdir/<job_id>/ via verify_batch.
+
+    Layout expected on the scorer box (same shape ingest_partner_ad leaves behind):
+        <workdir>/<job_id>/rendered/*.mp4
+        <workdir>/<job_id>/ad.json   optional — id/title/brand for the manifest
+    Without rendered files the runner fails closed (no measured flag).
+    """
+
+    def _runner(plan: dict[str, Any]) -> dict[str, Any]:
+        job_id = str(plan.get("job_id") or "")
+        root = workdir / job_id
+        rendered_dir = root / "rendered"
+        files = sorted(rendered_dir.glob("*.mp4")) if rendered_dir.is_dir() else []
+        if not files:
+            return {
+                "ok": False,
+                "measured": False,
+                "error": f"no rendered mp4s under {rendered_dir}",
+            }
+
+        ad_path = root / "ad.json"
+        ad = {"id": plan.get("ad_id") or "ad", "title": plan.get("ad_id") or "ad"}
+        if ad_path.is_file():
+            try:
+                loaded = json.loads(ad_path.read_text(encoding="utf8"))
+                if isinstance(loaded, dict):
+                    ad.update(loaded)
+            except json.JSONDecodeError:
+                pass
+
+        # Import late so unit tests that never verify do not need the edit stack.
+        from tools.edit.search import verify_batch  # noqa: WPS433
+
+        class _Cand:
+            def __init__(self, label: str):
+                self.label = label
+                self.measured = False
+
+        rendered = [(_Cand(p.stem), p, 0.0, 0.0) for p in files]
+        # verify_batch prints and mutates measured on success; it returns None.
+        before = [c.measured for c, *_ in rendered]
+        verify_batch(files, root, ad, rendered)
+        after = [c.measured for c, *_ in rendered]
+        if not any(after) or after == before:
+            return {
+                "ok": False,
+                "measured": False,
+                "error": "verify_batch did not mark candidates measured (TRIBE stack missing?)",
+                "log": f"files={len(files)}",
+            }
+        return {
+            "ok": True,
+            "measured": True,
+            "log": f"verified {sum(1 for m in after if m)}/{len(after)} cuts under {root}",
+        }
+
+    return _runner
+
+
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Claim and plan (or reap) a rescore_jobs row.")
     p.add_argument("--reap-only", action="store_true", help="only reclaim stale processing rows")
@@ -252,7 +344,13 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--execute",
         action="store_true",
-        help="reserved: measured verify is not wired here yet (refuses)",
+        help="claim + run verify_batch on --workdir/<job_id>/rendered; marks done only if measured",
+    )
+    p.add_argument(
+        "--workdir",
+        type=Path,
+        default=None,
+        help="scorer-box directory containing <job_id>/rendered/*.mp4 (required with --execute)",
     )
     return p
 
@@ -269,15 +367,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    if args.execute:
-        print(
-            "run_rescore: --execute refuses until tools.edit.search --verify is wired "
-            "into this worker. Use --claim to take a job, verify on the box, then PATCH "
-            "status=done by hand — never mark measured without a GPU pass.",
-            file=sys.stderr,
-        )
-        return 1
-
     reaped = reap(
         base_url,
         key,
@@ -287,6 +376,35 @@ def main(argv: list[str] | None = None) -> int:
     if args.reap_only:
         print(json.dumps({"reaped": reaped}, indent=2, sort_keys=True))
         return 0
+
+    if args.execute:
+        if args.workdir is None:
+            print("run_rescore: --execute requires --workdir", file=sys.stderr)
+            return 1
+        job = claim_oldest_queued(base_url, key)
+        if job is None:
+            print(json.dumps({"claimed": None, "reaped": reaped}, indent=2, sort_keys=True))
+            return 0
+        planned = plan_job(job)
+        outcome = execute_verify(planned, runner=workdir_verify_runner(args.workdir))
+        if outcome["status"] == "done":
+            mark_done(base_url, key, str(job["id"]), run_log=str(outcome.get("log") or ""))
+        else:
+            mark_failed(
+                base_url,
+                key,
+                str(job["id"]),
+                str(outcome.get("error") or "verify failed"),
+                run_log=str(outcome.get("log") or ""),
+            )
+        print(
+            json.dumps(
+                {"claimed": planned, "outcome": outcome, "reaped": reaped},
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0 if outcome["status"] == "done" else 1
 
     if not args.claim:
         queued = list_queued(base_url, key, limit=1)
