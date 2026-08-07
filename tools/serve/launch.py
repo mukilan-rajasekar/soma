@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+"""
+launch.py - create paused Meta ads or activate an existing paused ad.
+
+Creation and activation are intentionally separate commands. `--create` never spends,
+because every object is created PAUSED. `--activate` checks the spend guard first and only
+then flips one external ad id to ACTIVE.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from tools.serve import guard
+from tools.serve.meta_client import MetaClient
+
+
+def create_from_spec(path: Path, *, dry_run: bool) -> dict[str, object]:
+    spec = json.loads(path.read_text(encoding="utf8"))
+    client = MetaClient(dry_run=dry_run)
+
+    campaign = client.create_campaign(**spec["campaign"])
+    adset = client.create_adset(**{**spec["adset"], "campaign_id": campaign["id"]})
+    started = client.start_video_upload()
+    video = client.finish_video_upload(
+        video_id=started["id"],
+        upload_url=started.get("upload_url") or started["url"],
+        file_url=spec["video_file_url"],
+    )
+    creative = client.create_adcreative(**{**spec["creative"], "video_id": video.get("id", started["id"])})
+    ad = client.create_ad(**{**spec["ad"], "adset_id": adset["id"], "creative_id": creative["id"]})
+    return {"campaign": campaign, "adset": adset, "video": video, "creative": creative, "ad": ad}
+
+
+def activate(external_ad_id: str, *, fixture: Path | None, dry_run: bool) -> dict[str, object]:
+    if fixture:
+        decision = guard.decision_from_fixture(fixture, external_ad_id=external_ad_id, mode="would_pause")
+        if not decision.ok:
+            raise RuntimeError(
+                f"Spend guard blocked activation: {decision.observed_spend_micros} >= {decision.cap_micros}"
+            )
+    else:
+        decision = guard.check_ok()
+
+    client = MetaClient(dry_run=dry_run)
+    result = client.set_ad_status(external_ad_id=external_ad_id, status="ACTIVE")
+    return {"guard": decision.__dict__, "activation": result}
+
+
+def parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description="Serve Meta launch helper.")
+    action = p.add_mutually_exclusive_group(required=True)
+    action.add_argument("--create", type=Path, help="JSON spec for paused create flow")
+    action.add_argument("--activate", help="external Meta ad id to activate after guard check")
+    p.add_argument("--guard-fixture", type=Path, help="offline spend/cap fixture for --activate")
+    p.add_argument("--dry-run", action="store_true", help="print Meta payloads without HTTP")
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parser().parse_args(argv)
+    try:
+        if args.create:
+            result = create_from_spec(args.create, dry_run=args.dry_run)
+        else:
+            result = activate(args.activate, fixture=args.guard_fixture, dry_run=args.dry_run)
+    except Exception as exc:
+        print(f"launch failed: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
