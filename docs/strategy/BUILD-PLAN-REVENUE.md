@@ -27,9 +27,10 @@ R4  gate 4: name fallback backbone WITH a cost in PLAN.md     (founder)
 R5  counsel: prepaid-week / money transmission / CC BY-NC      (calendar)
 R6  Stripe + invoice rows  (blocked on R4 + R5; do not start early)
 R7  Google as a priced platform (client exists 2026-08-07, dry-run; blocked on dev token + priced allocation)
+R8  trust surfaces: validation ledger, client report, spend statement, MER, lift, fatigue (engines shipped 2026-08-07)
 ```
 
-**R0–R2 shipped this pass.** R3 is optional (reach already stored in `reach_note`). R4–R7 are not engineering-first.
+**R0–R2 shipped this pass; R8 engines shipped 2026-08-07 (see below).** R3 is optional (reach already stored in `reach_note`). R4–R7 are not engineering-first.
 
 ---
 
@@ -216,6 +217,26 @@ Do not scaffold Stripe “just in case.” An unused Stripe integration is a sur
 looks like we can charge.
 
 ---
+
+## R8 — Trust surfaces (engines shipped 2026-08-07)
+
+COMPETITOR-GAPS §2.4 found the trust stack a bundled-spend platform must carry. The
+Python engines now exist, fixture-driven and floor-guarded, composing into one weekly
+client report:
+
+| Engine | What it refuses |
+|---|---|
+| `tools/serve/validation_report.py` — per-ad predicted-vs-actual ledger | any rho below MIN_PAIRS; pooling into training (reporting only, Policy 10.7 untouched) |
+| `tools/serve/client_report.py` — weekly narrative composed from artifacts | saying anything no artifact knows; hiding refusals |
+| `tools/serve/spend_statement.py` — billed vs delivered per platform | currency mismatches; the word "verified" (evidence is graded, not blessed) |
+| `tools/serve/revenue_feed.py` — blended MER + survey second witness | any feed not marked client-owned (self-graded homework) |
+| `tools/serve/lift_analyzer.py` — lift with CIs, nulls included | claims below conversion floors; laundering unregistered designs |
+| `tools/serve/fatigue.py` — creative decay flags | acting: it recommends refresh, never swaps (stop-not-start stands) |
+
+Dashboard surfaces (action feed with approve/reject, reports page) and migration
+`0017_serve_trust.sql` carry these to clients. Still not engineering: the revenue-feed
+and survey integrations need a real client's export, and third-party spend attestation
+is a named later step, not a claim we make early.
 
 ## R7 — Google as a priced platform
 
