@@ -23,8 +23,8 @@ export default async function NewCampaignPage() {
       {brands.length > 0 ? (
         <>
           <p className="mt-4 max-w-[58ch] text-pretty text-body text-ink-2">
-            Tell us where to run and what a week of media should spend. The number you get
-            back bundles the media across your platforms and our margin into a single
+            Tell us the goal, platforms, and reach. We recommend a weekly media amount;
+            the number you get back bundles that media and our margin into a single
             weekly price that renews until you pause it — no line items arriving later.
           </p>
           <div className="mt-11">

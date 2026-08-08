@@ -1,6 +1,8 @@
 # Competitors — how Soma is different (and where it's honestly better)
 
-*The single source of truth for competitive positioning. The live `/compare` page
+*The single source of truth for competitive positioning (signal source + rigor). Fee
+structures for agencies and automated ad platforms live in
+[`PRICING-COMPS.md`](PRICING-COMPS.md) — do not invent % of spend here. The live `/compare` page
 (`src/app/(site)/compare/page.tsx`), the pitch deck, and the YC-interview "why won't
 Realeyes just build it?" answer all draw from here — change positioning **here first**,
 then propagate.*

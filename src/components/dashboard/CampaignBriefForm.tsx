@@ -1,19 +1,19 @@
 "use client";
 
-// CampaignBriefForm — a short brief in, one weekly price out.
+// CampaignBriefForm — intent in, one weekly price out.
 //
 // THE PREVIEW AND THE SERVER PRICE THROUGH THE SAME MODULE (src/lib/pricing.ts), so the
-// number that updates as you type is the number that comes back on submit. The preview is
-// never the enforcement: the server rebuilds the spec, prices it again, and stores what it
-// priced — this copy exists so nobody commits to a number they have not seen move.
+// number that updates as you toggle is the number that comes back on submit. The preview
+// is never the enforcement: the server rebuilds the spec, prices it again, and stores
+// what it priced.
 //
-// THE FORM NEVER SENDS A MARGIN. The default margin is baked into the pricing module and
-// the route ignores anything else; the preview shows the margin line because hiding a
-// fifth of the price would be the wrong kind of simple.
+// DEFAULT PATH IS RECOMMENDED SPEND. Goal + platforms + reach produce weekly media via
+// recommendSpend(); quote() then adds the margin. "Custom weekly media" is a disclosure,
+// not the first field. The form never sends a margin — the default is baked in.
 
 import { useMemo, useState } from "react";
 
-import { quote, type Quote } from "@/lib/pricing";
+import { quote, recommendSpend, type Quote, type Reach } from "@/lib/pricing";
 
 type Phase = "idle" | "submitting" | "done" | "error";
 
@@ -23,6 +23,12 @@ const PLATFORM_OPTIONS = [
   { value: "meta", label: "Meta" },
   { value: "tiktok", label: "TikTok" },
 ] as const;
+
+const REACH_OPTIONS: { value: Reach; label: string; detail: string }[] = [
+  { value: "local", label: "Local", detail: "City or metro. Smaller media." },
+  { value: "national", label: "National", detail: "One country. The default scale." },
+  { value: "broad", label: "Broad", detail: "Multi-market or wide prospecting." },
+];
 
 const GOAL_OPTIONS = [
   {
@@ -49,26 +55,45 @@ const LABEL = "text-[12px] uppercase tracking-[0.07em] text-ink-3";
 export default function CampaignBriefForm({ brands }: { brands: BrandOption[] }) {
   const [brandId, setBrandId] = useState(brands[0]?.id ?? "");
   const [platforms, setPlatforms] = useState<string[]>(["meta"]);
-  const [budget, setBudget] = useState("");
+  const [reach, setReach] = useState<Reach>("national");
   const [goal, setGoal] = useState<string>("aggressive_conversions");
   const [duration, setDuration] = useState("");
+  const [customOpen, setCustomOpen] = useState(false);
+  const [budget, setBudget] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<Quote | null>(null);
 
   const busy = phase === "submitting";
 
-  const spendMicros = useMemo(() => {
-    const spend = Number(budget);
-    if (!Number.isFinite(spend) || spend <= 0) return null;
-    return Math.round(spend * 1_000_000);
-  }, [budget]);
-
   const durationWeeks = useMemo(() => {
     if (duration.trim() === "") return null;
     const weeks = Number(duration);
     return Number.isFinite(weeks) ? weeks : NaN;
   }, [duration]);
+
+  const recommended = useMemo(() => {
+    if (Number.isNaN(durationWeeks)) return null;
+    try {
+      return recommendSpend({
+        platforms,
+        goal,
+        reach,
+        duration_weeks: durationWeeks,
+      });
+    } catch {
+      return null;
+    }
+  }, [platforms, goal, reach, durationWeeks]);
+
+  const customMicros = useMemo(() => {
+    if (!customOpen) return null;
+    const spend = Number(budget);
+    if (!Number.isFinite(spend) || spend <= 0) return null;
+    return Math.round(spend * 1_000_000);
+  }, [customOpen, budget]);
+
+  const spendMicros = customOpen ? customMicros : (recommended?.weekly_spend_micros ?? null);
 
   // Live preview, recomputed as the form changes. An unfinished form is not an error —
   // the preview simply waits, so nothing renders until quote() has a real answer.
@@ -93,7 +118,7 @@ export default function CampaignBriefForm({ brands }: { brands: BrandOption[] })
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (busy || !preview || !brandId) return;
+    if (busy || !preview || !brandId || spendMicros === null) return;
     setMessage("");
     setPhase("submitting");
 
@@ -107,6 +132,7 @@ export default function CampaignBriefForm({ brands }: { brands: BrandOption[] })
           weekly_spend_micros: spendMicros,
           goal,
           duration_weeks: durationWeeks,
+          reach_note: reach,
         }),
       });
       const body = await res.json().catch(() => null);
@@ -198,45 +224,6 @@ export default function CampaignBriefForm({ brands }: { brands: BrandOption[] })
       )}
 
       <fieldset className="flex flex-col">
-        <legend className={LABEL}>Platforms</legend>
-        <div className="mt-2 flex flex-wrap gap-3">
-          {PLATFORM_OPTIONS.map((p) => (
-            <label
-              key={p.value}
-              className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-line-2 bg-paper px-4 py-3 text-ui text-ink transition-colors has-checked:border-ink"
-            >
-              <input
-                type="checkbox"
-                checked={platforms.includes(p.value)}
-                onChange={() => togglePlatform(p.value)}
-                disabled={busy}
-                className="h-4 w-4 accent-ink"
-              />
-              {p.label}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <label className="flex flex-col">
-        <span className={LABEL}>Weekly media budget (USD)</span>
-        <input
-          type="number"
-          inputMode="decimal"
-          min={1}
-          step="any"
-          value={budget}
-          onChange={(e) => setBudget(e.target.value)}
-          disabled={busy}
-          placeholder="500"
-          className="mt-2 rounded-xl border border-line-2 bg-paper px-[15px] py-[13px] text-ui tabular-nums text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-ink disabled:opacity-60"
-        />
-        <span className="mt-1.5 text-meta text-ink-3">
-          What the media itself should spend in a week, before our margin.
-        </span>
-      </label>
-
-      <fieldset className="flex flex-col">
         <legend className={LABEL}>Goal</legend>
         <div className="mt-2 flex flex-col gap-3">
           {GOAL_OPTIONS.map((g) => (
@@ -262,6 +249,53 @@ export default function CampaignBriefForm({ brands }: { brands: BrandOption[] })
         </div>
       </fieldset>
 
+      <fieldset className="flex flex-col">
+        <legend className={LABEL}>Platforms</legend>
+        <div className="mt-2 flex flex-wrap gap-3">
+          {PLATFORM_OPTIONS.map((p) => (
+            <label
+              key={p.value}
+              className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-line-2 bg-paper px-4 py-3 text-ui text-ink transition-colors has-checked:border-ink"
+            >
+              <input
+                type="checkbox"
+                checked={platforms.includes(p.value)}
+                onChange={() => togglePlatform(p.value)}
+                disabled={busy}
+                className="h-4 w-4 accent-ink"
+              />
+              {p.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="flex flex-col">
+        <legend className={LABEL}>Reach</legend>
+        <div className="mt-2 flex flex-col gap-3">
+          {REACH_OPTIONS.map((r) => (
+            <label
+              key={r.value}
+              className="flex cursor-pointer items-start gap-3 rounded-xl border border-line-2 bg-paper px-4 py-3 transition-colors has-checked:border-ink"
+            >
+              <input
+                type="radio"
+                name="reach"
+                value={r.value}
+                checked={reach === r.value}
+                onChange={() => setReach(r.value)}
+                disabled={busy}
+                className="mt-1 h-4 w-4 accent-ink"
+              />
+              <span>
+                <span className="block text-ui text-ink">{r.label}</span>
+                <span className="mt-0.5 block text-meta text-ink-3">{r.detail}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
       <label className="flex flex-col">
         <span className={LABEL}>Duration in weeks (optional)</span>
         <input
@@ -276,6 +310,44 @@ export default function CampaignBriefForm({ brands }: { brands: BrandOption[] })
           className="mt-2 rounded-xl border border-line-2 bg-paper px-[15px] py-[13px] text-ui tabular-nums text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-ink disabled:opacity-60"
         />
       </label>
+
+      <div className="flex flex-col">
+        <button
+          type="button"
+          onClick={() => {
+            setCustomOpen((open) => !open);
+            if (customOpen) setBudget("");
+          }}
+          disabled={busy}
+          className="cursor-pointer self-start text-meta text-ink-3 underline-offset-2 hover:text-ink hover:underline disabled:opacity-60"
+        >
+          {customOpen ? "Use the recommended weekly media" : "Set a custom weekly media amount"}
+        </button>
+        {customOpen ? (
+          <label className="mt-3 flex flex-col">
+            <span className={LABEL}>Weekly media budget (USD)</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={1}
+              step="any"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              disabled={busy}
+              placeholder="500"
+              className="mt-2 rounded-xl border border-line-2 bg-paper px-[15px] py-[13px] text-ui tabular-nums text-ink outline-none transition-colors placeholder:text-ink-3 focus:border-ink disabled:opacity-60"
+            />
+            <span className="mt-1.5 text-meta text-ink-3">
+              What the media itself should spend in a week, before our margin.
+            </span>
+          </label>
+        ) : recommended ? (
+          <p className="mt-2 text-meta text-ink-3">
+            Recommended media: {dollars(recommended.weekly_spend_micros)} / week from your
+            goal, platforms, and reach.
+          </p>
+        ) : null}
+      </div>
 
       {preview ? (
         <div className="rounded-2xl border border-line bg-fill p-5">
