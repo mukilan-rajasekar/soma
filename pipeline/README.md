@@ -89,7 +89,7 @@ Canonical customer scorer: **`demo/process_batch.py`**.
 | `tools/capture/*` | `/run` honesty recorder | Live |
 | `tools/demo/*` | Marketing report build + claim/coherence gates | Live |
 | `tools/readout/windows.py` | Window finder (Stage 2) | Library + tests; scorer still inlines weak spots — see `tools/readout/README.md` |
-| `tools/serve/*` | Outcomes CSV, Meta PAUSED client, guards, calibration | Scaffold (see `docs/strategy/SERVE-ACCESS.md`) |
+| `tools/serve/*` | Outcomes CSV, Meta PAUSED client, guards, calibration, **pricing** (`pricing.py` is canonical weekly quote) | Scaffold + pricing engine (see `docs/strategy/SERVE-ACCESS.md`, `BUILD-PLAN-REVENUE.md`) |
 | `scripts/ingest_partner_ad.py` | One ad → dashboard rows | Concierge |
 | `scripts/stage1_tiktok_dryrun.py` | Stage 1 readiness printer | No GPU claim without arcs |
 

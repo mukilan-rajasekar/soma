@@ -3,8 +3,9 @@
 // The onboarding flow computes a quote at request time, and spawning Python for
 // arithmetic would be absurd — so the math lives twice, and the only reason that is
 // tolerable is scripts/check-pricing-parity.mts: verify recomputes the committed corpus
-// (tools/serve/fixtures/pricing_cases.json) through this file and fails on any drift.
-// Change constants or math here AND in pricing.py, regenerate the corpus, same commit.
+// (tools/serve/fixtures/pricing_cases.json and recommend_cases.json) through this
+// file and fails on any drift. Change constants or math here AND in pricing.py,
+// regenerate both corpora, same commit.
 //
 // Integer discipline matches the Python side exactly: the platform split hands out
 // whole micros with a deterministic remainder, and the margin is ceil'd in BigInt so
@@ -14,9 +15,20 @@
 export const MARGIN_PCT_DEFAULT = 20;
 export const MARGIN_PCT_MAX = 50;
 export const PLATFORMS = ["meta", "tiktok"] as const;
+export const REACH = ["local", "national", "broad"] as const;
 
 export type Platform = (typeof PLATFORMS)[number];
 export type Goal = "aggressive_conversions" | "low_cost_testing";
+export type Reach = (typeof REACH)[number];
+
+export const REACH_MULT_BP: Record<Reach, number> = { local: 60, national: 100, broad: 160 };
+export const BASE_MEDIA_MICROS: Record<Goal, number> = {
+  aggressive_conversions: 1_250_000_000,
+  low_cost_testing: 500_000_000,
+};
+export const PLATFORM_EXTRA_BP = 25;
+export const SHORT_TEST_WEEKS = 2;
+export const SHORT_TEST_MULT_BP = 85;
 
 export const PLAYBOOKS: Record<Goal, Record<string, unknown>> = {
   aggressive_conversions: {
@@ -44,6 +56,25 @@ export type QuoteSpec = {
   margin_pct?: number;
   currency?: string;
   duration_weeks?: number | null;
+};
+
+export type RecommendSpec = {
+  platforms: string[];
+  goal: string;
+  reach: string;
+  duration_weeks?: number | null;
+};
+
+export type Recommend = {
+  goal: Goal;
+  platforms: string[];
+  reach: Reach;
+  duration_weeks: number | null;
+  weekly_spend_micros: number;
+  base_media_micros: number;
+  platform_mult_bp: number;
+  reach_mult_bp: number;
+  duration_mult_bp: number;
 };
 
 export type Quote = {
@@ -106,5 +137,46 @@ export function quote(spec: QuoteSpec): Quote {
     duration_weeks: durationWeeks === null ? null : Math.trunc(durationWeeks),
     renews: "weekly_until_paused",
     billing_note: BILLING_NOTE,
+  };
+}
+
+export function recommendSpend(spec: RecommendSpec): Recommend {
+  const platforms = spec.platforms ?? [];
+  const goal = spec.goal ?? "";
+  const reach = spec.reach ?? "";
+  const durationWeeks = spec.duration_weeks ?? null;
+
+  if (platforms.length === 0) throw new Error("pick at least one platform");
+  if (new Set(platforms).size !== platforms.length) throw new Error("duplicate platform in brief");
+  const unknown = platforms.filter((p) => !(PLATFORMS as readonly string[]).includes(p));
+  if (unknown.length > 0)
+    throw new Error(`unknown platform(s) ${JSON.stringify(unknown)}; have ${JSON.stringify([...PLATFORMS])}`);
+  if (!(goal in PLAYBOOKS)) throw new Error(`unknown goal ${JSON.stringify(goal)}`);
+  if (!(REACH as readonly string[]).includes(reach))
+    throw new Error(`unknown reach ${JSON.stringify(reach)}; have ${JSON.stringify([...REACH])}`);
+  if (durationWeeks !== null && Math.trunc(durationWeeks) < 1)
+    throw new Error("duration_weeks must be at least 1 when given");
+
+  const base = BASE_MEDIA_MICROS[goal as Goal];
+  const platformBp = 100 + PLATFORM_EXTRA_BP * (platforms.length - 1);
+  const reachBp = REACH_MULT_BP[reach as Reach];
+  const durationBp =
+    durationWeeks !== null && Math.trunc(durationWeeks) <= SHORT_TEST_WEEKS ? SHORT_TEST_MULT_BP : 100;
+
+  const baseDollars = Math.trunc(base / 1_000_000);
+  const numerator = BigInt(baseDollars) * BigInt(platformBp) * BigInt(reachBp) * BigInt(durationBp);
+  const dollars = Number((numerator + BigInt(500_000)) / BigInt(1_000_000));
+  if (dollars < 1) throw new Error("recommended weekly media rounded to zero; refuse to quote");
+
+  return {
+    goal: goal as Goal,
+    platforms: [...platforms],
+    reach: reach as Reach,
+    duration_weeks: durationWeeks === null ? null : Math.trunc(durationWeeks),
+    weekly_spend_micros: dollars * 1_000_000,
+    base_media_micros: base,
+    platform_mult_bp: platformBp,
+    reach_mult_bp: reachBp,
+    duration_mult_bp: durationBp,
   };
 }

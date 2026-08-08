@@ -19,9 +19,16 @@ import pytest
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from tools.serve.pricing import MARGIN_PCT_DEFAULT, cases, quote  # noqa: E402
+from tools.serve.pricing import (  # noqa: E402
+    MARGIN_PCT_DEFAULT,
+    cases,
+    quote,
+    recommend_cases,
+    recommend_spend,
+)
 
 FIXTURE = ROOT / "tools" / "serve" / "fixtures" / "pricing_cases.json"
+RECOMMEND_FIXTURE = ROOT / "tools" / "serve" / "fixtures" / "recommend_cases.json"
 
 
 def test_price_identity_and_split_conservation():
@@ -102,3 +109,53 @@ def test_funded_caps_refuse_an_empty_split():
 
     with _pytest.raises(ValueError, match="no platform split"):
         funded_caps({"platforms": [], "weekly_spend_micros": 0})
+
+
+def test_recommend_psychological_pair():
+    # National + one platform + default 20% → $1,500 / $600 all-in.
+    conversion = recommend_spend(
+        {"platforms": ["meta"], "goal": "aggressive_conversions", "reach": "national"}
+    )
+    testing = recommend_spend({"platforms": ["meta"], "goal": "low_cost_testing", "reach": "national"})
+    assert conversion["weekly_spend_micros"] == 1_250_000_000
+    assert testing["weekly_spend_micros"] == 500_000_000
+    assert quote({**conversion, "weekly_spend_micros": conversion["weekly_spend_micros"]})[
+        "weekly_price_micros"
+    ] == 1_500_000_000
+    assert quote({**testing, "weekly_spend_micros": testing["weekly_spend_micros"]})[
+        "weekly_price_micros"
+    ] == 600_000_000
+
+
+def test_recommend_rounds_half_up_to_the_dollar():
+    # 1250 × 1.25 (two platforms) = 1562.50 → $1,563 media.
+    rec = recommend_spend(
+        {"platforms": ["meta", "tiktok"], "goal": "aggressive_conversions", "reach": "national"}
+    )
+    assert rec["weekly_spend_micros"] == 1_563_000_000
+
+
+def test_recommend_refusals():
+    good = {"platforms": ["meta"], "goal": "low_cost_testing", "reach": "national"}
+    with pytest.raises(ValueError, match="at least one platform"):
+        recommend_spend({**good, "platforms": []})
+    with pytest.raises(ValueError, match="unknown platform"):
+        recommend_spend({**good, "platforms": ["google"]})
+    with pytest.raises(ValueError, match="unknown reach"):
+        recommend_spend({**good, "reach": "global"})
+    with pytest.raises(ValueError, match="unknown goal"):
+        recommend_spend({**good, "goal": "vibes"})
+    with pytest.raises(ValueError, match="duration_weeks"):
+        recommend_spend({**good, "duration_weeks": 0})
+
+
+def test_committed_recommend_corpus_matches_the_engine():
+    assert RECOMMEND_FIXTURE.exists(), (
+        "regenerate with: tools/serve/pricing.py --recommend-cases --out "
+        + str(RECOMMEND_FIXTURE.relative_to(ROOT))
+    )
+    committed = json.loads(RECOMMEND_FIXTURE.read_text(encoding="utf8"))
+    assert committed == recommend_cases(), (
+        "fixtures/recommend_cases.json drifted from pricing.recommend_cases(); "
+        "regenerate it and update src/lib/pricing.ts in the same commit"
+    )
