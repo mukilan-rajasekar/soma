@@ -168,6 +168,15 @@ detection/rotation; catalog/feed ads; competitor ad-library intelligence; automa
 rules; budget-allocation intelligence; landing pages (open ground); partner badges +
 case studies + free-audit funnel; SOC 2 when mid-market knocks.
 
+**Movement since research date (2026-08-07, same day):** the trust-stack engines shipped
+(BUILD-PLAN-REVENUE R8): predicted-vs-actual ledger, client-report composer, spend
+statement, client-owned MER + survey witness, lift analyzer with nulls, fatigue flags —
+plus the approval-feed and reports dashboard surfaces. Grades moved accordingly: §2.3
+narrative report GAP→PARTIAL, §2.2 fatigue GAP→PARTIAL, recommendation-feed
+PARTIAL→surface built; §2.4 MER/survey/incrementality/spend-attestation GAP→PARTIAL
+(engines exist; live feeds, studies, and attestation still pending). §1's open flank #1
+now has its machine; what remains is real serving data flowing through it.
+
 **Standing constraint (the Marin lesson):** any quarter spent building only the
 workflow layer — rules, dashboards, connectors — while signal and creative stand still
 is a quarter spent becoming Marin.

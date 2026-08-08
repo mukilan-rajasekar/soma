@@ -157,6 +157,35 @@ export type CampaignSubscription = {
   createdAt: string;
 };
 
+/** One report the serve pipeline wrote (migration 0017). The payload is stored and
+ *  served verbatim — a trust surface re-renders what the operator tooling produced, it
+ *  never summarises it. kind stays an open union for the same reason as ServeJob. */
+export type ServeReport = {
+  id: string;
+  brandId: string | null;
+  kind: "cycle" | "client_report" | "validation" | "spend_statement" | string;
+  periodLabel: string | null;
+  payload: Record<string, unknown>;
+  createdAt: string;
+};
+
+/** One advisory decision on a planned action (migration 0017). Advisory is the load-
+ *  bearing word: recording a row here changes nothing on any platform — execution
+ *  happens through the operator CLI (launch.py / autopilot), never from the dashboard. */
+export type ServeActionApproval = {
+  id: string;
+  reportId: string;
+  actionKey: string;
+  decision: "approved" | "rejected" | string;
+  decidedBy: string;
+  createdAt: string;
+};
+
+export type LatestCycleReport = {
+  report: ServeReport;
+  approvals: ServeActionApproval[];
+};
+
 const BRAND_COLUMNS =
   "id, name, training_consent, training_consent_source, training_consent_at, created_at";
 
@@ -181,6 +210,11 @@ const CAMPAIGN_BRIEF_COLUMNS = "id, platforms, goal";
 
 const CAMPAIGN_SUBSCRIPTION_COLUMNS =
   "id, quote_id, status, weekly_price_micros, currency, current_period_start, current_period_end, renewals, created_at";
+
+const SERVE_REPORT_COLUMNS = "id, brand_id, kind, period_label, payload, created_at";
+
+const SERVE_ACTION_APPROVAL_COLUMNS =
+  "id, report_id, action_key, decision, decided_by, created_at";
 
 type BrandRow = {
   id: string;
@@ -305,6 +339,24 @@ type CampaignSubscriptionRow = {
   current_period_start: string;
   current_period_end: string;
   renewals: number;
+  created_at: string;
+};
+
+type ServeReportRow = {
+  id: string;
+  brand_id: string | null;
+  kind: string;
+  period_label: string | null;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+};
+
+type ServeActionApprovalRow = {
+  id: string;
+  report_id: string;
+  action_key: string;
+  decision: string;
+  decided_by: string;
   created_at: string;
 };
 
@@ -778,4 +830,85 @@ export async function listCampaignSubscriptionsForBrand(
     renewals: row.renewals,
     createdAt: row.created_at,
   }));
+}
+
+function serveReportFrom(row: ServeReportRow): ServeReport {
+  return {
+    id: row.id,
+    brandId: row.brand_id,
+    kind: row.kind,
+    periodLabel: row.period_label,
+    payload: row.payload ?? {},
+    createdAt: row.created_at,
+  };
+}
+
+function approvalFrom(row: ServeActionApprovalRow): ServeActionApproval {
+  return {
+    id: row.id,
+    reportId: row.report_id,
+    actionKey: row.action_key,
+    decision: row.decision,
+    decidedBy: row.decided_by,
+    createdAt: row.created_at,
+  };
+}
+
+/** The newest cycle report visible to the user across their brands, with every advisory
+ *  decision already recorded against it. Reads through the session client, so RLS — not
+ *  the brandIds argument — is the boundary; the .in() only keeps the query honest about
+ *  which brands the page asked for. Null when no cycle has been written yet, which the
+ *  page renders as its empty state rather than an error. */
+export async function loadLatestCycleReport(
+  brandIds: string[],
+): Promise<LatestCycleReport | null> {
+  if (brandIds.length === 0) return null;
+
+  const supabase = await sessionClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("serve_reports")
+    .select(SERVE_REPORT_COLUMNS)
+    .eq("kind", "cycle")
+    .in("brand_id", brandIds)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const report = serveReportFrom(data as ServeReportRow);
+
+  const { data: approvalData, error: approvalError } = await supabase
+    .from("serve_action_approvals")
+    .select(SERVE_ACTION_APPROVAL_COLUMNS)
+    .eq("report_id", report.id)
+    .order("created_at", { ascending: true });
+
+  const approvals =
+    !approvalError && approvalData
+      ? (approvalData as ServeActionApprovalRow[]).map(approvalFrom)
+      : [];
+
+  return { report, approvals };
+}
+
+/** Client reports across the user's brands, newest first. Same posture as the cycle
+ *  loader: the payload comes back verbatim for the page to render, and an empty list is
+ *  the ordinary state before the first report lands, not a failure. */
+export async function loadClientReports(brandIds: string[]): Promise<ServeReport[]> {
+  if (brandIds.length === 0) return [];
+
+  const supabase = await sessionClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("serve_reports")
+    .select(SERVE_REPORT_COLUMNS)
+    .eq("kind", "client_report")
+    .in("brand_id", brandIds)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as ServeReportRow[]).map(serveReportFrom);
 }
