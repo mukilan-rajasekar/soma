@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.serve import guard
+from tools.serve.google_ads_client import GoogleAdsClient
 from tools.serve.meta_client import MetaClient
 from tools.serve.pricing import funded_caps
 from tools.serve.tiktok_client import TikTokClient
@@ -27,6 +28,8 @@ from tools.serve.tiktok_client import TikTokClient
 def _client(platform: str, *, dry_run: bool):
     if platform == "tiktok":
         return TikTokClient(dry_run=dry_run)
+    if platform == "google":
+        return GoogleAdsClient(dry_run=dry_run)
     return MetaClient(dry_run=dry_run)
 
 
@@ -42,6 +45,21 @@ def create_from_spec(path: Path, *, dry_run: bool, platform: str = "meta") -> di
         video = client.upload_video(video_url=spec["video_file_url"])
         ad = client.create_ad(**{**spec["ad"], "adgroup_id": adgroup["id"], "video_id": video["id"]})
         return {"campaign": campaign, "adgroup": adgroup, "video": video, "ad": ad}
+
+    if platform == "google":
+        # Google has no upload step: the video already lives on YouTube, so the
+        # creative chain is budget -> campaign -> asset -> ad group -> ad, all PAUSED.
+        client = GoogleAdsClient(dry_run=dry_run)
+        budget = client.create_campaign_budget(**spec["budget"])
+        campaign = client.create_campaign(**{**spec["campaign"], "budget_id": budget["id"]})
+        asset = client.create_video_asset(
+            name=spec["ad"]["name"], youtube_video_id=spec["youtube_video_id"]
+        )
+        ad_group = client.create_ad_group(**{**spec["ad_group"], "campaign_id": campaign["id"]})
+        ad = client.create_ad(
+            **{**spec["ad"], "ad_group_id": ad_group["id"], "video_asset_id": asset["id"]}
+        )
+        return {"budget": budget, "campaign": campaign, "asset": asset, "ad_group": ad_group, "ad": ad}
 
     client = MetaClient(dry_run=dry_run)
 
@@ -150,7 +168,7 @@ def parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--platform",
-        choices=("meta", "tiktok"),
+        choices=("meta", "tiktok", "google"),
         default="meta",
         help="ad network to write against (creates stay PAUSED/DISABLE either way)",
     )

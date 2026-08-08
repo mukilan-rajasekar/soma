@@ -441,6 +441,13 @@ judgment that recurring revenue tied to managed spend is the business.
 the accepted-quote → funded-campaign flow are founder/finance decisions not invented
 here.]`
 
+**Market context (researched 2026-08-07):** `docs/GTM/PRICING-LANDSCAPE.md` — how
+incumbent agencies and the AI-native pack price, why 20%-of-spend is normal-to-cheap at
+Soma's weekly tier but high above ~$20k/month spend, why nobody else bundles media with
+a *disclosed* margin, and the six objections (ANA principal-media critique, gross-vs-net,
+verifiability, lock-in, incentive gradient, flat-fee SaaS anchoring) to prepare answers
+for before any pricing page ships.
+
 ### 0.6 The media-principal structure: the prepaid week
 
 The bundled price (§0.5's superseded-decision record) makes the old client-owned,
@@ -2064,6 +2071,18 @@ was computed after the fact is not a propensity.
 This is also where the loop can go wrong fastest: each generation conditions on the
 previous one's outcome, so without the stochastic draw of §6.3 the corpus collapses onto
 the model's own prior within a few rounds.
+
+**Built 2026-08-07 — the cycle entry point.** `tools/serve/autopilot.py` is the spinal
+cord for the organs above: one spec in, one cycle report out, running every stage it has
+inputs for (ab evaluate → guard would-pause → brand calibration fit/rerank →
+propose_next → renewals tick). Its safety invariant is asymmetric on purpose: autopilot
+may **stop** spend unattended (pause a losing arm, pause a cap breach) but has no
+activation path at all — winners come back as referrals to `launch.py --activate
+--funded-quote` (§0.6), and `test_serve_autopilot.py` pins that no client is ever asked
+for ACTIVE. Renewal execution honors the licence gate as a recorded refusal rather than
+a crash, so an unattended cycle completes and says what it could not do. This does not
+discharge §6.3's stochastic-draw requirement; it is the place that requirement will be
+enforced when generation-n+1 proposals start flowing through it.
 
 ### 6.5 What "live training" may mean
 

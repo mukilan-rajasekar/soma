@@ -11,6 +11,7 @@ access and legal gates only; it is not evidence that Serve is live.
 | Full-tier heartbeat | yes | no | `tools/serve/heartbeat.py` exists; production timer and credentials still need setup. |
 | App Review for write access | yes | no | Required before Soma creates or edits ads through the API. |
 | TikTok developer app + Marketing API access | yes | no | `tools/serve/tiktok_client.py` exists (dry-run only, DISABLE-first); endpoint shapes must be re-verified against the sandbox when access lands. |
+| Google Ads developer token + OAuth | yes | no | `tools/serve/google_ads_client.py` exists (dry-run only, PAUSED-first); shapes must be re-verified against a test account when the token lands. `pricing.PLATFORMS` does not include google yet, so funded activation refuses for this platform by design. |
 | Counsel: prepaid-week media structure | yes | no | §0.6 decided the structure (prepaid, funded-media caps via `pricing.funded_caps()`, disclosed margin); counsel still owns gross-vs-net, money transmission, and platform ToS on managed spend. Same pass as the licence question. |
 
 **Founder direction, 2026-08-07 (recorded, not yet a gate resolution):** the encoder is
