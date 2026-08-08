@@ -2,7 +2,10 @@
 
 *The single source of truth for competitive positioning (signal source + rigor). Fee
 structures for agencies and automated ad platforms live in
-[`PRICING-COMPS.md`](PRICING-COMPS.md) — do not invent % of spend here. The live `/compare` page
+[`PRICING-COMPS.md`](PRICING-COMPS.md) — do not invent % of spend here. Capability
+gaps against the full-service pool (Smartly/Hunch/Skai, the AI-native pack, human
+agencies) live in [`COMPETITOR-GAPS.md`](COMPETITOR-GAPS.md) — researched 2026-08-07,
+including who else now claims pre-flight scoring. The live `/compare` page
 (`src/app/(site)/compare/page.tsx`), the pitch deck, and the YC-interview "why won't
 Realeyes just build it?" answer all draw from here — change positioning **here first**,
 then propagate.*
