@@ -14,6 +14,7 @@ Cold agents: read this block before grepping. Full index: [`docs/INDEX.md`](docs
 |---|---|
 | What the repo is / how to run | [`README.md`](README.md) |
 | **What to build next (product)** | [`docs/strategy/BUILD-PLAN-FULL-SERVICE.md`](docs/strategy/BUILD-PLAN-FULL-SERVICE.md) (living A→I→S plan) |
+| **Revenue / weekly pricing** | [`docs/strategy/BUILD-PLAN-REVENUE.md`](docs/strategy/BUILD-PLAN-REVENUE.md) |
 | Science / GTM spine (Jul 30) | [`docs/strategy/PLAN.md`](docs/strategy/PLAN.md) — still valid for Tracks A/C; Serve destination is the BUILD-PLAN |
 | Architecture (site / box / DB) | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Canonical scorer | `demo/process_batch.py` (do not invent a second batch scorer) |

@@ -10,6 +10,8 @@ One map for humans and agents. If two docs disagree, this file picks the winner.
 4. **What to build next (product):**
    [`strategy/BUILD-PLAN-FULL-SERVICE.md`](strategy/BUILD-PLAN-FULL-SERVICE.md)
    (Analyze → Improve → Serve, staged S0–S6).
+   **Revenue / pricing:** [`strategy/BUILD-PLAN-REVENUE.md`](strategy/BUILD-PLAN-REVENUE.md)
+   (bundled weekly price, onboarding tiers, invoice gates).
 5. Ship gate: `../scripts/verify.sh` (`npm run verify`).
 
 ## Living vs historical
@@ -17,6 +19,8 @@ One map for humans and agents. If two docs disagree, this file picks the winner.
 | Doc | Status | Use for |
 |---|---|---|
 | `strategy/BUILD-PLAN-FULL-SERVICE.md` | **Living product engineering plan** | Stages, schemas, Serve path |
+| `strategy/BUILD-PLAN-REVENUE.md` | **Living commercial / pricing plan** | Weekly bundled price, onboarding, invoice boundary |
+| `strategy/PRICING-COMPS.md` | Living comps appendix (dated fetches) | Agency + automated-platform fee structures |
 | `strategy/STRATEGY-FULL-SERVICE.md` | Living strategy companion | Business / flywheel argument |
 | `strategy/SERVE-ACCESS.md` | Living checklist | Meta / legal access gates (all Pending until marked Done) |
 | `strategy/PLAN.md` | Living for science + GTM Tracks A/C (2026-07-30) | GPU backtest, partners, narrative honesty |
@@ -50,7 +54,7 @@ Default marketing page = `src/components/demo2/DemoScrollPage.tsx`.
 - `strategy/VISION.md` — north star pitch + honesty ladder
 - `strategy/PRODUCT.md` — users, purpose, disclosure rules (see claims policy below)
 - `strategy/ROADMAP.md` — science rungs
-- `strategy/COMPETITORS.md`, `OPPORTUNITIES.md`
+- `strategy/COMPETITORS.md`, `OPPORTUNITIES.md`, `PRICING-COMPS.md`
 - `strategy/STRATEGY-PROPRIETARY-MODEL.md` — encoder licence / fallback
 - `GTM/YC-APPLICATION.md`, `GTM/YC-UPDATE-FULL-SERVICE.md`
 

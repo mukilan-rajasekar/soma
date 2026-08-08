@@ -237,6 +237,7 @@ as "validated."
 Start at [`docs/INDEX.md`](docs/INDEX.md). Short map:
 
 - **What to build next (product):** `docs/strategy/BUILD-PLAN-FULL-SERVICE.md`
+- **Revenue / weekly pricing:** `docs/strategy/BUILD-PLAN-REVENUE.md`
 - **Science / GTM spine:** `docs/strategy/PLAN.md`
 - **Architecture:** `docs/ARCHITECTURE.md`
 - **Python roles:** `pipeline/README.md`

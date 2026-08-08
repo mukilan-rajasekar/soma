@@ -15,9 +15,9 @@ Second, a quote is not an invoice: nothing here bills anyone, and the renewal pa
 
 src/lib/pricing.ts mirrors this math for the onboarding flow, and
 scripts/check-pricing-parity.mts (wired into verify) recomputes the committed cases in
-fixtures/pricing_cases.json through the TS mirror and fails on any drift. Change the
-constants or the math in BOTH places, regenerate the fixture with --cases, or the gate
-says no.
+fixtures/pricing_cases.json and fixtures/recommend_cases.json through the TS mirror and
+fails on any drift. Change the constants or the math in BOTH places, regenerate with
+--cases / --recommend-cases, or the gate says no.
 """
 
 from __future__ import annotations
@@ -53,6 +53,21 @@ BILLING_NOTE = (
     "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 "
     "(tools/serve/check_licence_gate.py)"
 )
+
+# Onboarding recommends weekly MEDIA (not price) from intent. Bases are dollars of
+# media; quote() then adds the margin. National + one platform + default 20% is the
+# psychological pair: conversion push → $1,500/week all-in, testing → $600/week.
+# Multipliers are integer basis points so Python and the TS mirror cannot disagree
+# on a half-dollar. See BUILD-PLAN-REVENUE.md R2.
+REACH = ("local", "national", "broad")
+REACH_MULT_BP = {"local": 60, "national": 100, "broad": 160}
+BASE_MEDIA_MICROS = {
+    "aggressive_conversions": 1_250_000_000,  # $1,250 / week media
+    "low_cost_testing": 500_000_000,  # $500 / week media
+}
+PLATFORM_EXTRA_BP = 25  # +0.25× per network after the first
+SHORT_TEST_WEEKS = 2
+SHORT_TEST_MULT_BP = 85  # 0.85× when duration_weeks ≤ SHORT_TEST_WEEKS
 
 
 def quote(spec: dict[str, Any]) -> dict[str, Any]:
@@ -107,6 +122,63 @@ def quote(spec: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def recommend_spend(spec: dict[str, Any]) -> dict[str, Any]:
+    """Recommended weekly MEDIA micros from goal, platforms, reach, optional duration.
+
+    Does not quote and does not invent Google. Call quote() with weekly_spend_micros
+    from this result. Rounding is nearest dollar, half-up, in integer arithmetic so
+    the TS mirror can match without language round() semantics.
+    """
+    platforms = list(spec.get("platforms") or [])
+    goal = str(spec.get("goal") or "")
+    reach = str(spec.get("reach") or "")
+    duration_weeks = spec.get("duration_weeks")
+
+    if not platforms:
+        raise ValueError("pick at least one platform")
+    if len(set(platforms)) != len(platforms):
+        raise ValueError("duplicate platform in brief")
+    unknown = [p for p in platforms if p not in PLATFORMS]
+    if unknown:
+        raise ValueError(f"unknown platform(s) {unknown}; have {list(PLATFORMS)}")
+    if goal not in PLAYBOOKS:
+        raise ValueError(f"unknown goal {goal!r}; have {sorted(PLAYBOOKS)}")
+    if reach not in REACH_MULT_BP:
+        raise ValueError(f"unknown reach {reach!r}; have {list(REACH)}")
+    if duration_weeks is not None and int(duration_weeks) < 1:
+        raise ValueError("duration_weeks must be at least 1 when given")
+
+    base = BASE_MEDIA_MICROS[goal]
+    platform_bp = 100 + PLATFORM_EXTRA_BP * (len(platforms) - 1)
+    reach_bp = REACH_MULT_BP[reach]
+    duration_bp = (
+        SHORT_TEST_MULT_BP
+        if duration_weeks is not None and int(duration_weeks) <= SHORT_TEST_WEEKS
+        else 100
+    )
+
+    # base is already micros. Convert to dollars, apply bp multipliers, round half-up
+    # to a whole dollar, convert back. 100³ = 1_000_000.
+    base_dollars = base // 1_000_000
+    numerator = base_dollars * platform_bp * reach_bp * duration_bp
+    dollars = (numerator + 500_000) // 1_000_000
+    if dollars < 1:
+        raise ValueError("recommended weekly media rounded to zero; refuse to quote")
+    spend = dollars * 1_000_000
+
+    return {
+        "goal": goal,
+        "platforms": list(platforms),
+        "reach": reach,
+        "duration_weeks": None if duration_weeks is None else int(duration_weeks),
+        "weekly_spend_micros": spend,
+        "base_media_micros": base,
+        "platform_mult_bp": platform_bp,
+        "reach_mult_bp": reach_bp,
+        "duration_mult_bp": duration_bp,
+    }
+
+
 def funded_caps(q: dict[str, Any]) -> list[dict[str, Any]]:
     """Spend-guard caps derived from a quote's MEDIA component - the prepaid-week rule.
 
@@ -152,12 +224,39 @@ def cases() -> list[dict[str, Any]]:
     return [{"spec": s, "quote": quote(s)} for s in specs]
 
 
+def recommend_cases() -> list[dict[str, Any]]:
+    """Parity corpus for recommend_spend + the quote it produces. Includes the
+    psychological pair (national, one platform) and a half-dollar round-up
+    (two platforms × conversion base = $1,562.50 → $1,563)."""
+    specs = [
+        {"platforms": ["meta"], "goal": "aggressive_conversions", "reach": "national"},
+        {"platforms": ["meta"], "goal": "low_cost_testing", "reach": "national"},
+        {"platforms": ["meta", "tiktok"], "goal": "aggressive_conversions", "reach": "national"},
+        {"platforms": ["tiktok"], "goal": "low_cost_testing", "reach": "local"},
+        {"platforms": ["meta", "tiktok"], "goal": "aggressive_conversions", "reach": "broad", "duration_weeks": 2},
+        {"platforms": ["meta"], "goal": "aggressive_conversions", "reach": "national", "duration_weeks": 8},
+        {"platforms": ["meta", "tiktok"], "goal": "low_cost_testing", "reach": "broad", "duration_weeks": 1},
+    ]
+    out = []
+    for s in specs:
+        rec = recommend_spend(s)
+        q = quote({**s, "weekly_spend_micros": rec["weekly_spend_micros"]})
+        out.append({"spec": s, "recommend": rec, "quote": q})
+    return out
+
+
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Bundled weekly campaign pricing.")
     action = p.add_mutually_exclusive_group(required=True)
     action.add_argument("--quote", type=Path, help="JSON brief: platforms, weekly_spend_micros, goal")
+    action.add_argument(
+        "--recommend", type=Path, help="JSON brief: platforms, goal, reach, optional duration_weeks"
+    )
     action.add_argument("--caps", type=Path, help="JSON quote: emit prepaid-week spend-guard caps")
-    action.add_argument("--cases", action="store_true", help="emit the parity corpus")
+    action.add_argument("--cases", action="store_true", help="emit the quote parity corpus")
+    action.add_argument(
+        "--recommend-cases", action="store_true", help="emit the recommend_spend parity corpus"
+    )
     p.add_argument("--out", type=Path, help="write result JSON")
     return p
 
@@ -167,8 +266,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.cases:
             result: Any = cases()
+        elif args.recommend_cases:
+            result = recommend_cases()
         elif args.caps:
             result = funded_caps(json.loads(args.caps.read_text(encoding="utf8")))
+        elif args.recommend:
+            result = recommend_spend(json.loads(args.recommend.read_text(encoding="utf8")))
         else:
             result = quote(json.loads(args.quote.read_text(encoding="utf8")))
     except Exception as exc:

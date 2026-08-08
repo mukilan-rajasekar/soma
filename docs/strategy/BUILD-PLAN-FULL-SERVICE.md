@@ -5,8 +5,8 @@ concierge product into analyze → improve → serve. Agent / human “what to b
 for product work starts here (see also `docs/INDEX.md`).
 
 Companion strategy: `STRATEGY-FULL-SERVICE.md`. Access checklist: `SERVE-ACCESS.md`.
-Science / GTM Tracks A and C remain sequenced in `PLAN.md` (2026-07-30); this file owns
-Serve staging and schema.
+Revenue / weekly pricing: `BUILD-PLAN-REVENUE.md`. Science / GTM Tracks A and C remain
+sequenced in `PLAN.md` (2026-07-30); this file owns Serve staging and schema.
 
 **What this document is.** A build order with real file paths, real table shapes, and a
 verification step per stage that fits the existing gate (`scripts/verify.sh`). It

@@ -778,28 +778,25 @@ top of the new model is a pitch that gets caught.
 Note that flat pricing has precedent in the adjacent category: Motion, the creative-analytics
 incumbent, bills a flat monthly fee with a spend *tier boundary* rather than a spend *rate*.
 
-**Percentage bands stay in the document, but only as the reference a buyer uses to sanity-check
-the flat fee — never as the billing basis:**
+**Percentage bands stay in the document only as a sanity-check against Soma’s bundled 20%,
+never as the billing basis.** Dated sources: `PRICING-COMPS.md` (fetched 2026-08-07). The
+older Motion $750/$1,050 row is **stale** and must not be quoted; Motion’s public Starter
+list price in 2026 recaps is $250/mo (analytics, not serving).
 
 | Reference | Rate | Includes execution? | Source quality |
 |---|---|---|---|
-| Motion (creative analytics) | $750/mo <$50k spend; $1,050/mo >$50k → **0.8–2.1% of spend** | No | motionapp.com/pricing `[VERIFY — no fetch date recorded for this revision]` |
-| Smartly.io (automation + serving) | reported **~2–5% of spend**, ~$4–5k/mo minimum | Yes | Third-party blogs — `[VERIFY]` |
-| Performance agencies | **10–20% of spend** | Yes | `[NEEDS EVIDENCE — commonly reported; no primary source has been collected for this document. The first draft claimed "five independent sources" and produced none.]` |
+| Motion (creative analytics) | Public Starter recap **$250/mo** / $50k spend cap; Pro+ quote-only | No | [rule1 recap](https://rule1.ai/articles/motion-pricing) via `PRICING-COMPS.md` · fetched 2026-08-07 · still not a first-party page fetch |
+| Smartly.io (automation + serving) | Custom; commonly **~2–4% of managed spend** + minimums; **no public price page** | Yes | Third-party 2026 reviews — see `PRICING-COMPS.md` |
+| Performance agencies | **10–20% of spend** *or* a multi-thousand monthly retainer, **on top of** media | Yes | Industry blogs 2026 — `PRICING-COMPS.md`; still no named agency rate card |
 
 **The buyer-facing sentence must lead with the structure, not with the rate.** A percentage spoken
-first is the number the buyer remembers and anchors on, and it is a rate the next paragraph says
-must never be the billing basis — so the earlier draft of this sentence invited the buyer to
-negotiate against the one thing Soma is refusing to sell. Say it in this order:
+first is the number the buyer remembers and anchors on. Say it in this order:
 
-> *"It is a flat fee — the same number whether you spend two hundred thousand or five hundred
-> thousand. If you want to sanity-check it against what you pay your agency: on your current spend
-> it lands around five percent against their ten to twenty, and on double your current spend it
-> lands at half that."*
-
-Same reassurance, same arithmetic, and the flat structure is the subject of the sentence rather
-than its footnote. The five percent is computed off the §4.3 platform fee, which is marked
-`[ESTIMATE — the founders have not named a price]`; do not let it harden into a quote.
+> *"One weekly price, everything included, pause any time. Media across your platforms plus our
+> margin (20% today) is a single number. If you want to sanity-check it against an agency: they
+> commonly take a mid-teens percent of spend, or a multi-thousand monthly retainer, on top of
+> media you still pay the platforms. We take 20% inside one bill so you never manage
+> per-platform finances."*
 
 **If a spend-linked component that *increases* the fee ever proves commercially unavoidable,** cap
 it in absolute dollars per account per month, say so in the MSA, and downgrade §1.5 to the weaker

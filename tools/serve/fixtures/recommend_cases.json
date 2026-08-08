@@ -1,0 +1,338 @@
+[
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": null,
+      "goal": "aggressive_conversions",
+      "margin_micros": 250000000,
+      "margin_pct": 20.0,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 1250000000
+        }
+      ],
+      "playbook": {
+        "arms": 2,
+        "billing_event": "IMPRESSIONS",
+        "holdout_pct": 0.0,
+        "optimization_goal": "CONVERSIONS"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 1500000000,
+      "weekly_spend_micros": 1250000000
+    },
+    "recommend": {
+      "base_media_micros": 1250000000,
+      "duration_mult_bp": 100,
+      "duration_weeks": null,
+      "goal": "aggressive_conversions",
+      "platform_mult_bp": 100,
+      "platforms": [
+        "meta"
+      ],
+      "reach": "national",
+      "reach_mult_bp": 100,
+      "weekly_spend_micros": 1250000000
+    },
+    "spec": {
+      "goal": "aggressive_conversions",
+      "platforms": [
+        "meta"
+      ],
+      "reach": "national"
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": null,
+      "goal": "low_cost_testing",
+      "margin_micros": 100000000,
+      "margin_pct": 20.0,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 500000000
+        }
+      ],
+      "playbook": {
+        "arms": 3,
+        "billing_event": "CPC",
+        "holdout_pct": 0.1,
+        "optimization_goal": "CLICK"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 600000000,
+      "weekly_spend_micros": 500000000
+    },
+    "recommend": {
+      "base_media_micros": 500000000,
+      "duration_mult_bp": 100,
+      "duration_weeks": null,
+      "goal": "low_cost_testing",
+      "platform_mult_bp": 100,
+      "platforms": [
+        "meta"
+      ],
+      "reach": "national",
+      "reach_mult_bp": 100,
+      "weekly_spend_micros": 500000000
+    },
+    "spec": {
+      "goal": "low_cost_testing",
+      "platforms": [
+        "meta"
+      ],
+      "reach": "national"
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": null,
+      "goal": "aggressive_conversions",
+      "margin_micros": 312600000,
+      "margin_pct": 20.0,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 781500000
+        },
+        {
+          "platform": "tiktok",
+          "weekly_spend_micros": 781500000
+        }
+      ],
+      "playbook": {
+        "arms": 2,
+        "billing_event": "IMPRESSIONS",
+        "holdout_pct": 0.0,
+        "optimization_goal": "CONVERSIONS"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 1875600000,
+      "weekly_spend_micros": 1563000000
+    },
+    "recommend": {
+      "base_media_micros": 1250000000,
+      "duration_mult_bp": 100,
+      "duration_weeks": null,
+      "goal": "aggressive_conversions",
+      "platform_mult_bp": 125,
+      "platforms": [
+        "meta",
+        "tiktok"
+      ],
+      "reach": "national",
+      "reach_mult_bp": 100,
+      "weekly_spend_micros": 1563000000
+    },
+    "spec": {
+      "goal": "aggressive_conversions",
+      "platforms": [
+        "meta",
+        "tiktok"
+      ],
+      "reach": "national"
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": null,
+      "goal": "low_cost_testing",
+      "margin_micros": 60000000,
+      "margin_pct": 20.0,
+      "platforms": [
+        {
+          "platform": "tiktok",
+          "weekly_spend_micros": 300000000
+        }
+      ],
+      "playbook": {
+        "arms": 3,
+        "billing_event": "CPC",
+        "holdout_pct": 0.1,
+        "optimization_goal": "CLICK"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 360000000,
+      "weekly_spend_micros": 300000000
+    },
+    "recommend": {
+      "base_media_micros": 500000000,
+      "duration_mult_bp": 100,
+      "duration_weeks": null,
+      "goal": "low_cost_testing",
+      "platform_mult_bp": 100,
+      "platforms": [
+        "tiktok"
+      ],
+      "reach": "local",
+      "reach_mult_bp": 60,
+      "weekly_spend_micros": 300000000
+    },
+    "spec": {
+      "goal": "low_cost_testing",
+      "platforms": [
+        "tiktok"
+      ],
+      "reach": "local"
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": 2,
+      "goal": "aggressive_conversions",
+      "margin_micros": 425000000,
+      "margin_pct": 20.0,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 1062500000
+        },
+        {
+          "platform": "tiktok",
+          "weekly_spend_micros": 1062500000
+        }
+      ],
+      "playbook": {
+        "arms": 2,
+        "billing_event": "IMPRESSIONS",
+        "holdout_pct": 0.0,
+        "optimization_goal": "CONVERSIONS"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 2550000000,
+      "weekly_spend_micros": 2125000000
+    },
+    "recommend": {
+      "base_media_micros": 1250000000,
+      "duration_mult_bp": 85,
+      "duration_weeks": 2,
+      "goal": "aggressive_conversions",
+      "platform_mult_bp": 125,
+      "platforms": [
+        "meta",
+        "tiktok"
+      ],
+      "reach": "broad",
+      "reach_mult_bp": 160,
+      "weekly_spend_micros": 2125000000
+    },
+    "spec": {
+      "duration_weeks": 2,
+      "goal": "aggressive_conversions",
+      "platforms": [
+        "meta",
+        "tiktok"
+      ],
+      "reach": "broad"
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": 8,
+      "goal": "aggressive_conversions",
+      "margin_micros": 250000000,
+      "margin_pct": 20.0,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 1250000000
+        }
+      ],
+      "playbook": {
+        "arms": 2,
+        "billing_event": "IMPRESSIONS",
+        "holdout_pct": 0.0,
+        "optimization_goal": "CONVERSIONS"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 1500000000,
+      "weekly_spend_micros": 1250000000
+    },
+    "recommend": {
+      "base_media_micros": 1250000000,
+      "duration_mult_bp": 100,
+      "duration_weeks": 8,
+      "goal": "aggressive_conversions",
+      "platform_mult_bp": 100,
+      "platforms": [
+        "meta"
+      ],
+      "reach": "national",
+      "reach_mult_bp": 100,
+      "weekly_spend_micros": 1250000000
+    },
+    "spec": {
+      "duration_weeks": 8,
+      "goal": "aggressive_conversions",
+      "platforms": [
+        "meta"
+      ],
+      "reach": "national"
+    }
+  },
+  {
+    "quote": {
+      "billing_note": "quote, not an invoice: activation of billing is gated on PLAN.md gate 4 (tools/serve/check_licence_gate.py)",
+      "currency": "USD",
+      "duration_weeks": 1,
+      "goal": "low_cost_testing",
+      "margin_micros": 170000000,
+      "margin_pct": 20.0,
+      "platforms": [
+        {
+          "platform": "meta",
+          "weekly_spend_micros": 425000000
+        },
+        {
+          "platform": "tiktok",
+          "weekly_spend_micros": 425000000
+        }
+      ],
+      "playbook": {
+        "arms": 3,
+        "billing_event": "CPC",
+        "holdout_pct": 0.1,
+        "optimization_goal": "CLICK"
+      },
+      "renews": "weekly_until_paused",
+      "weekly_price_micros": 1020000000,
+      "weekly_spend_micros": 850000000
+    },
+    "recommend": {
+      "base_media_micros": 500000000,
+      "duration_mult_bp": 85,
+      "duration_weeks": 1,
+      "goal": "low_cost_testing",
+      "platform_mult_bp": 125,
+      "platforms": [
+        "meta",
+        "tiktok"
+      ],
+      "reach": "broad",
+      "reach_mult_bp": 160,
+      "weekly_spend_micros": 850000000
+    },
+    "spec": {
+      "duration_weeks": 1,
+      "goal": "low_cost_testing",
+      "platforms": [
+        "meta",
+        "tiktok"
+      ],
+      "reach": "broad"
+    }
+  }
+]
