@@ -1,8 +1,12 @@
 # Pricing landscape: agencies, AI-native platforms, and where Soma's bundled week sits
 
-Read with `docs/strategy/BUILD-PLAN-FULL-SERVICE.md` §0.5 (the pricing decision record)
-and §0.6 (the prepaid week). This is market research, not a decision doc: nothing here
-changes `tools/serve/pricing.py`, and nothing in §0.5 is re-litigated here.
+Read with `docs/strategy/BUILD-PLAN-FULL-SERVICE.md` §0.5 (the pricing decision record),
+§0.6 (the prepaid week), `docs/strategy/BUILD-PLAN-REVENUE.md` (the commercial plan this
+research serves — this doc fills its R1 AI-native remainder), and
+`docs/strategy/PRICING-COMPS.md` (the evidence-graded comps appendix; its rules apply
+here too — a number without a URL is not deck-eligible). This is market research, not a
+decision doc: nothing here changes `tools/serve/pricing.py`, and nothing in §0.5 is
+re-litigated here.
 
 **Repo ground truth on the margin definition.** The research below flags an ambiguity —
 "20% margin" can mean 20% *of spend* or 20% *of the bundled price* (a 25% markup). The

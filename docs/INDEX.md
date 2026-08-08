@@ -57,6 +57,7 @@ Default marketing page = `src/components/demo2/DemoScrollPage.tsx`.
 - `strategy/COMPETITORS.md`, `OPPORTUNITIES.md`, `PRICING-COMPS.md`
 - `strategy/STRATEGY-PROPRIETARY-MODEL.md` — encoder licence / fallback
 - `GTM/YC-APPLICATION.md`, `GTM/YC-UPDATE-FULL-SERVICE.md`
+- `GTM/PRICING-LANDSCAPE.md` — agency + AI-native pricing research (fills `PRICING-COMPS.md` §4)
 
 ### Claims policy (product surfaces)
 

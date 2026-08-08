@@ -67,12 +67,19 @@ Do not put “Smartly is 2–5%” on a slide without labelling it second-hand.
 
 ## 4. AI-native / autonomous buyers (R1 remainder)
 
-Not filled this pass. Candidates to fetch next, same rules (URL + date):
+**Filled 2026-08-07** by [`../GTM/PRICING-LANDSCAPE.md`](../GTM/PRICING-LANDSCAPE.md):
+a 13-row table (Smartly, Marin, Albert, Omneky, Pencil, AdCreative, Marpipe, AdsGency,
+Icon, Hunch, AdRoll, Kaya + category note) with per-row sources, minimums, and a
+bundles-media-spend column, same URL + date rules as this file. Headline findings:
+the AI-native pack is flat SaaS ($14–$1,999/mo) on client-owned ad accounts, several
+market *“no % of ad spend”* as a feature, and **nobody in the set bundles media** —
+the only structural comparables to Soma are AdRoll (CPM + retained margin),
+LocaliQ/ReachLocal (bundled, undisclosed split), and enterprise principal-media desks
+(ANA 2024 report). That doc also owns the objection prep (verifiability, gross-vs-net,
+lock-in, incentive gradient, flat-fee anchoring).
 
-- Pencil / AdCreative.ai / Madgicx / groas — SaaS seat vs % of spend vs “autonomous flat fee”
-- Whether any of them **place** ads (serving) vs only generate creative
-
-Until a dated row exists, do not claim “AI ad agencies charge X.”
+Whether each **places** ads vs only generates creative is in the table's "What it is"
+column. Do not restate numbers here — one row of truth per vendor, over there.
 
 ---
 

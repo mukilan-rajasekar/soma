@@ -26,7 +26,7 @@ R3  recommended-tier → stored brief (reach_note + tier id)
 R4  gate 4: name fallback backbone WITH a cost in PLAN.md     (founder)
 R5  counsel: prepaid-week / money transmission / CC BY-NC      (calendar)
 R6  Stripe + invoice rows  (blocked on R4 + R5; do not start early)
-R7  Google as a priced platform (blocked on a real Google client)
+R7  Google as a priced platform (client exists 2026-08-07, dry-run; blocked on dev token + priced allocation)
 ```
 
 **R0–R2 shipped this pass.** R3 is optional (reach already stored in `reach_note`). R4–R7 are not engineering-first.
@@ -64,9 +64,9 @@ model (`BUILD-PLAN-FULL-SERVICE.md` §0.5).
 | Renew until paused | **Scheduler only.** `tools/serve/renewals.py` dry-run; `--execute` licence-blocked. |
 | One number; client never sees platform costs | **Partial.** Buyer total is one number; quote still stores the split (needed for prepaid-week caps). Preview shows the margin line on purpose. |
 | Onboarding: filters → recommended tier | **R2 done.** `/dashboard/campaigns/new` recommends weekly media from goal + platforms + reach; custom budget is a disclosure. |
-| Google Ads in the allocation | **No.** `PLATFORMS = (meta, tiktok)`. Google is not in this plan until a client exists (R7). |
+| Google Ads in the allocation | **Not priced.** `PLATFORMS = (meta, tiktok)`. A real client now exists — `tools/serve/google_ads_client.py` (dry-run only, PAUSED-first) — so R7's blocker is the developer token + the pricing/parity work, no longer the client. |
 | Invoice / Stripe | **No, by design.** Quote `billing_note` says so. |
-| Agency / AI-agency comps | **R1 started.** `PRICING-COMPS.md` (fetched 2026-08-07). AI-native row still empty. `COMPETITORS.md` stays the neural-tester SoT. |
+| Agency / AI-agency comps | **R1 substantially done.** `PRICING-COMPS.md` (fetched 2026-08-07) + `docs/GTM/PRICING-LANDSCAPE.md` (same date) fill the AI-native table with 13 dated rows and the objection prep. Remaining: one named agency rate card / primary survey. `COMPETITORS.md` stays the neural-tester SoT. |
 | Investor memo from Granola | **Founder.** R0 writes the outline into this file; the email/deck is not a code artifact. |
 
 ---
@@ -219,10 +219,15 @@ looks like we can charge.
 
 ## R7 — Google as a priced platform
 
-**Blocked on a real Google Ads client**, not on TAM slides. When unblocked: add
-`google` to `PLATFORMS` in **both** pricing modules, regenerate parity fixtures, extend
-the onboarding checkbox. Serving write for Google is not in the Serve build plan yet;
-do not pretend a priced checkbox is a Google campaign.
+**The client exists as of 2026-08-07** — `tools/serve/google_ads_client.py`, same
+posture as TikTok's (dry-run recorder is the contract, PAUSED pinned after `**extra`,
+`SOMA_SERVE_LIVE` kill switch), wired into `launch.py --platform google`. What remains
+blocked: a Google Ads developer token (`SERVE-ACCESS.md`) and this file's pricing work —
+add `google` to `PLATFORMS` in **both** pricing modules, regenerate parity fixtures,
+extend the onboarding checkbox. Until then `launch.py --activate --funded-quote` refuses
+for google (a quote cannot allocate media there), which is the honest state: do not
+pretend a priced checkbox is a Google campaign, and do not pretend a dry-run client is
+served spend.
 
 ---
 
