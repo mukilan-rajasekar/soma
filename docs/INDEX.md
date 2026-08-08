@@ -21,6 +21,7 @@ One map for humans and agents. If two docs disagree, this file picks the winner.
 | `strategy/BUILD-PLAN-FULL-SERVICE.md` | **Living product engineering plan** | Stages, schemas, Serve path |
 | `strategy/BUILD-PLAN-REVENUE.md` | **Living commercial / pricing plan** | Weekly bundled price, onboarding, invoice boundary |
 | `strategy/PRICING-COMPS.md` | Living comps appendix (dated fetches) | Agency + automated-platform fee structures |
+| `strategy/COMPETITOR-GAPS.md` | Living capability-gap inventory (2026-08-07 research) | What the full-service pool has that Soma doesn't; trust-stack requirements |
 | `strategy/STRATEGY-FULL-SERVICE.md` | Living strategy companion | Business / flywheel argument |
 | `strategy/SERVE-ACCESS.md` | Living checklist | Meta / legal access gates (all Pending until marked Done) |
 | `strategy/PLAN.md` | Living for science + GTM Tracks A/C (2026-07-30) | GPU backtest, partners, narrative honesty |
