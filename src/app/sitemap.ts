@@ -9,7 +9,6 @@ const ORIGIN = "https://www.usesoma.work";
 
 const PUBLIC_PATHS = [
   "/",
-  "/pricing",
   "/demo",
   "/science",
   "/compare",

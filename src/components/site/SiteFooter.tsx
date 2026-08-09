@@ -5,7 +5,6 @@ import Link from "next/link";
 // prefetches as normal.
 const LINKS = [
   { href: "/demo", label: "Demo", prefetch: undefined },
-  { href: "/pricing", label: "Pricing", prefetch: undefined },
   { href: "/audit", label: "Free audit", prefetch: undefined },
   { href: "/science", label: "Science", prefetch: undefined },
   { href: "/compare", label: "Compare", prefetch: undefined },
