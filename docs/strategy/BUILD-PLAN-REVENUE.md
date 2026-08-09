@@ -133,6 +133,15 @@ cites this file or stays `[VERIFY]`.
 **Done 2026-08-07.** Transcript: filters/toggles → recommended weekly cost, not “type a
 raw budget.”
 
+**Addendum 2026-08-09 — the price went public and gained an accept.** `/pricing` shows
+the goal × reach grid computed at render from `src/lib/pricing.ts` (never hardcoded; the
+parity gate keeps both languages honest), with the margin split printed and the boundary
+stated in public voice: a price is a quote, not an invoice. In the studio,
+`POST /api/campaigns/quote/accept` records the advertiser’s yes by flipping
+`campaign_quotes.status` `'quoted' → 'accepted'` (a 0016 status) — it deliberately
+creates **no** `campaign_subscriptions` row and touches nothing billing-shaped while
+gate 4 (R4) is open. When R4/R6 unblock, the accepted quotes are the start list.
+
 ### 2.1 Engine
 
 Canonical: `tools/serve/pricing.py` `recommend_spend()`. TS mirror: `src/lib/pricing.ts`

@@ -37,9 +37,18 @@ const ROUTES = [
   { path: '/r/' + '0'.repeat(32), expectStatus: 404 },
   // ...and a malformed one, which must be refused before it reaches a query at all.
   { path: '/r/not-a-token', expectStatus: 404 },
+  // The public pricing page. Every number on it is computed from src/lib/pricing.ts at
+  // render, so a text floor also catches the grid coming back empty-handed.
+  // observed: text 1845, canvas 0, scroll 1834
+  { path: '/pricing', minText: 1380, minCanvas: 0, minScroll: 1370, needsH1: true },
+  // The free-audit funnel — linked from the footer, so it has to actually render.
+  // observed: text 2028, canvas 0, scroll 1774
+  { path: '/audit', minText: 1500, minCanvas: 0, minScroll: 1300, needsH1: true },
   // The account surfaces. observed: sign-in text 267, sign-up text 319, both scroll 900.
   { path: '/sign-in', minText: 200, minCanvas: 0, minScroll: 650, needsH1: true },
   { path: '/sign-up', minText: 240, minCanvas: 0, minScroll: 650, needsH1: true },
+  // One field and a notice, small on purpose. observed: text 170, canvas 0, scroll 900
+  { path: '/forgot-password', minText: 120, minCanvas: 0, minScroll: 650, needsH1: true },
   // Studio is behind a session. These two assert the BOUNDARY, which is the half of the
   // dashboard a smoke run can check without credentials — and the half that fails
   // catastrophically: a Studio route that 500s or renders for a stranger is worse than one
@@ -50,6 +59,10 @@ const ROUTES = [
   { path: '/dashboard/campaigns', expectRedirectTo: '/sign-in' },
   { path: '/dashboard/campaigns/new', expectRedirectTo: '/sign-in' },
   { path: '/dashboard/serve', expectRedirectTo: '/sign-in' },
+  { path: '/dashboard/account', expectRedirectTo: '/sign-in' },
+  // /update-password is guarded like Studio even though it lives outside it: a recovery
+  // session is signed in, everyone else bounces. This asserts the proxy matcher entry.
+  { path: '/update-password', expectRedirectTo: '/sign-in' },
   { path: '/dashboard/runs/' + '0'.repeat(32), expectRedirectTo: '/sign-in' },
   // The recorded pipeline run. Its content comes from src/data/run-capture.json, so the
   // text floor is really an assertion that the capture is still wired in: an empty or
@@ -57,6 +70,10 @@ const ROUTES = [
   // failure a floor catches. The number stays modest on purpose — a longer run has more
   // stages and more log, so this must not encode the size of one particular capture.
   { path: '/run', minText: 1200, minCanvas: 0, minScroll: 1400, needsH1: true },
+  // Our own 404 page. The status is half the assertion; the text floor is the other half
+  // — a blank stock 404 where src/app/not-found.tsx should be is the regression.
+  // observed: text 252, scroll 900
+  { path: '/definitely-not-a-page', expectStatus: 404, minText: 180, needsH1: true },
 ];
 
 // A cancelled media preload is normal browser behaviour, not a defect.
@@ -117,10 +134,11 @@ async function checkRoute(route) {
     const want = route.expectStatus ?? 200;
     if (status !== want) problems.push(`status ${status} (want ${want})`);
 
-    // A route asserted to be a non-200 has nothing else worth measuring: it renders the
-    // not-found page, whose text and height are Next's, not ours. Checking the status IS
-    // the check, so return before the content floors run.
-    if (want !== 200) {
+    // A non-200 route with no content floor has nothing else worth measuring: the token
+    // 404s land wherever Next puts them, and checking the status IS the check. A non-200
+    // route that DOES carry minText is asserting our own not-found page still says
+    // something — those fall through to the measurement below.
+    if (want !== 200 && route.minText === undefined) {
       try {
         await ctx.close();
       } catch {
@@ -153,7 +171,16 @@ async function checkRoute(route) {
   }
 
   if (pageErrors.length) problems.push(`${pageErrors.length} uncaught page error(s): ${pageErrors[0]}`);
-  if (consoleErrors.length) problems.push(`${consoleErrors.length} console error(s): ${consoleErrors[0]}`);
+  // A route asserted to be a 404 makes the browser log "Failed to load resource …
+  // status of 404" for the document itself. That line is the assertion working, not a
+  // defect; any OTHER console error on the page still counts.
+  const expected = route.expectStatus ?? 200;
+  const realConsoleErrors =
+    expected === 200
+      ? consoleErrors
+      : consoleErrors.filter((t) => !t.includes(`status of ${expected}`));
+  if (realConsoleErrors.length)
+    problems.push(`${realConsoleErrors.length} console error(s): ${realConsoleErrors[0]}`);
   if (badRequests.length) problems.push(`${badRequests.length} failed request(s): ${badRequests[0]}`);
 
   // Never let teardown throw — a dead browser here used to crash node with an
@@ -347,6 +374,25 @@ if (!smokeEmail || !smokePassword) {
           studioChecked += 1;
           console.log(`ok   ${href.slice(0, 40).padEnd(40)} text=${detail.textLen}`);
         }
+      }
+
+      // The account page — the cheapest proof the whole lifecycle surface renders
+      // behind a session: display name, the password form, sign out.
+      await page.goto(BASE + '/dashboard/account', { waitUntil: 'networkidle', timeout: 45000 });
+      await page.waitForTimeout(1500);
+      const account = await page.evaluate(() => ({
+        h1: document.querySelector('h1')?.textContent?.trim() ?? null,
+        textLen: (document.body.innerText || '').length,
+      }));
+      if (!account.h1 || account.textLen < 150) {
+        failures.push({
+          route: '/dashboard/account',
+          problems: [`account thin: h1=${account.h1}, text=${account.textLen}`],
+        });
+        console.log(`FAIL /dashboard/account — h1=${account.h1} text=${account.textLen}`);
+      } else {
+        studioChecked += 1;
+        console.log(`ok   /dashboard/account${' '.repeat(3)} text=${account.textLen}`);
       }
     }
 
