@@ -225,9 +225,13 @@ build order. Nothing here asserts what is on screen.)*
 > the honesty bit, that `ops.py` may not set it, and that only the verify stage may. Heavier editing
 > we partner out.
 >
-> **3. Serve — the reason the company works.** We place the ads and find the placement that returns.
-> Meta first; TikTok and Google follow the same shape. The client picks a weekly media tier and we
-> add 20% on that media — disclosed on the quote, and the margin itself is never spendable.
+> **3. Serve — the reason the company works, and the one we have not yet done for a client.** Soma
+> places the ads and finds the placement that returns. Meta, TikTok and Google clients are built and
+> exercised end to end in dry run; **not one live ad has been placed and no client has been billed**,
+> because live writes require `SOMA_SERVE_LIVE=1` (unset) and fees are blocked by
+> `check_licence_gate.py` while PLAN.md gate 4 is open. Say it in that order. The commercial shape is
+> settled: the client picks a weekly media tier and we add 20% on that media — disclosed on the
+> quote, and the margin itself is never spendable.
 >
 > **Why serving is not a services bolt-on.** Every creative-analytics company on the market —
 > VidMob, Motion, AdCreative.ai, Neurons, Realeyes — sells a score and then hands you back to your
@@ -556,7 +560,15 @@ plan, carrying that qualifier with them.)*
 > `recommend_spend()` returns a small ladder of weekly media tiers — $300/week local through
 > $2,500/week broad, scaled by goal, reach and how many networks — and `quote()` adds a 20% margin on
 > whichever they pick. They pay media + margin as one weekly number, renewing until paused. The
-> margin is printed on the quote and it is our entire revenue.
+> margin is printed on the quote, and on a served account it is the only thing we are paid.
+>
+> **Two things about that sentence are still open, and a partner will find both.** The engine prices
+> the week and nothing else, while the three-line list below still shows Analyze and Improve as
+> separately charged — so whether a served client pays anything *beyond* the margin is undecided.
+> And whether the media half of that weekly number is our revenue at all depends on the
+> agent-versus-principal determination that `STRATEGY-FULL-SERVICE.md` §4.8 has not settled. **Until
+> both are closed, quote the 20% as a fee and do not state a revenue figure anywhere in this
+> packet** — the number would change meaning under either decision.
 >
 > **This is a percentage of spend, and this document used to claim otherwise.** An earlier draft
 > promised a flat platform fee and built its strongest sentence on it — *"the only party in your chain
@@ -603,10 +615,21 @@ plan, carrying that qualifier with them.)*
 > — **plus a second term that is zero today.** The second term compensates the client for the measured
 > gap between the score-selected arm and the randomly-assigned one, and it only becomes non-zero once
 > we can demonstrate that a gap exists. We have failed to demonstrate it three times in public, so
-> today it is exactly zero and the rebate is the margin waiver alone. **Soma bears the cost of the
-> experiment Soma benefits from** — and under this pricing that is arithmetic rather than a posture.
-> It is disclosed in the MSA and disclosed in the pitch, because an arrangement that only works
-> undisclosed is not an arrangement, it is a problem waiting.
+> today it is exactly zero and the rebate is the margin waiver alone.
+>
+> **Be precise about who is out of pocket, because the waiver is not the whole answer.** Soma forgoes
+> its fee on the holdout; **the client's budget still buys that media.** So the honest sentence is
+> *"Soma earns nothing on the experiment Soma benefits from,"* not *"Soma bears its cost."* What the
+> client is actually exposed to is the performance gap between the score-selected arm and the
+> randomly-assigned one — and that is exactly what the second term compensates, which is why it is a
+> term and not a rounding error. It is zero today for a reason worth stating out loud: **we have
+> three times failed to show that any such gap exists.** If there is no demonstrable gap, there is no
+> demonstrable loss to compensate; the day we can show one is the same day the term switches on, and
+> those two facts are deliberately tied together so we cannot claim the gap in a pitch while paying
+> nothing for it in a contract. **[FILL: the *g* formula — how a measured gap converts to dollars —
+> is not specified anywhere in the repo. It must exist before the first holdout runs, not after.]**
+> All of it is disclosed in the MSA and disclosed in the pitch, because an arrangement that only
+> works undisclosed is not an arrangement, it is a problem waiting.
 >
 > *The awkward part, said rather than found.* Under a flat fee we could say the holdout credit was the
 > only spend-linked number in the contract. Now every number in the contract is spend-linked, ours
@@ -959,7 +982,8 @@ citation in this packet as suspect, and they would be right to.
 > test. The thousand dollars of real signal you're describing is the money you spend on Meta to learn
 > which creative works, and we are the ones spending it. You bring the creative; we quote a few weekly
 > media tiers off a published ladder — $300/week local up to $2,500/week broad, by goal and networks —
-> and we add 20% on top of that media. The 20% is our entire revenue and it is printed on the quote.
+> and we add 20% on top of that media. On a served account that 20% is the only thing we are paid,
+> and it is printed on the quote.
 >
 > So I am not going to tell you we have no skin in your budget. **Everyone in this chain is on a
 > percentage** — Meta's revenue *is* the spend, your agency takes ten to twenty of it, and the
@@ -1366,6 +1390,7 @@ don't contradict the application.)*
 | `docs/strategy/VISION.md:78-83` | "Why cheaper" compares against per-test panel pricing. Wrong denominator now — the new denominator is **20% of the weekly media tier**, a percentage of ad spend. Do not propagate the old "flat platform fee" wording; it was never true of the shipped engine. |
 | `docs/strategy/STRATEGY-FULL-SERVICE.md:1088-1093` | §4.8 recommends the **agent** structure (client owns the account and payment method, revenue = fee only) and warns principal grosses up revenue under ASC 606. §4.2 was already rewritten for bundled weekly pricing; §4.8 was not. The prepaid week reads as principal. **This is the open founder decision flagged in killer #5** — settle it before the packet states a revenue figure. |
 | `docs/strategy/STRATEGY-FULL-SERVICE.md:1080-1084` | §4.7 argues Meta Developer Policy 10.6 (effective 2027-02-03) disclosure is easier under flat pricing because "there is no per-spend markup to reconcile." There now is one. The 10.6 report must separate media from the 20% margin — that is a named deliverable with a compliance date, not a nicety. |
+| **This file, `:247`, `:317`, `:504`, `:692`** | All four say Serve is "not built" with **"zero lines of campaign-management code."** That was true when written and is now false: `tools/serve/` holds 27 modules including Meta, TikTok and Google clients, spend guard, autopilot and the trust surfaces. The accurate statement is **built and dry-run-exercised end to end, never run live** — `SOMA_SERVE_LIVE` is unset and `check_licence_gate.py` blocks fees while PLAN.md gate 4 is open. §3 of "What is your company going to make" has been corrected; **these four have not**, and a paste from any of them now understates the company in a way a reviewer can check in one `ls`. Fix in a status pass, not a pricing one. |
 | `docs/strategy/OPPORTUNITIES.md:100-181` | Ranks creator tools above ads, and forbids the absolute cross-ad score that placement decisions need. Both need an explicit resolution, not a quiet override. |
 | `src/components/site/PitchDeck.tsx:73,:214,:241-242` | "Last mile on top," "inference layer on top," "per-seat SaaS" — all three are the middleware framing the pivot abandons. |
 | `src/components/demo2/ServiceTiers.tsx` | Four tiers, no prices, by design. Serve is a fifth rung. Keep the no-prices posture. |
