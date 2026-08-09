@@ -91,6 +91,42 @@ def test_live_writes_require_soma_serve_live(monkeypatch):
         TikTokClient(access_token="token", advertiser_id="adv_123", dry_run=False)
 
 
+def test_with_id_normalizes_live_create_responses():
+    # _with_id short-circuits on `dry_run`, so every other test in this file returns at
+    # its first line and the live-response branch has never executed. Its output is
+    # chained straight into the next create (campaign id -> adgroup id -> video id), so a
+    # mis-parse here builds a real TikTok object against the wrong id.
+    client = _client(DryRunRecorder())
+
+    # Dry-run responses pass through untouched — the id is the recorder's synthetic one.
+    passthrough = {"dry_run": True, "id": "dry_1"}
+    assert client._with_id(passthrough, "ad_ids") is passthrough
+
+    # data as an object, id arriving as a single-element list (TikTok's ad/create shape).
+    assert client._with_id({"data": {"ad_ids": ["123"]}}, "ad_ids", "ad_id")["id"] == "123"
+
+    # data as a list — the first element carries the id.
+    assert client._with_id({"data": [{"campaign_id": "c1"}]}, "campaign_id")["id"] == "c1"
+
+    # Key order is precedence, not a set: ad_ids wins over ad_id when both are present.
+    both = {"data": {"ad_ids": ["from_list"], "ad_id": "from_scalar"}}
+    assert client._with_id(both, "ad_ids", "ad_id")["id"] == "from_list"
+
+    # Ids are stringified so downstream chaining never depends on TikTok's JSON typing.
+    assert client._with_id({"data": {"video_id": 456}}, "video_id")["id"] == "456"
+
+    # The raw response is preserved for the caller that needs the rest of the envelope.
+    assert client._with_id({"data": {"video_id": "v1"}}, "video_id")["raw"] == {
+        "data": {"video_id": "v1"}
+    }
+
+    # No usable id must raise rather than return something a caller will chain.
+    with pytest.raises(RuntimeError, match="has none of"):
+        client._with_id({"data": {}}, "ad_ids", "ad_id")
+    with pytest.raises(RuntimeError, match="has none of"):
+        client._with_id({"data": {"ad_ids": []}}, "ad_ids")
+
+
 def test_cli_dry_run_chains_the_four_calls(tmp_path):
     spec = {
         "campaign": {"name": "Campaign"},

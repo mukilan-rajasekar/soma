@@ -121,6 +121,10 @@ def test_activation_is_clamped_by_the_funded_week(tmp_path):
     }]), encoding="utf8")
     result = launch.activate("ad_1", fixture=under, dry_run=True, platform="meta", funded_quote=quote_path)
     assert result["funded_guard"]["ok"] is True
+    # Name the ceiling that actually fired. funded_caps derives lifetime=700, daily=100,
+    # and check_spend enforces the min — so the constraint here is 100, not the 700 this
+    # test's prose describes. Asserting it keeps the daily-cap derivation pinned end to end.
+    assert result["funded_guard"]["cap_micros"] == 100
 
     # A quote with no allocation for the platform refuses outright.
     with pytest.raises(RuntimeError, match="no 'tiktok' allocation"):
