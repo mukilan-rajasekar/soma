@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tools.serve.pricing import funded_caps  # noqa: E402
+from tools.serve.pricing import funded_caps, margin_micros_for  # noqa: E402
 
 DELIVERY_SOURCES = ("platform_api", "operator_fixture")
 
@@ -79,6 +79,20 @@ def fee_disclosure(quote: dict[str, Any], *, delivered_micros: int) -> dict[str,
     # zero-media week has no basis for a percentage and nothing to disclose about.
     if media <= 0:
         raise ValueError(f"quote has non-positive media ({media}); no basis to disclose")
+
+    # The rate and the money must be the same fact. A stale margin_pct alongside correct
+    # amounts still satisfies the identity above - the quote is internally consistent and
+    # the disclosure would publish a rate the client was never charged, which is the one
+    # error 10.6 exists to prevent. Reconciled through pricing's own function so the
+    # disclosure cannot drift from the invoice, truncation defect included: the artifact
+    # must state what WAS charged, not what should have been.
+    margin_pct = quote["margin_pct"]
+    charged = margin_micros_for(media, float(margin_pct))
+    if charged != margin:
+        raise ValueError(
+            f"declared margin_pct {margin_pct} implies {charged} micros on media {media}, "
+            f"but the quote charges {margin}; refusing to disclose a rate that was not charged"
+        )
 
     return {
         "policy": "meta-developer-policy-10.6",

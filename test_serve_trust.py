@@ -257,3 +257,27 @@ def test_fee_disclosure_refuses_an_incomplete_quote():
          "goal": "low_cost_testing", "margin_pct": 0}
     )
     assert spend_statement.fee_disclosure(free, delivered_micros=0)["fee_micros"] == 0
+
+
+def test_fee_disclosure_refuses_a_rate_that_was_not_charged():
+    # A stale margin_pct beside correct amounts still satisfies media + margin == price:
+    # the quote is internally consistent and the disclosure would publish a rate nobody
+    # was charged. That is the single error Meta policy 10.6 exists to prevent.
+    q = pricing.quote(
+        {"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000, "goal": "low_cost_testing"}
+    )
+    q["margin_pct"] = 35.0  # money untouched, rate stale
+
+    with pytest.raises(ValueError, match="was not charged"):
+        spend_statement.fee_disclosure(q, delivered_micros=0)
+
+    # The reconciliation goes through pricing's own function, so a margin the engine
+    # actually produces is always accepted -- including the 287 two-decimal rates whose
+    # basis point the shared truncation drops (AGENTS.md). 2.01% bills 200bp, and the
+    # disclosure must state the 200bp that was charged rather than reject the quote.
+    odd = pricing.quote(
+        {"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000,
+         "goal": "low_cost_testing", "margin_pct": 2.01}
+    )
+    assert odd["margin_micros"] == 20_000_000  # 200bp, not 201
+    assert spend_statement.fee_disclosure(odd, delivered_micros=0)["fee_pct"] == 2.01

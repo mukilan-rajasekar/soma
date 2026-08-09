@@ -75,6 +75,23 @@ SHORT_TEST_WEEKS = 2
 SHORT_TEST_MULT_BP = 85  # 0.85× when duration_weeks ≤ SHORT_TEST_WEEKS
 
 
+def margin_micros_for(media_micros: int, margin_pct: float) -> int:
+    """The charged margin. One definition, so a disclosure cannot contradict an invoice.
+
+    Rounded UP so the identity never undercharges by a micro and then fails 0016's price
+    check on insert.
+
+    CARRIES A KNOWN DEFECT ON PURPOSE. `int(margin_pct * 100)` truncates: 287 of the 5001
+    two-decimal margins in [0, 50] lose a basis point, so 2.01% bills 200bp rather than
+    201 (AGENTS.md; src/lib/pricing.ts does the same Math.trunc, which is why parity
+    passes while both sides are wrong). Anything reconciling a rate against a charge must
+    call THIS, not recompute the ideal figure - a disclosure's job is to state what was
+    charged, and a "corrected" reconciliation would reject those 287 legitimate quotes.
+    Fixing the truncation means both languages plus migration 0016's check, together.
+    """
+    return -(-int(media_micros) * int(margin_pct * 100) // 10_000)
+
+
 def quote(spec: dict[str, Any]) -> dict[str, Any]:
     platforms = list(spec.get("platforms") or [])
     spend = int(spec.get("weekly_spend_micros") or 0)
@@ -106,9 +123,7 @@ def quote(spec: dict[str, Any]) -> dict[str, Any]:
     for i in range(spend - base * len(platforms)):
         split[i] += 1
 
-    # Margin in integer micros, rounded UP so the identity never undercharges by a
-    # micro and then fails 0016's price check on insert.
-    margin_micros = -(-spend * int(margin_pct * 100) // 10_000)
+    margin_micros = margin_micros_for(spend, margin_pct)
 
     return {
         "currency": currency,
