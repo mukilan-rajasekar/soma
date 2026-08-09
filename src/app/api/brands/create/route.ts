@@ -12,7 +12,9 @@
 // the existing row instead of inserting. The cap is an abuse valve, not a plan limit —
 // nothing else in the schema cares how many brands a user owns. There is deliberately no
 // unique index behind this: two different customers may legitimately run brands that
-// share a name; only *this caller's* names are deduplicated.
+// share a name; only *this caller's* names are deduplicated. Both checks run twice —
+// optimistically before the write, and authoritatively after it ("reconcile the race"
+// below), because read-then-write alone loses to two concurrent requests.
 //
 // CONSENT IS AN OPT-IN, RECORDED WITH ITS PROVENANCE. training_consent turns on only for
 // a literal `true`, and lands with training_consent_source/at so a later audit can say
@@ -145,6 +147,66 @@ export async function POST(request: Request) {
   if (ownerError) {
     await supabase.from("brands").delete().eq("id", brand.id);
     return Response.json({ error: "Could not create this brand." }, { status: 500 });
+  }
+
+  // ── reconcile the race ───────────────────────────────────────────────────────
+  // The pre-checks above are read-then-write: two concurrent requests can both pass
+  // them, and no constraint can serialize this in the schema — names are global (two
+  // customers may share one), the cap is per-user, and neither table can see the other
+  // inside a unique index. So the invariant is enforced AFTER the write instead:
+  // re-read everything this caller now owns, ordered deterministically by
+  // (created_at, id), and let each request judge only the row IT created. In a race,
+  // both rows land, both requests re-read the same ordered list, and exactly one —
+  // the one whose own row sorts past the cap or behind a same-name twin — deletes its
+  // own row and answers as if the insert had never happened. The survivors converge.
+  const { data: afterMembers, error: afterMembersError } = await supabase
+    .from("brand_members")
+    .select("brand_id")
+    .eq("user_id", user.id);
+
+  const afterIds = (afterMembers ?? []).map((m) => (m as { brand_id: string }).brand_id);
+  const { data: afterBrands, error: afterBrandsError } = afterIds.length
+    ? await supabase
+        .from("brands")
+        .select("id, name, training_consent, created_at")
+        .in("id", afterIds)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+    : { data: [], error: null };
+
+  // A failed verification read fails OPEN: the write already happened, the caller's
+  // brand is real, and deleting it over a read hiccup would be worse than letting an
+  // abuse valve leak by one row.
+  if (!afterMembersError && !afterBrandsError && afterBrands) {
+    const ordered = afterBrands as {
+      id: string;
+      name: string;
+      training_consent: boolean;
+      created_at: string;
+    }[];
+
+    const twin = ordered.find(
+      (b) => b.id !== brand.id && b.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (twin) {
+      await supabase.from("brands").delete().eq("id", brand.id);
+      return Response.json({
+        ok: true,
+        created: false,
+        brand: { id: twin.id, name: twin.name, trainingConsent: twin.training_consent },
+      });
+    }
+
+    const keep = ordered.slice(0, MAX_BRANDS_PER_USER).map((b) => b.id);
+    if (ordered.length > MAX_BRANDS_PER_USER && !keep.includes(brand.id)) {
+      await supabase.from("brands").delete().eq("id", brand.id);
+      return Response.json(
+        {
+          error: `${MAX_BRANDS_PER_USER} brands is the self-serve limit. Reply to any Soma email and we'll add more.`,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   return Response.json({
