@@ -37,10 +37,6 @@ const ROUTES = [
   { path: '/r/' + '0'.repeat(32), expectStatus: 404 },
   // ...and a malformed one, which must be refused before it reaches a query at all.
   { path: '/r/not-a-token', expectStatus: 404 },
-  // The public pricing page. Every number on it is computed from src/lib/pricing.ts at
-  // render, so a text floor also catches the grid coming back empty-handed.
-  // observed: text 1845, canvas 0, scroll 1834
-  { path: '/pricing', minText: 1380, minCanvas: 0, minScroll: 1370, needsH1: true },
   // The free-audit funnel — linked from the footer, so it has to actually render.
   // observed: text 2028, canvas 0, scroll 1774
   { path: '/audit', minText: 1500, minCanvas: 0, minScroll: 1300, needsH1: true },

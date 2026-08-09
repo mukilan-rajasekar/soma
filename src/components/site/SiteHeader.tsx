@@ -8,7 +8,6 @@ import { usePathname } from "next/navigation";
 // bar any more. Re-adding one is a line here and nothing else.
 const LINKS = [
   { href: "/demo", label: "Demo", prefetch: undefined },
-  { href: "/pricing", label: "Pricing", prefetch: undefined },
   // The door into the logged-in product. It is a plain link rather than a session-aware
   // control on purpose: making this bar know whether you are signed in would turn a
   // Server Component rendered on every marketing page into one that must await an auth

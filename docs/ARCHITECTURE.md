@@ -22,9 +22,10 @@ map, use [`INDEX.md`](INDEX.md) and [`../pipeline/README.md`](../pipeline/README
 
 ## Site (Next.js 16)
 
-- **Routes:** marketing under `src/app/(site)/` (incl. `/pricing`, numbers computed from
-  `src/lib/pricing.ts`); product under `/upload`, `/r/<token>`, `/dashboard`, `/edit`,
-  `/generate`, `/run`, Serve read UI under `/dashboard/brands`.
+- **Routes:** marketing under `src/app/(site)/`; product under `/upload`, `/r/<token>`,
+  `/dashboard`, `/edit`, `/generate`, `/run`, Serve read UI under `/dashboard/brands`.
+  Pricing is deliberately NOT public — the quote lives behind auth at
+  `/dashboard/campaigns/new` (founder call, 2026-08-09).
 - **Auth:** Supabase Auth; session refresh in **`src/proxy.ts`** (not `middleware.ts`).
   Surfaces: `/sign-in`, `/sign-up`, `/forgot-password`, `/update-password`,
   `/dashboard/account`; emailed links (recovery, confirmation) land on
