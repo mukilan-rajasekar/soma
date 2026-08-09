@@ -559,16 +559,19 @@ plan, carrying that qualifier with them.)*
 > **The client picks a tier; we add 20% on the media.** They bring the creative and a goal.
 > `recommend_spend()` returns a small ladder of weekly media tiers — $300/week local through
 > $2,500/week broad, scaled by goal, reach and how many networks — and `quote()` adds a 20% margin on
-> whichever they pick. They pay media + margin as one weekly number, renewing until paused. The
-> margin is printed on the quote, and on a served account it is the only thing we are paid.
+> whichever they pick. They pay media + margin as one weekly number, renewing until paused, and the
+> margin is printed on the quote.
 >
-> **Two things about that sentence are still open, and a partner will find both.** The engine prices
-> the week and nothing else, while the three-line list below still shows Analyze and Improve as
-> separately charged — so whether a served client pays anything *beyond* the margin is undecided.
-> And whether the media half of that weekly number is our revenue at all depends on the
-> agent-versus-principal determination that `STRATEGY-FULL-SERVICE.md` §4.8 has not settled. **Until
-> both are closed, quote the 20% as a fee and do not state a revenue figure anywhere in this
-> packet** — the number would change meaning under either decision.
+> **What that margin adds up to is deliberately not stated here, because two decisions are open and
+> a partner will find both.** The engine prices the week and emits exactly one fee line — but the
+> three-line list below still shows Analyze and Improve as separately charged, and nobody has
+> reconciled the two, so whether a served client pays anything beyond the margin is undecided. And
+> whether the media half of that weekly number is *revenue* at all turns on the agent-versus-principal
+> determination `STRATEGY-FULL-SERVICE.md` §4.8 has not made: under agent treatment revenue is the
+> fee, under principal it grosses up to include the media. **So describe the 20% as our fee and do
+> not state a revenue figure anywhere in this packet until both close** — any number written today
+> changes meaning under either decision, and a figure retracted in diligence costs more than a figure
+> withheld.
 >
 > **This is a percentage of spend, and this document used to claim otherwise.** An earlier draft
 > promised a flat platform fee and built its strongest sentence on it — *"the only party in your chain
@@ -982,8 +985,7 @@ citation in this packet as suspect, and they would be right to.
 > test. The thousand dollars of real signal you're describing is the money you spend on Meta to learn
 > which creative works, and we are the ones spending it. You bring the creative; we quote a few weekly
 > media tiers off a published ladder — $300/week local up to $2,500/week broad, by goal and networks —
-> and we add 20% on top of that media. On a served account that 20% is the only thing we are paid,
-> and it is printed on the quote.
+> and we add 20% on top of that media. That 20% is our fee, and it is printed on the quote.
 >
 > So I am not going to tell you we have no skin in your budget. **Everyone in this chain is on a
 > percentage** — Meta's revenue *is* the spend, your agency takes ten to twenty of it, and the
