@@ -55,3 +55,14 @@ def test_degenerate_inputs():
             detectable_r(50, alpha=bad)
         with pytest.raises(ValueError, match="power"):
             detectable_r(50, power=bad)
+
+
+def test_bad_probabilities_raise_at_every_n():
+    # A caller error must not be reported as "too few rows". Validation runs before the
+    # n < 6 early return, so an invalid alpha raises at n=3 exactly as it does at n=50.
+    with pytest.raises(ValueError, match="alpha"):
+        detectable_r(3, alpha=5.0)
+    with pytest.raises(ValueError, match="power"):
+        detectable_r(3, power=0.0)
+    # A valid call below the floor still returns NaN rather than raising.
+    assert math.isnan(detectable_r(3, alpha=0.05, power=0.90))

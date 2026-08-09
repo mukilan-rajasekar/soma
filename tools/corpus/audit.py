@@ -112,12 +112,14 @@ def detectable_r(n: int, alpha: float = 0.05, power: float = 0.80) -> float:
     the .05/.80 pair. Both call sites in this file use the defaults, so every number this
     tool has printed is correct — but sizing a run at power .90 silently returned the .80
     answer, which is the one question this function exists to answer."""
-    if n < 6:
-        return float("nan")
+    # Argument validation comes first: an invalid alpha is invalid at every n, and
+    # returning NaN for it would make a caller error indistinguishable from "too few rows".
     if not 0.0 < alpha < 1.0:
         raise ValueError("alpha must be in (0, 1)")
     if not 0.0 < power < 1.0:
         raise ValueError("power must be in (0, 1)")
+    if n < 6:
+        return float("nan")
     normal = statistics.NormalDist()
     z_alpha = normal.inv_cdf(1.0 - alpha / 2.0)     # two-sided
     z_beta = normal.inv_cdf(power)
