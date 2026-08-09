@@ -19,6 +19,7 @@ import pytest
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
+from tools.serve import pricing  # noqa: E402
 from tools.serve.pricing import (  # noqa: E402
     MARGIN_PCT_DEFAULT,
     cases,
@@ -163,3 +164,84 @@ def test_committed_recommend_corpus_matches_the_engine():
         "fixtures/recommend_cases.json drifted from pricing.recommend_cases(); "
         "regenerate it and update src/lib/pricing.ts in the same commit"
     )
+
+
+# --- §4.6 holdout rebate ------------------------------------------------------------
+
+
+def test_holdout_rebate_waives_the_margin_on_the_holdout_fraction():
+    # Term one is the whole rebate while g is zero, and at h=0.10 it is exactly a tenth
+    # of the week's margin -- "we earn nothing on the media we chose to spend on our own
+    # training asset." $1,000 media, $200 margin, 10% holdout -> $20.
+    q = quote({"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000, "goal": "low_cost_testing"})
+    r = pricing.holdout_rebate(q, holdout_fraction=0.10)
+
+    assert r["margin_waiver_micros"] == 20_000_000
+    assert r["gap_term_micros"] == 0
+    assert r["rebate_micros"] == 20_000_000
+    assert r["capped"] is False
+    # h scales it linearly: doubling the holdout doubles what Soma gives back.
+    assert pricing.holdout_rebate(q, holdout_fraction=0.20)["rebate_micros"] == 40_000_000
+    # No holdout, no rebate -- the term is not a discount, it is compensation.
+    assert pricing.holdout_rebate(q, holdout_fraction=0.0)["rebate_micros"] == 0
+
+
+def test_holdout_rebate_second_term_needs_a_dated_artifact():
+    # §4.6 names the residual conflict: Soma has a financial reason to under-report g.
+    # The control is that g must trace to a calibration artifact, not to a keystroke.
+    q = quote({"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000, "goal": "low_cost_testing"})
+
+    with pytest.raises(ValueError, match="calibration_ref"):
+        pricing.holdout_rebate(q, holdout_fraction=0.10, gap_g=0.05)
+
+    r = pricing.holdout_rebate(
+        q, holdout_fraction=0.10, gap_g=0.05, calibration_ref="calib/2026-W32.json"
+    )
+    # h * S * g = 0.10 * $1,000 * 0.05 = $5, on top of the $20 waiver.
+    assert r["gap_term_micros"] == 5_000_000
+    assert r["rebate_micros"] == 25_000_000
+
+    # A random arm that beats the score-selected one is a result to publish, never a
+    # charge: the term can only ever reduce Soma's fee.
+    with pytest.raises(ValueError, match="not a fee"):
+        pricing.holdout_rebate(q, holdout_fraction=0.10, gap_g=-0.01, calibration_ref="x")
+
+
+def test_holdout_rebate_is_capped_at_the_whole_margin():
+    # §4.6: "in the worst case Soma works the month for nothing; it can never make the
+    # month cost the client more." A large demonstrated gap must not invert the fee.
+    q = quote({"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000, "goal": "low_cost_testing"})
+    r = pricing.holdout_rebate(
+        q, holdout_fraction=0.50, gap_g=2.0, calibration_ref="calib/huge.json"
+    )
+
+    assert r["rebate_micros"] == q["margin_micros"]
+    assert r["capped"] is True
+    assert r["margin_waiver_micros"] + r["gap_term_micros"] > q["margin_micros"]
+    assert r["rebate_micros"] <= q["margin_micros"]
+
+
+def test_holdout_rebate_rounds_toward_the_client():
+    # Every other rounding decision in this module rounds up toward Soma (the margin
+    # itself does). A rebate that inherited that would shave micros off what is owed.
+    q = quote({"platforms": ["meta"], "weekly_spend_micros": 7, "goal": "low_cost_testing"})
+    r = pricing.holdout_rebate(q, holdout_fraction=0.33)
+    # margin on 7 micros is 2; 33% of 2 is 0.66, which must round UP to 1.
+    assert q["margin_micros"] == 2
+    assert r["margin_waiver_micros"] == 1
+
+
+def test_holdout_rebate_never_rounds_a_positive_holdout_to_nothing():
+    # Regression: h was quantised to basis points with round(), which is half-to-even,
+    # so h=0.00005 -> round(0.5) -> 0 bp and a positive holdout earned a zero waiver.
+    # That rounds DOWN, in Soma's favour, in the one function that promises otherwise.
+    q = quote({"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000, "goal": "low_cost_testing"})
+
+    for tiny in (0.00005, 0.000005, 0.00015, 1e-9):
+        r = pricing.holdout_rebate(q, holdout_fraction=tiny)
+        assert r["margin_waiver_micros"] >= 1, f"h={tiny} waived nothing"
+
+    # Exactness, not just non-zero: 0.00005 of a 200_000_000 margin is 10_000 exactly.
+    assert pricing.holdout_rebate(q, holdout_fraction=0.00005)["margin_waiver_micros"] == 10_000
+    # And a fraction that does not divide evenly still rounds up, never down.
+    assert pricing.holdout_rebate(q, holdout_fraction=0.000000001)["margin_waiver_micros"] == 1

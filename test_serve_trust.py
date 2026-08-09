@@ -113,6 +113,56 @@ def test_statement_refuses_unallocated_platform():
         )
 
 
+def test_statement_discloses_fees_separately_from_spend():
+    # Meta Developer Policy 10.6 (effective 2027-02-03) wants spend stated apart from
+    # fees AND the fee structure. A margin figure alone does not say what it is a
+    # percentage OF, which is the half that makes a bundled price auditable.
+    stmt = spend_statement.statement(
+        _quote(),
+        [
+            {"platform": "meta", "spend_micros": 400_000_000, "currency": "USD", "source": "platform_api"},
+            {"platform": "tiktok", "spend_micros": 100_000_000, "currency": "USD", "source": "platform_api"},
+        ],
+        period="2026-W32",
+    )
+    disclosure = stmt["fee_disclosure"]
+
+    assert disclosure["fee_basis"] == "percentage_of_funded_media"
+    assert disclosure["fee_pct"] == 20.0
+    assert disclosure["media_funded_micros"] == 1_000_000_000
+    assert disclosure["fee_micros"] == 200_000_000
+    assert disclosure["client_paid_micros"] == 1_200_000_000
+    # Media and fee are stated separately and sum to what the client paid: that identity
+    # IS the disclosure, and 0016 enforces the same one on insert.
+    assert (
+        disclosure["media_funded_micros"] + disclosure["fee_micros"]
+        == disclosure["client_paid_micros"]
+    )
+    # Delivered is reported next to funded, so undelivered media is visible rather than
+    # inferable. 400 + 100 of the funded 1,000.
+    assert disclosure["media_delivered_micros"] == 500_000_000
+    assert stmt["delivered_spend_micros"] == 500_000_000
+    assert disclosure["fee_is_spendable_as_media"] is False
+    assert disclosure["effective"] == "2027-02-03"
+
+
+def test_fee_disclosure_refuses_a_quote_whose_identity_is_broken():
+    # A tampered or hand-built quote must not be laundered into a compliance artifact.
+    # This is the one document a client or regulator would rely on.
+    bad = _quote()
+    bad["margin_micros"] = bad["margin_micros"] + 1
+    with pytest.raises(ValueError, match="quote identity broken"):
+        spend_statement.fee_disclosure(bad, delivered_micros=0)
+
+    # A fee with no media under it has no basis to disclose, so refuse rather than
+    # print a percentage of nothing.
+    with pytest.raises(ValueError, match="no basis to disclose"):
+        spend_statement.fee_disclosure(
+            {"weekly_spend_micros": 0, "margin_micros": 5, "weekly_price_micros": 5, "margin_pct": 20.0},
+            delivered_micros=0,
+        )
+
+
 # --- revenue_feed -------------------------------------------------------------------
 
 
@@ -183,3 +233,51 @@ def test_report_requires_cycle_and_renders_refusals(tmp_path):
     # sections without artifacts are omitted, not faked
     assert "Blended MER" not in md and "Incrementality" not in md
     assert report["kind"] == "client_report" and report["period_label"] == "2026-W32"
+
+
+def test_fee_disclosure_refuses_an_incomplete_quote():
+    # Regression: absent fields defaulted to 0, so {} satisfied `0 + 0 == 0` and rendered
+    # a complete-looking disclosure of nothing with a null rate. The empty dict is the
+    # input most likely to arrive by accident (an unreadable or truncated quote file).
+    with pytest.raises(ValueError, match="missing"):
+        spend_statement.fee_disclosure({}, delivered_micros=0)
+
+    full = pricing.quote(
+        {"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000, "goal": "low_cost_testing"}
+    )
+    for field in ("weekly_spend_micros", "margin_micros", "weekly_price_micros", "margin_pct"):
+        partial = {k: v for k, v in full.items() if k != field}
+        with pytest.raises(ValueError, match="missing"):
+            spend_statement.fee_disclosure(partial, delivered_micros=0)
+
+    # A zero-margin quote is legitimate and must still disclose: margin_pct 0.0 is a
+    # value, not an absence, so presence is checked rather than truthiness.
+    free = pricing.quote(
+        {"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000,
+         "goal": "low_cost_testing", "margin_pct": 0}
+    )
+    assert spend_statement.fee_disclosure(free, delivered_micros=0)["fee_micros"] == 0
+
+
+def test_fee_disclosure_refuses_a_rate_that_was_not_charged():
+    # A stale margin_pct beside correct amounts still satisfies media + margin == price:
+    # the quote is internally consistent and the disclosure would publish a rate nobody
+    # was charged. That is the single error Meta policy 10.6 exists to prevent.
+    q = pricing.quote(
+        {"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000, "goal": "low_cost_testing"}
+    )
+    q["margin_pct"] = 35.0  # money untouched, rate stale
+
+    with pytest.raises(ValueError, match="was not charged"):
+        spend_statement.fee_disclosure(q, delivered_micros=0)
+
+    # The reconciliation goes through pricing's own function, so a margin the engine
+    # actually produces is always accepted -- including the 287 two-decimal rates whose
+    # basis point the shared truncation drops (AGENTS.md). 2.01% bills 200bp, and the
+    # disclosure must state the 200bp that was charged rather than reject the quote.
+    odd = pricing.quote(
+        {"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000,
+         "goal": "low_cost_testing", "margin_pct": 2.01}
+    )
+    assert odd["margin_micros"] == 20_000_000  # 200bp, not 201
+    assert spend_statement.fee_disclosure(odd, delivered_micros=0)["fee_pct"] == 2.01

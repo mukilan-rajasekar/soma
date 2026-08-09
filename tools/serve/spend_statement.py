@@ -9,6 +9,15 @@ quote's funded media allocation (pricing.funded_caps) against delivered spend ro
 it grades its own evidence: a row sourced from a platform API pull says so, a row from
 an operator fixture is labelled operator-attested, and the statement never uses the
 word "verified" for either - third-party attestation is a later, named step.
+
+It also carries the fee_disclosure block Meta Developer Policy 10.6 requires from
+2027-02-03: spend stated separately from fees, plus the fee STRUCTURE rather than only
+the amount. Under bundled weekly pricing the structure is "20% of funded media", so the
+basis has to be named - a bare margin figure does not say what it was a percentage of,
+and that is the half 10.6 actually asks for. The block refuses to render rather than
+disclose a quote whose own identity does not hold (media + margin != price): a
+disclosure computed from an inconsistent quote is worse than no disclosure, because it
+is the artifact a regulator or a client would rely on.
 """
 
 from __future__ import annotations
@@ -23,9 +32,86 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tools.serve.pricing import funded_caps  # noqa: E402
+from tools.serve.pricing import funded_caps, margin_micros_for  # noqa: E402
 
 DELIVERY_SOURCES = ("platform_api", "operator_fixture")
+
+# Meta Developer Policy 10.6: on request, disclose spend separately from fees and the
+# associated fee structure. Dated here so the obligation is greppable, not remembered.
+POLICY_10_6_EFFECTIVE = "2027-02-03"
+
+# Checked for presence, not truthiness: margin_pct is legitimately 0.0 on a zero-margin
+# quote, and `or`-style defaulting would silently turn a missing field into a disclosed
+# figure of zero.
+REQUIRED_QUOTE_FIELDS = (
+    "weekly_spend_micros",
+    "margin_micros",
+    "weekly_price_micros",
+    "margin_pct",
+)
+
+
+def fee_disclosure(quote: dict[str, Any], *, delivered_micros: int) -> dict[str, Any]:
+    """Spend and fees, separated, with the basis named. Meta Developer Policy 10.6."""
+    # Absence must not default to zero. `{}` would otherwise satisfy the identity below
+    # as 0 + 0 == 0 and render a complete-looking disclosure of nothing, with a null
+    # rate - which is the exact artifact this function exists to refuse, produced by the
+    # one input most likely to reach it by accident.
+    missing = [f for f in REQUIRED_QUOTE_FIELDS if quote.get(f) is None]
+    if missing:
+        raise ValueError(
+            f"quote is missing {missing}; refusing to render a fee disclosure from an "
+            "incomplete quote"
+        )
+
+    media = int(quote["weekly_spend_micros"])
+    margin = int(quote["margin_micros"])
+    price = int(quote["weekly_price_micros"])
+
+    # 0016 enforces this identity on insert; a quote that reaches us violating it came
+    # from somewhere else, and disclosing its numbers would launder the inconsistency.
+    if media + margin != price:
+        raise ValueError(
+            f"quote identity broken: media {media} + margin {margin} != price {price}; "
+            "refusing to render a fee disclosure from it"
+        )
+    # pricing.quote refuses spend <= 0, so a real quote always has positive media. A
+    # zero-media week has no basis for a percentage and nothing to disclose about.
+    if media <= 0:
+        raise ValueError(f"quote has non-positive media ({media}); no basis to disclose")
+
+    # The rate and the money must be the same fact. A stale margin_pct alongside correct
+    # amounts still satisfies the identity above - the quote is internally consistent and
+    # the disclosure would publish a rate the client was never charged, which is the one
+    # error 10.6 exists to prevent. Reconciled through pricing's own function so the
+    # disclosure cannot drift from the invoice, truncation defect included: the artifact
+    # must state what WAS charged, not what should have been.
+    margin_pct = quote["margin_pct"]
+    charged = margin_micros_for(media, float(margin_pct))
+    if charged != margin:
+        raise ValueError(
+            f"declared margin_pct {margin_pct} implies {charged} micros on media {media}, "
+            f"but the quote charges {margin}; refusing to disclose a rate that was not charged"
+        )
+
+    return {
+        "policy": "meta-developer-policy-10.6",
+        "effective": POLICY_10_6_EFFECTIVE,
+        # The structure, not just the number. "20%" alone does not say of what.
+        "fee_basis": "percentage_of_funded_media",
+        "fee_pct": quote.get("margin_pct"),
+        "fee_micros": margin,
+        "media_funded_micros": media,
+        "media_delivered_micros": delivered_micros,
+        "client_paid_micros": price,
+        # The one property that distinguishes this from an agency's markup: the fee is
+        # computed on funded media and cannot itself be spent as media (§0.6).
+        "fee_is_spendable_as_media": False,
+        "note": (
+            "fee is a percentage of funded media, disclosed on the quote; media and fee "
+            "are stated separately above and the fee is never spendable as media"
+        ),
+    }
 
 
 def statement(quote: dict[str, Any], delivered: list[dict[str, Any]], *, period: str) -> dict[str, Any]:
@@ -74,6 +160,8 @@ def statement(quote: dict[str, Any], delivered: list[dict[str, Any]], *, period:
             }
         )
 
+    delivered_total = sum(line["delivered_spend_micros"] for line in lines)
+
     return {
         "kind": "spend_statement",
         "period": period,
@@ -81,7 +169,9 @@ def statement(quote: dict[str, Any], delivered: list[dict[str, Any]], *, period:
         "weekly_price_micros": quote.get("weekly_price_micros"),
         "margin_micros": quote.get("margin_micros"),
         "media_micros": quote.get("weekly_spend_micros"),
+        "delivered_spend_micros": delivered_total,
         "lines": lines,
+        "fee_disclosure": fee_disclosure(quote, delivered_micros=delivered_total),
         "note": (
             "margin is disclosed and never spendable (BUILD-PLAN §0.6); delivered figures are "
             "graded by their evidence source and are not third-party attested"

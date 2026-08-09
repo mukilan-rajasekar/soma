@@ -857,6 +857,35 @@ That is **5.4% of a $200k spend** — and, critically, **$10,800 whether the cli
 $500k.** At $500k of spend it is 2.2%. The fee tracks managed brands and creative volume; it does
 not track money.
 
+> **STALE 2026-08-09 — this entire worked example is denominated in the superseded flat fee, and
+> re-denominating it exposes a question bigger than the arithmetic.**
+>
+> At the shipped 20% of media, a $200,000/month brand pays **$40,000/month**, not $12,000 — a 3.3×
+> price increase nobody has argued for. (The $7,500 platform fee was itself *"chosen to land near 5%
+> of the primary case's spend,"* so the flat model was already ~6% all-in. Twenty percent is a
+> different price, not a repackaging of the same one.) Every number below inherits the error: gross
+> margin, accounts-per-operator, break-even N.
+>
+> **But the harder problem is that this brand cannot be quoted by the shipped engine at all.**
+> `recommend_spend()` tops out at $2,500/week — about **$10,800/month of media**, which is 5% of this
+> example's spend. The ladder serves brands spending **$1,300–$10,800/month**; §4.3 models one
+> spending $200,000. To earn this example's $12,000/month at 20% you need $60,000/month of media,
+> **5.5× above the top of the ladder.**
+>
+> | | §4.3 models | `recommend_spend()` ships |
+> |---|---|---|
+> | Client media | $200,000/mo | $1,300–$10,800/mo |
+> | Soma revenue | $12,000/mo | $260–$2,170/mo |
+>
+> These are two companies with different buyers, sales motions, operator ratios and COGS structures.
+> **[FOUNDER DECISION — which one is this? Do not re-derive the numbers below until it is answered,
+> because the answer changes what they are numbers about.]** The SMB reading has a real argument
+> behind it: at $360/week all-in, Soma reaches advertisers a $2–15k/month agency retainer
+> structurally cannot serve — and those are also the advertisers whose ads genuinely fail, which is
+> the loser-bearing data the §1.2 backtests could not buy. The enterprise reading is what this
+> section, §4.6's rebate arithmetic and §4.8's ASC 606 example are all written for. Neither is
+> wrong; the document currently assumes both.
+
 **Direct COGS per client-month:**
 
 | Line | Cost |
@@ -1060,6 +1089,34 @@ The line for the pitch:
   reader who finds it themselves has found a problem; a reader who is handed it has been shown a
   process.
 
+**RESTATEMENT for bundled weekly pricing (2026-08-09).** Everything above stands as argument; only
+the denomination changes. *F* was written as "the month's gross fee," which the §4.2 supersession
+abolished — there is no monthly platform fee any more. Under the weekly bundle, **F = the week's
+margin = 0.20 × funded media**, and *S* — managed spend — **is** that funded media. So the rule
+reads:
+
+> **Rebate = h × (0.20 × S) + h × S × g**, capped at 0.20 × S
+>
+> equivalently **h × S × (0.20 + g)**, capped at the whole week's margin.
+
+Two things are worth noticing about how well it survived the repricing. **The first term is now
+literally "we waive our margin on the holdout fraction"** — a 10% holdout means we earn nothing on
+that tenth of the week's media. Under the flat fee, reducing a monthly platform fee by the holdout
+fraction was a gesture with no mechanical connection to the spend it compensated; here the term is
+denominated in the same money as the thing it is compensating for, which is what it always should
+have been. **The second term is unchanged in form and now cannot be dismissed as the only
+spend-linked number in the contract**, because under bundled pricing every number is spend-linked
+— including ours. That does not weaken it. It is still the only term that moves in the client's
+direction, and it is still capped so the worst case is a week worked for nothing.
+
+**What is still owed, and it is engineering rather than argument.** *h* and *g* have columns on
+`brand_fees` (`holdout_rebate_pct`, `holdout_gap_g`) — the table migration `0016_campaign_pricing.sql`
+superseded. `campaign_quotes`, which is where the margin actually lives now, carries **no rebate
+representation at all**, and nothing computes the rule in Python or TypeScript. Until both are
+fixed, §4.6 is a promise in a document, and the residual conflict named directly above — that Soma
+has a financial reason to under-report *g* — has no committed code to point at as its control. That
+is the gap to close before the first holdout runs, not after.
+
 ### 4.7 The fee has to exist in the schema, not just in this document
 
 There is currently no fee, invoice, rate table or billing period anywhere in the repo, and no
@@ -1090,12 +1147,42 @@ spend and a $10,800 fee, reported revenue would be $210,800 with $200,000 of COG
 reported gross margin for economically identical work. That is a disastrous thing to put in front
 of an investor for no benefit.
 
-**Recommendation: client owns the ad account and the payment method; Soma takes partner access.**
-This is also the only structure compatible with Meta policy 10.5, which forbids combining multiple
-end advertisers in one ad account (https://developers.facebook.com/devpolicy/). It gives agent
-accounting (revenue = fee only), no float, no chargeback exposure, and instant client revocability
-— which is a trust feature, not a weakness, for a buyer who is being asked to hand over an account.
-It is also what makes §8.2a scenario (3) survivable.
+**SUPERSEDED 2026-08-09 by the §4.2 bundled weekly price. The decision is principal, because the
+product already made it.** *"One all-inclusive weekly price... one number, one bill; the client never
+manages per-platform finances"* describes Soma receiving the client's money and paying the platforms
+out of it. That is principal, and no amount of documentation elsewhere makes it agent. The prior
+recommendation is kept below as argument history, because its reasoning remains the best statement
+of what principal costs.
+
+**What principal costs, restated at the shipped 20%.** On the §4.3 primary case — $200,000/month of
+managed spend — the fee is $40,000 and reported revenue grosses up to **$240,000 against $200,000 of
+COGS: a 16.7% reported gross margin** for economically identical work. Better than the 5.1% the flat
+fee would have produced on the same spend, and still the number an investor sees first. **State net
+and gross together, always, and lead with net.** A revenue line that is 83% other people's media is
+not a revenue line, and being the one who says so first is the difference between a disclosure and a
+discovery.
+
+Principal also brings what §4.2 did not price: Soma holds client float between the prepaid week and
+the platform charge, carries chargeback exposure, and becomes a merchant of record. **[NEEDS
+COUNSEL — this is the R5 calendar gate: prepaid-week float, money-transmission exposure and
+merchant-of-record status under a bundled price. Not accounting or legal advice; the ASC 606
+determination must come from a qualified professional. This section records a product decision, not
+their conclusion.]**
+
+**And it reopens Meta policy 10.5**, which forbids combining multiple end advertisers in one ad
+account *"unless you meet the requirements described here or as otherwise approved by Meta in
+writing"* (https://developers.facebook.com/devpolicy/). Under agent that question never arose; under
+principal it is load-bearing. **[NEEDS EVIDENCE — the linked criteria page has not been read and
+whether Soma qualifies is unknown. This is now a blocker on the first live campaign, not a
+footnote.]**
+
+**The superseded recommendation, kept as argument history:** *client owns the ad account and the
+payment method; Soma takes partner access.* It gives agent accounting (revenue = fee only), no
+float, no chargeback exposure, and instant client revocability — a trust feature, not a weakness,
+for a buyer being asked to hand over an account. It is also what makes §8.2a scenario (3)
+survivable. **Every one of those advantages is now something Soma has to earn another way:**
+revocability by contract terms rather than by architecture (the week renews rather than locks), and
+trust by disclosure and instrumentation rather than by the client's hand staying on the card.
 
 The mechanism: client's Business Manager grants Soma's BM partner access with tasks via
 `POST /act_<ID>/assigned_users`, and Soma authenticates with a system-user token. Reject the

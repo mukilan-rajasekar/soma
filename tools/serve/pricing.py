@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
@@ -74,6 +75,23 @@ SHORT_TEST_WEEKS = 2
 SHORT_TEST_MULT_BP = 85  # 0.85× when duration_weeks ≤ SHORT_TEST_WEEKS
 
 
+def margin_micros_for(media_micros: int, margin_pct: float) -> int:
+    """The charged margin. One definition, so a disclosure cannot contradict an invoice.
+
+    Rounded UP so the identity never undercharges by a micro and then fails 0016's price
+    check on insert.
+
+    CARRIES A KNOWN DEFECT ON PURPOSE. `int(margin_pct * 100)` truncates: 287 of the 5001
+    two-decimal margins in [0, 50] lose a basis point, so 2.01% bills 200bp rather than
+    201 (AGENTS.md; src/lib/pricing.ts does the same Math.trunc, which is why parity
+    passes while both sides are wrong). Anything reconciling a rate against a charge must
+    call THIS, not recompute the ideal figure - a disclosure's job is to state what was
+    charged, and a "corrected" reconciliation would reject those 287 legitimate quotes.
+    Fixing the truncation means both languages plus migration 0016's check, together.
+    """
+    return -(-int(media_micros) * int(margin_pct * 100) // 10_000)
+
+
 def quote(spec: dict[str, Any]) -> dict[str, Any]:
     platforms = list(spec.get("platforms") or [])
     spend = int(spec.get("weekly_spend_micros") or 0)
@@ -105,9 +123,7 @@ def quote(spec: dict[str, Any]) -> dict[str, Any]:
     for i in range(spend - base * len(platforms)):
         split[i] += 1
 
-    # Margin in integer micros, rounded UP so the identity never undercharges by a
-    # micro and then fails 0016's price check on insert.
-    margin_micros = -(-spend * int(margin_pct * 100) // 10_000)
+    margin_micros = margin_micros_for(spend, margin_pct)
 
     return {
         "currency": currency,
@@ -212,6 +228,80 @@ def funded_caps(q: dict[str, Any]) -> list[dict[str, Any]]:
         )
     assert sum(c["lifetime_cap_micros"] for c in caps) == int(q["weekly_spend_micros"])
     return caps
+
+
+def _ceil_micros(amount: int, factor: Fraction) -> int:
+    """ceil(amount * factor) in exact integer arithmetic - no float, no bp quantisation."""
+    return -((-amount * factor.numerator) // factor.denominator)
+
+
+def holdout_rebate(
+    q: dict[str, Any],
+    *,
+    holdout_fraction: float,
+    gap_g: float = 0.0,
+    calibration_ref: str | None = None,
+) -> dict[str, Any]:
+    """§4.6's rebate, in the denomination the bundled week actually uses.
+
+        Rebate = h × F + h × S × g,  capped at F
+
+    F is the week's margin and S the funded media, so term one is literally "we waive our
+    margin on the holdout fraction" and term two is the client's share of a demonstrated
+    performance gap. The cap means the worst case is a week worked for nothing; a rebate
+    can zero the fee and never invert it.
+
+    g DEFAULTS TO ZERO AND THAT IS A CLAIM. §4.6: Soma cannot demonstrate that
+    score-selected arms outperform random ones, so today the holdout has no demonstrated
+    cost to the client. §4.6 also names the residual conflict - Soma has a financial
+    reason to under-report g - so a non-zero g must cite the dated calibration artifact
+    it came from. That requirement is enforced here and again by 0018's check constraint;
+    a number someone typed is not a measurement.
+
+    Rounding is UP on both terms, toward the client, because every other rounding
+    decision in this module rounds toward Soma and a rebate must not inherit that.
+
+    The arithmetic is exact rational, not basis points. Quantising h to bp first meant
+    round(h * 10_000), and Python's round() is half-to-even: h = 0.00005 became 0 bp, so
+    a positive holdout earned a zero waiver - rounding DOWN, in Soma's favour, in the one
+    function whose docstring promises the opposite. Fraction(str(x)) takes the decimal
+    the caller actually wrote, so ceil() is applied once to an exact product and there is
+    no intermediate to lose. It also matches Postgres numeric, which is what 0018's
+    trigger re-derives these terms in.
+    """
+    margin = int(q.get("margin_micros") or 0)
+    media = int(q.get("weekly_spend_micros") or 0)
+
+    if not 0.0 <= holdout_fraction < 1.0:
+        raise ValueError("holdout_fraction must be in [0, 1)")
+    if gap_g < 0.0:
+        # A negative gap means the random arm won. That is a finding to publish, not a
+        # charge to levy: §4.6's term can only ever reduce Soma's fee.
+        raise ValueError("gap_g must be >= 0; a random arm that wins is a result, not a fee")
+    if gap_g > 0.0 and not (calibration_ref or "").strip():
+        raise ValueError("a non-zero gap_g requires calibration_ref: g must trace to a dated artifact")
+    if margin and not media:
+        raise ValueError("margin on zero media has no rebate basis")
+
+    h = Fraction(str(holdout_fraction))
+    g = Fraction(str(gap_g))
+    waiver = _ceil_micros(margin, h)
+    gap_term = _ceil_micros(media, h * g)
+
+    uncapped = waiver + gap_term
+    rebate = min(uncapped, margin)
+
+    return {
+        "holdout_fraction_h": holdout_fraction,
+        "holdout_gap_g": gap_g,
+        "calibration_ref": calibration_ref,
+        "margin_waiver_micros": waiver,
+        "gap_term_micros": gap_term,
+        "rebate_micros": rebate,
+        "capped": rebate < uncapped,
+        "currency": q.get("currency") or "USD",
+        "rule": "STRATEGY-FULL-SERVICE §4.6: h*F + h*S*g, capped at F",
+    }
 
 
 def cases() -> list[dict[str, Any]]:

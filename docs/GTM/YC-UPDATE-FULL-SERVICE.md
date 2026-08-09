@@ -247,13 +247,13 @@ build order. Nothing here asserts what is on screen.)*
 > **What is honestly true today, stated plainly.** The pipeline is real and runs offline on a
 > provisioned GPU box; the site is a reader over its output. Analyze works end-to-end for a signed-in
 > customer — upload a batch, get a report with per-second network lanes, per-shot diagnosis, and
-> rendered recuts. Improve works in the narrow form described above. **Serve does not exist yet: we
-> have written zero lines of Meta, TikTok, or Google campaign-management code.** We have read the
-> write path — it is four creates plus a video upload on Meta's side — and the real gate is Meta's
-> app review and a legal decision about whose ad account and whose money, not the code. **[FILL:
-> engineer-days to first programmatic campaign — nobody who would build it has made an estimate.
-> A number invented for an application is the exact failure this document exists to prevent, and a
-> slot containing a guess is worse than an empty slot because it reads as sourced.]**
+> rendered recuts. Improve works in the narrow form described above. **Serve is built and has never
+> run live.** `tools/serve/` holds Meta, TikTok and Google clients, the spend guard, the A/B
+> evaluator, autopilot, and the trust surfaces — exercised end to end in dry run, where every payload
+> is recorded and no HTTP leaves the box. **Not one live ad has been placed and no client has been
+> billed:** live writes require `SOMA_SERVE_LIVE=1`, which is unset everywhere, and fees are refused
+> by `check_licence_gate.py` while PLAN.md gate 4 stands. What remains is not code — it is Meta's app
+> review and the legal determination about whose ad account and whose money.
 >
 > **And the claim ladder has not moved.** Video → predicted brain activation is validated, by Meta,
 > publicly, against real fMRI — not our work.
@@ -318,7 +318,7 @@ verb below is deliberately tensed: what exists is present tense, what does not i
 > and re-scored, with each delta flagged **measured** or **estimate**. Heavier generation and editing
 > is optional, partnered out, and explicitly not the wedge. We are not going to become your agency.
 >
-> **Serve — not built. Zero lines of campaign-management code today.** The intent is that you choose
+> **Serve — built, dry-run only, never run live and never billed.** The shape is that you choose
 > a weekly media tier and a goal, we place and test the creative across Meta, TikTok and Google for
 > that budget plus 20%, and report it back in one dashboard instead of three. What that
 > buys *us* is the outcome label attached to the exact creative — which is the only way the diagnosis
@@ -505,8 +505,9 @@ plan, carrying that qualifier with them.)*
 > has to ask the customer for their outcome data after the fact and mostly doesn't get it. We will
 > get it from the ad account we operate, at the ad level, with breakdowns by placement, platform
 > position and device — predicted network response and realized ROAS landing in the same row
-> automatically. **That is the architecture, and none of it is built: zero lines of
-> campaign-management code today.** Built, that corpus is the only thing in this answer a competitor
+> automatically. **The architecture is built and has never been run live** — the clients, the guard
+> and the outcome join all exist in dry run; what does not exist is a single real ad, a single real
+> outcome row, or a client. Once it runs, that corpus is the only thing in this answer a competitor
 > cannot download.
 >
 > **The honest timescale, because the exciting version of this claim is wrong on a seed horizon.**
@@ -629,8 +630,13 @@ plan, carrying that qualifier with them.)*
 > three times failed to show that any such gap exists.** If there is no demonstrable gap, there is no
 > demonstrable loss to compensate; the day we can show one is the same day the term switches on, and
 > those two facts are deliberately tied together so we cannot claim the gap in a pitch while paying
-> nothing for it in a contract. **[FILL: the *g* formula — how a measured gap converts to dollars —
-> is not specified anywhere in the repo. It must exist before the first holdout runs, not after.]**
+> nothing for it in a contract. The rule is written out in `STRATEGY-FULL-SERVICE.md` §4.6 —
+> **Rebate = h × F + h × S × g**, capped at F — where *h* is the holdout fraction, *F* the period's
+> gross fee, *S* managed spend, and *g* the measured proportional gap taken from a dated calibration
+> artifact. Both parameters have columns (`brand_fees.holdout_rebate_pct`, `.holdout_gap_g`).
+> **[NEEDS BUILD: those columns are on the legacy `brand_fees` table that migration 0016 superseded;
+> `campaign_quotes` carries no rebate representation, and nothing computes the rule in any language.
+> It must be computable before the first holdout runs, not after.]**
 > All of it is disclosed in the MSA and disclosed in the pitch, because an arrangement that only
 > works undisclosed is not an arrangement, it is a problem waiting.
 >
@@ -715,7 +721,9 @@ rendered so it survives contact with a partner.)*
 > **Improve:** working in the narrow form — real shot detection, real ffmpeg renders, real re-scored
 > deltas, with every row flagged measured or estimate.
 >
-> **Serve:** not built. Zero lines of campaign-management code today.
+> **Serve:** built and dry-run-exercised end to end across Meta, TikTok and Google. **Live campaigns
+> run: zero. Ads placed: zero. Clients billed: zero.** `SOMA_SERVE_LIVE` is unset; the licence gate
+> refuses fees.
 >
 > **Demand, stated so it can be checked.** We have talked to **[FILL: N people at M companies —
 > counted from a dated outreach log, not from memory]** about this. **[FILL: K of them]** raised,
@@ -790,7 +798,8 @@ people" costs more here than it would in an application that had nothing to prot
 >
 > We're honest about where we are. The scoring works and runs today, and our trained read-out head
 > does clear on a public human-interest dataset — fifteen videos, a real result and a small one. The
-> serving is scoped and not built. And we've tested this score against actual ad outcomes three
+> serving is built but has never run live — no ad placed, no client billed. And we've tested this
+> score against actual ad outcomes three
 > separate ways, at twenty-nine ads each, and all three came back null. We published all three. We'd
 > rather earn the claim than assert it, and serving is how we earn it.
 >
@@ -1392,7 +1401,8 @@ don't contradict the application.)*
 | `docs/strategy/VISION.md:78-83` | "Why cheaper" compares against per-test panel pricing. Wrong denominator now — the new denominator is **20% of the weekly media tier**, a percentage of ad spend. Do not propagate the old "flat platform fee" wording; it was never true of the shipped engine. |
 | `docs/strategy/STRATEGY-FULL-SERVICE.md:1088-1093` | §4.8 recommends the **agent** structure (client owns the account and payment method, revenue = fee only) and warns principal grosses up revenue under ASC 606. §4.2 was already rewritten for bundled weekly pricing; §4.8 was not. The prepaid week reads as principal. **This is the open founder decision flagged in killer #5** — settle it before the packet states a revenue figure. |
 | `docs/strategy/STRATEGY-FULL-SERVICE.md:1080-1084` | §4.7 argues Meta Developer Policy 10.6 (effective 2027-02-03) disclosure is easier under flat pricing because "there is no per-spend markup to reconcile." There now is one. The 10.6 report must separate media from the 20% margin — that is a named deliverable with a compliance date, not a nicety. |
-| **This file, `:247`, `:317`, `:504`, `:692`** | All four say Serve is "not built" with **"zero lines of campaign-management code."** That was true when written and is now false: `tools/serve/` holds 27 modules including Meta, TikTok and Google clients, spend guard, autopilot and the trust surfaces. The accurate statement is **built and dry-run-exercised end to end, never run live** — `SOMA_SERVE_LIVE` is unset and `check_licence_gate.py` blocks fees while PLAN.md gate 4 is open. §3 of "What is your company going to make" has been corrected; **these four have not**, and a paste from any of them now understates the company in a way a reviewer can check in one `ls`. Fix in a status pass, not a pricing one. |
+| ~~This file, the "zero lines of campaign-management code" claims~~ | **DONE 2026-08-09.** Six sites said Serve was unbuilt; `tools/serve/` holds 27 modules including all three platform clients, the spend guard, autopilot and the trust surfaces. All six now read **built and dry-run-exercised end to end, never run live** — `SOMA_SERVE_LIVE` unset, fees refused by `check_licence_gate.py` while PLAN.md gate 4 stands. The `[FILL: engineer-days to first programmatic campaign]` was deleted rather than filled: the answer is zero, the work is done. |
+| `docs/strategy/STRATEGY-FULL-SERVICE.md:4.3` | The $200k/month worked example is denominated in the superseded flat fee **and** models a brand the shipped `recommend_spend()` ladder cannot quote — it tops out at $2,500/week, ~5% of that example's spend. Marked STALE with both readings laid out; **the founder decision of which company this is remains open**, and every derived number below §4.3 waits on it. |
 | `docs/strategy/OPPORTUNITIES.md:100-181` | Ranks creator tools above ads, and forbids the absolute cross-ad score that placement decisions need. Both need an explicit resolution, not a quiet override. |
 | `src/components/site/PitchDeck.tsx:73,:214,:241-242` | "Last mile on top," "inference layer on top," "per-seat SaaS" — all three are the middleware framing the pivot abandons. |
 | `src/components/demo2/ServiceTiers.tsx` | Four tiers, no prices, by design. Serve is a fifth rung. Keep the no-prices posture. |
