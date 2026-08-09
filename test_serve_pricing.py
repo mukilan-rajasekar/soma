@@ -98,7 +98,11 @@ def test_funded_caps_are_media_only_and_conserve():
     # The margin never becomes spendable media: caps sum strictly below the price.
     assert sum(c["lifetime_cap_micros"] for c in caps) < q["weekly_price_micros"]
     for c in caps:
-        assert c["daily_cap_micros"] * 7 >= c["lifetime_cap_micros"]
+        # Pin the identity, not an inequality. `daily * 7 >= lifetime` bounds the daily cap
+        # from BELOW only: it also holds for daily == lifetime, so it cannot detect the cap
+        # being loosened 7x. guard.check_spend enforces min(daily, lifetime), which makes
+        # daily the binding ceiling on the live activation path.
+        assert c["daily_cap_micros"] == -(-c["lifetime_cap_micros"] // 7)
         assert c["source"] == "funded_week_media"
 
 

@@ -68,3 +68,12 @@ author/committer identity — never Cursor Agent / Codex co-author lines.
   half-populated videos/ trains on fewer ads and reports the smaller n as the plan.
 - `demo/train.py train` re-extracts from the mp4 and never reads the features JSONs;
   the cache key is a sha1 of the source video, so no file means no cache hit either.
+- `pricing.margin_micros` does `int(margin_pct * 100)`: 287 of the 5001 two-decimal
+  margins in [0,50] lose a basis point (2.01% bills 200bp, not 201), against a docstring
+  promising it rounds UP. `cases()` only uses 0/12.5/20/50 — all exactly representable —
+  and `src/lib/pricing.ts` does `Math.trunc` on the same product, so check-pricing-parity
+  passes while BOTH sides are wrong. Fixing it means both languages plus 0016's check.
+- Three copies of `load_dotenv`/`env_any` (`publish_to_supabase.py`, `tools/concierge/
+  run_batch.py`, `scripts/ingest_partner_ad.py`) whose docstrings claim to be identical
+  and are not: the first two skip values ending `...`, ingest_partner_ad only skips
+  `PASTE`. A truncated paste (`KEY=eyJhbGci...`) is rejected by two and accepted by one.
