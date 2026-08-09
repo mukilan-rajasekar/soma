@@ -73,13 +73,16 @@ export default function AuthForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(errorSlug ? (SLUG_ERRORS[errorSlug] ?? "") : "");
-  const [notice, setNotice] = useState("");
+  // Non-empty after a sign-up that needs email confirmation: the address the link went
+  // to. It REPLACES the form rather than annotating it — a one-line notice above a
+  // still-live "Create account" button reads as "nothing happened", and the first real
+  // signup missed it exactly that way.
+  const [sentTo, setSentTo] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setNotice("");
 
     const supabase = browserClient();
     if (!supabase) {
@@ -114,10 +117,11 @@ export default function AuthForm({
         return;
       }
 
-      // Sign-up with email confirmation ON returns a user but no session. Saying so is
-      // better than a redirect to a dashboard that bounces straight back here.
+      // Sign-up with email confirmation ON returns a user but no session. Swap the form
+      // for the check-your-inbox card — a redirect to a dashboard that bounces straight
+      // back here would be worse, and a quiet notice under the password field is missed.
       if (!data.session) {
-        setNotice("Check your email to confirm the address, then sign in.");
+        setSentTo(email);
         return;
       }
 
@@ -141,6 +145,26 @@ export default function AuthForm({
       </h1>
       <p className="mt-4 text-pretty text-body text-ink-2">{copy.blurb}</p>
 
+      {sentTo ? (
+        <div role="status" className="mt-9 rounded-2xl border border-line bg-fill p-6">
+          <h2 className="text-section text-ink">Now check your inbox.</h2>
+          <p className="mt-3 text-pretty text-body text-ink-2">
+            We sent a confirmation link to{" "}
+            <span className="font-medium text-ink">{sentTo}</span>. Click it and you land
+            in the studio, signed in — there is nothing more to do on this page.
+          </p>
+          <p className="mt-3 text-pretty text-meta text-ink-3">
+            Nothing arriving? Check spam, or the address above for a typo.
+          </p>
+          <button
+            type="button"
+            onClick={() => setSentTo("")}
+            className="mt-5 cursor-pointer rounded-xl border border-line-2 bg-paper px-[15px] py-[9px] text-[13px] font-medium text-ink-2 transition-colors hover:border-ink hover:text-ink"
+          >
+            Use a different address
+          </button>
+        </div>
+      ) : (
       <form onSubmit={submit} className="mt-9 flex flex-col gap-4" noValidate>
         <label className="flex flex-col">
           <span className="text-[12px] uppercase tracking-[0.07em] text-ink-3">Email</span>
@@ -193,11 +217,6 @@ export default function AuthForm({
             {error}
           </div>
         ) : null}
-        {notice ? (
-          <div role="status" className="text-meta text-ink-2">
-            {notice}
-          </div>
-        ) : null}
 
         <button
           type="submit"
@@ -207,6 +226,7 @@ export default function AuthForm({
           {busy ? copy.pending : copy.action}
         </button>
       </form>
+      )}
 
       <p className="mt-7 text-meta text-ink-3">
         {copy.altPrompt}{" "}
