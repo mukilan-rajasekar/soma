@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/ensure-git-identity.sh",
+        "matcher": "git"
+      }
+    ],
+    "afterShellExecution": [
+      {
+        "command": ".cursor/hooks/fix-git-commit-identity.sh",
+        "matcher": "git"
+      }
+    ]
+  }
+}
