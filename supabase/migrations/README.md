@@ -22,6 +22,7 @@ to be idempotent where practical (`if not exists`, `drop policy if exists`).
 | `0015_serve_experiments.sql` | `serve_experiments`, `serve_experiment_arms` (A/B splits) |
 | `0016_campaign_pricing.sql` | `campaign_briefs`, `campaign_quotes`, `campaign_subscriptions` (bundled weekly pricing) |
 | `0017_serve_trust.sql` | `serve_reports`, `serve_action_approvals` (trust surfaces: cycle/client reports + advisory approvals) |
+| `0018_holdout_rebate.sql` | `campaign_holdout_rebates` (§4.6's `h × F + h × S × g` capped at F, on the table where the margin lives — `brand_fees`' rebate columns belong to the superseded flat-fee shape) |
 
 ## Intentional gaps — do not invent these numbers
 

@@ -214,6 +214,67 @@ def funded_caps(q: dict[str, Any]) -> list[dict[str, Any]]:
     return caps
 
 
+def holdout_rebate(
+    q: dict[str, Any],
+    *,
+    holdout_fraction: float,
+    gap_g: float = 0.0,
+    calibration_ref: str | None = None,
+) -> dict[str, Any]:
+    """§4.6's rebate, in the denomination the bundled week actually uses.
+
+        Rebate = h × F + h × S × g,  capped at F
+
+    F is the week's margin and S the funded media, so term one is literally "we waive our
+    margin on the holdout fraction" and term two is the client's share of a demonstrated
+    performance gap. The cap means the worst case is a week worked for nothing; a rebate
+    can zero the fee and never invert it.
+
+    g DEFAULTS TO ZERO AND THAT IS A CLAIM. §4.6: Soma cannot demonstrate that
+    score-selected arms outperform random ones, so today the holdout has no demonstrated
+    cost to the client. §4.6 also names the residual conflict - Soma has a financial
+    reason to under-report g - so a non-zero g must cite the dated calibration artifact
+    it came from. That requirement is enforced here and again by 0018's check constraint;
+    a number someone typed is not a measurement.
+
+    Rounding is UP on both terms, toward the client, because every other rounding
+    decision in this module rounds toward Soma and a rebate must not inherit that.
+    """
+    margin = int(q.get("margin_micros") or 0)
+    media = int(q.get("weekly_spend_micros") or 0)
+
+    if not 0.0 <= holdout_fraction < 1.0:
+        raise ValueError("holdout_fraction must be in [0, 1)")
+    if gap_g < 0.0:
+        # A negative gap means the random arm won. That is a finding to publish, not a
+        # charge to levy: §4.6's term can only ever reduce Soma's fee.
+        raise ValueError("gap_g must be >= 0; a random arm that wins is a result, not a fee")
+    if gap_g > 0.0 and not (calibration_ref or "").strip():
+        raise ValueError("a non-zero gap_g requires calibration_ref: g must trace to a dated artifact")
+    if margin and not media:
+        raise ValueError("margin on zero media has no rebate basis")
+
+    h_bp = round(holdout_fraction * 10_000)
+    g_bp = round(gap_g * 10_000)
+    waiver = -(-margin * h_bp // 10_000)
+    gap_term = -(-media * h_bp * g_bp // 100_000_000)
+
+    uncapped = waiver + gap_term
+    rebate = min(uncapped, margin)
+
+    return {
+        "holdout_fraction_h": holdout_fraction,
+        "holdout_gap_g": gap_g,
+        "calibration_ref": calibration_ref,
+        "margin_waiver_micros": waiver,
+        "gap_term_micros": gap_term,
+        "rebate_micros": rebate,
+        "capped": rebate < uncapped,
+        "currency": q.get("currency") or "USD",
+        "rule": "STRATEGY-FULL-SERVICE §4.6: h*F + h*S*g, capped at F",
+    }
+
+
 def cases() -> list[dict[str, Any]]:
     """Deterministic parity corpus for the TS mirror. Edge-heavy on purpose: odd spends
     that do not split evenly, margin 0, the max margin, and a fractional margin whose
