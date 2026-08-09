@@ -138,7 +138,9 @@ def create_via_public(url: str, anon: str) -> tuple[str, str, dict]:
             signup_body = body
             break
         if st == 429 or (body or {}).get("error_code") == "over_email_send_rate_limit":
-            time.sleep(300)
+            # Built-in mailer is ~2 emails/hour project-wide. Poll slowly so we do not
+            # look like a retry storm once the window opens.
+            time.sleep(int(os.environ.get("SMOKE_SIGNUP_POLL_SECONDS", "180")))
             continue
         raise RuntimeError(f"signup failed {st}: {body}")
     else:
