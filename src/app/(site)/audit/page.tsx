@@ -61,7 +61,8 @@ export default function AuditPage() {
         </p>
         <div className="mt-7">
           <Link
-            href="/sign-in"
+            href="/sign-up"
+            prefetch={false}
             className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-paper transition-colors hover:bg-ink/85"
           >
             Get your free audit
@@ -139,7 +140,8 @@ export default function AuditPage() {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            href="/sign-in"
+            href="/sign-up"
+            prefetch={false}
             className="inline-flex items-center gap-2 rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-paper transition-colors hover:bg-ink/85"
           >
             Start with your ad

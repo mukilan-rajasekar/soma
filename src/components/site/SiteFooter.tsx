@@ -1,10 +1,16 @@
 import Link from "next/link";
 
+// prefetch={false} on the auth links: both are in src/proxy.ts's matcher, so a viewport
+// prefetch costs an auth round-trip for pages most visitors never open. Everything else
+// prefetches as normal.
 const LINKS = [
-  { href: "/demo", label: "Demo" },
-  { href: "/science", label: "Science" },
-  { href: "/compare", label: "Compare" },
-  { href: "/", label: "Request access" },
+  { href: "/demo", label: "Demo", prefetch: undefined },
+  { href: "/pricing", label: "Pricing", prefetch: undefined },
+  { href: "/audit", label: "Free audit", prefetch: undefined },
+  { href: "/science", label: "Science", prefetch: undefined },
+  { href: "/compare", label: "Compare", prefetch: undefined },
+  { href: "/sign-in", label: "Sign in", prefetch: false },
+  { href: "/sign-up", label: "Create account", prefetch: false },
 ] as const;
 
 // Shared footer for the scrolling content routes.
@@ -16,6 +22,7 @@ export default function SiteFooter() {
           <Link
             key={l.label}
             href={l.href}
+            prefetch={l.prefetch}
             className="text-ink-2 transition-colors hover:text-ink"
           >
             {l.label}
