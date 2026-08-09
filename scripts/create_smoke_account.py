@@ -138,7 +138,7 @@ def create_via_public(url: str, anon: str) -> tuple[str, str, dict]:
             signup_body = body
             break
         if st == 429 or (body or {}).get("error_code") == "over_email_send_rate_limit":
-            time.sleep(90)
+            time.sleep(300)
             continue
         raise RuntimeError(f"signup failed {st}: {body}")
     else:
