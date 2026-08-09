@@ -6,9 +6,8 @@
 // can only ever come back "brand not found". The static /new segment wins over the
 // [servedGroupId] route next to it, so this address never collides with a group id.
 
-import Link from "next/link";
-
 import CampaignBriefForm from "@/components/dashboard/CampaignBriefForm";
+import CreateBrandForm from "@/components/dashboard/CreateBrandForm";
 import { listBrandsForUser } from "@/lib/serve";
 
 export default async function NewCampaignPage() {
@@ -35,16 +34,12 @@ export default async function NewCampaignPage() {
         <div className="mt-11 rounded-2xl border border-line bg-fill p-6">
           <h2 className="text-section text-ink">A brand comes first.</h2>
           <p className="mt-3 max-w-[54ch] text-pretty text-body text-ink-2">
-            Campaigns are priced per brand, and a brand appears here after a service-role
-            process creates it and adds your user to brand_members. Once you belong to
-            one, this page turns a short brief into a single weekly price.
+            Campaigns are priced per brand. Name yours here and this page turns into a
+            short brief that comes back as a single weekly price.
           </p>
-          <Link
-            href="/dashboard/brands"
-            className="mt-6 inline-block rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85"
-          >
-            See brands
-          </Link>
+          <div className="mt-6">
+            <CreateBrandForm />
+          </div>
         </div>
       )}
     </div>

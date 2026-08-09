@@ -20,13 +20,13 @@ export const metadata: Metadata = {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
 
   return (
     <main className="fixed inset-0 overflow-y-auto bg-paper text-ink">
-      <AuthForm mode="sign-in" next={safeNext(next)} />
+      <AuthForm mode="sign-in" next={safeNext(next)} errorSlug={error} />
     </main>
   );
 }

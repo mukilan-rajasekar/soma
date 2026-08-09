@@ -18,9 +18,11 @@
 
 import Link from "next/link";
 
+import CreateBrandForm from "@/components/dashboard/CreateBrandForm";
 import PendingRunRow from "@/components/dashboard/PendingRunRow";
 import VideoRow from "@/components/dashboard/VideoRow";
 import { loadLibrary, type DashboardVideo } from "@/lib/dashboard";
+import { listBrandsForUser } from "@/lib/serve";
 
 type RunGroup = {
   token: string;
@@ -59,6 +61,13 @@ function groupByRun(videos: DashboardVideo[]): RunGroup[] {
 export default async function DashboardPage() {
   const { videos, pending, unconfigured } = await loadLibrary();
   const groups = groupByRun(videos);
+
+  // The brands read runs only when the library is genuinely empty: it decides whether
+  // the empty state below is "upload a cut" (brand exists) or the two-step first run
+  // (nothing exists at all). A populated library never pays for the extra query.
+  const empty = !unconfigured && videos.length === 0 && pending.length === 0;
+  const brands = empty ? await listBrandsForUser() : [];
+  const firstRun = empty && brands.length === 0;
 
   return (
     <div className="mx-auto max-w-[860px] px-[clamp(18px,5vw,32px)] pb-24 pt-[clamp(28px,5vw,44px)]">
@@ -142,7 +151,45 @@ export default async function DashboardPage() {
         </section>
       ) : null}
 
-      {!unconfigured && videos.length === 0 && pending.length === 0 ? (
+      {firstRun ? (
+        <div className="mt-11 rounded-2xl border border-line bg-fill p-6">
+          <h2 className="text-section text-ink">Two steps and you are running.</h2>
+
+          <div className="mt-6 flex flex-col gap-7">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                1 · Name your brand
+              </div>
+              <p className="mt-2 max-w-[54ch] text-pretty text-body text-ink-2">
+                Campaigns, spend records and outcomes all live under a brand. It takes a
+                name and one decision about training.
+              </p>
+              <div className="mt-4">
+                <CreateBrandForm />
+              </div>
+            </div>
+
+            <div className="border-t border-line pt-6">
+              <div className="text-[11px] uppercase tracking-[0.12em] text-ink-3">
+                2 · Upload a cut
+              </div>
+              <p className="mt-2 max-w-[54ch] text-pretty text-body text-ink-2">
+                It comes back scored second by second, with the edits worth trying ranked
+                underneath it.{" "}
+                <Link
+                  href="/dashboard/upload"
+                  className="text-ink-2 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
+                >
+                  Go to upload
+                </Link>
+                .
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {empty && !firstRun ? (
         <div className="mt-11 rounded-2xl border border-line bg-fill p-6">
           <h2 className="text-section text-ink">Nothing scored yet.</h2>
           <p className="mt-3 max-w-[54ch] text-pretty text-body text-ink-2">

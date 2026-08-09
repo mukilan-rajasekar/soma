@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 // bar any more. Re-adding one is a line here and nothing else.
 const LINKS = [
   { href: "/demo", label: "Demo", prefetch: undefined },
+  { href: "/pricing", label: "Pricing", prefetch: undefined },
   // The door into the logged-in product. It is a plain link rather than a session-aware
   // control on purpose: making this bar know whether you are signed in would turn a
   // Server Component rendered on every marketing page into one that must await an auth
@@ -46,10 +47,11 @@ export default function SiteHeader() {
         soma
       </Link>
       <nav className="flex flex-wrap items-center justify-end gap-x-[22px] gap-y-2">
-        {/* Hidden below `sm`. It mattered more when this was four links wrapping to a second
-            row at 390px; with one link it is close to free, and it is kept because the rule
-            it encodes is still right: the wordmark and the one primary CTA are what a phone
-            needs, and it survives the list growing back. */}
+        {/* Hidden below `sm`. The inter-page links wrap into a second row at 390px, so a
+            phone gets the three controls that matter — wordmark · Sign in · Create
+            account — and the section links stay desktop-only. "Sign in" lives OUTSIDE
+            this div for exactly that reason: hiding it left a phone with no door into
+            the product at all. */}
         <div className="hidden flex-wrap items-center gap-x-[22px] gap-y-2 sm:flex">
           {links.map((l) => {
             const active = pathname === l.href;
@@ -73,12 +75,25 @@ export default function SiteHeader() {
             );
           })}
         </div>
+        {/* prefetch={false} on both auth links: /sign-in and /sign-up are in
+            src/proxy.ts's matcher, so a viewport prefetch fires an auth round-trip for
+            pages most visitors never open — the same reasoning as the Studio link. */}
         {recording ? null : (
           <Link
-            href="/"
+            href="/sign-in"
+            prefetch={false}
+            className="-my-[12px] py-[12px] text-[14px] tracking-[-0.01em] text-ink-2 transition-colors hover:text-ink"
+          >
+            Sign in
+          </Link>
+        )}
+        {recording ? null : (
+          <Link
+            href="/sign-up"
+            prefetch={false}
             className="rounded-xl bg-ink px-[15px] py-[9px] text-[14px] font-medium tracking-[-0.01em] text-paper transition-colors hover:bg-ink/85"
           >
-            Request access
+            Create account
           </Link>
         )}
       </nav>

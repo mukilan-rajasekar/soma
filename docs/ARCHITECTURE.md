@@ -22,11 +22,19 @@ map, use [`INDEX.md`](INDEX.md) and [`../pipeline/README.md`](../pipeline/README
 
 ## Site (Next.js 16)
 
-- **Routes:** marketing under `src/app/(site)/`; product under `/upload`, `/r/<token>`,
-  `/dashboard`, `/edit`, `/generate`, `/run`, Serve read UI under `/dashboard/brands`.
+- **Routes:** marketing under `src/app/(site)/` (incl. `/pricing`, numbers computed from
+  `src/lib/pricing.ts`); product under `/upload`, `/r/<token>`, `/dashboard`, `/edit`,
+  `/generate`, `/run`, Serve read UI under `/dashboard/brands`.
 - **Auth:** Supabase Auth; session refresh in **`src/proxy.ts`** (not `middleware.ts`).
+  Surfaces: `/sign-in`, `/sign-up`, `/forgot-password`, `/update-password`,
+  `/dashboard/account`; emailed links (recovery, confirmation) land on
+  `/auth/callback`, which accepts both PKCE `?code=` and `?token_hash=&type=` shapes.
 - **Clients:** `serviceClient()` for capability URLs; `sessionClient()` for dashboard
   (RLS). Mixing them is a tenancy bug — see README.
+- **Brand creation is self-serve:** `POST /api/brands/create` (auth-checked, then
+  service_role inserts `brands` + `brand_members role='owner'`; RLS stays SELECT-only).
+  Quote acceptance is `POST /api/campaigns/quote/accept` — flips quote status only,
+  never creates a subscription while PLAN gate 4 is open.
 - **Env:** `NEXT_PUBLIC_SUPABASE_*` + `SUPABASE_SECRET_KEY`. Python uses different names
   (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) in `.env` only.
 

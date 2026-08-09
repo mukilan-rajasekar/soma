@@ -60,6 +60,11 @@ author/committer identity — never Cursor Agent / Codex co-author lines.
 - package.json `engines` overrides `.vercel/project.json`'s nodeVersion on deploys.
 - Next reads `.env.local` then `.env`; the Python half reads `.env` only.
 - Session refresh is `src/proxy.ts`, not `middleware.ts` (Next 16).
+- `@supabase/ssr` 0.12 defaults BOTH clients to PKCE; `/auth/callback` must bind its
+  cookie adapter to the redirect response it returns (not `cookies()`), and it stays out
+  of the proxy matcher — the proxy's `getUser()` would run before the exchange.
+- A `<Link>` to any route in the proxy matcher (`/sign-in`, `/sign-up`, ...) needs
+  `prefetch={false}` or the viewport prefetch surfaces as a failed request in smoke.
 - Serve live Meta writes need `SOMA_SERVE_LIVE=1`; `--activate` needs a spend-cap fixture.
 - Corpus meta: `rho(ad age, days_running)=+0.54`; duration+age+ffmpeg alone reach rho 0.515.
 - An OOF prediction partialled on its own covariates runs ~-0.25 under a shuffled label:

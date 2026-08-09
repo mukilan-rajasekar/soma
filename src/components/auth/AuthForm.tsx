@@ -22,9 +22,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { MIN_PASSWORD } from "@/lib/auth-password";
 import { browserClient } from "@/lib/supabase/browser";
 
 type Mode = "sign-in" | "sign-up";
+
+// Sentences for the fixed slugs /auth/callback redirects with. Slugs rather than text so
+// the query string can never put its own words on this page.
+const SLUG_ERRORS: Record<string, string> = {
+  link: "That link has expired or was already used. Ask for a new one.",
+  config:
+    "Accounts are not configured on this deployment: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are unset.",
+};
 
 const COPY = {
   "sign-in": {
@@ -49,16 +58,21 @@ const COPY = {
   },
 } as const;
 
-/** Supabase's minimum. Stated up front rather than discovered by a rejected submit. */
-const MIN_PASSWORD = 6;
-
-export default function AuthForm({ mode, next }: { mode: Mode; next: string }) {
+export default function AuthForm({
+  mode,
+  next,
+  errorSlug,
+}: {
+  mode: Mode;
+  next: string;
+  errorSlug?: string;
+}) {
   const copy = COPY[mode];
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(errorSlug ? (SLUG_ERRORS[errorSlug] ?? "") : "");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -85,7 +99,15 @@ export default function AuthForm({ mode, next }: { mode: Mode; next: string }) {
       const { data, error: authError } =
         mode === "sign-in"
           ? await supabase.auth.signInWithPassword({ email, password })
-          : await supabase.auth.signUp({ email, password });
+          : await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                // With email confirmation ON, the confirmation link needs somewhere to
+                // land that can turn it into a session. /auth/callback is that place.
+                emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fdashboard`,
+              },
+            });
 
       if (authError) {
         setError(authError.message);
@@ -151,7 +173,19 @@ export default function AuthForm({ mode, next }: { mode: Mode; next: string }) {
             <span className="mt-1.5 text-meta text-ink-3">
               At least {MIN_PASSWORD} characters.
             </span>
-          ) : null}
+          ) : (
+            <span className="mt-1.5 text-meta">
+              {/* prefetch={false}: /forgot-password is in src/proxy.ts's matcher, so a
+                  prefetch costs an auth round-trip for a page most sign-ins never open. */}
+              <Link
+                href="/forgot-password"
+                prefetch={false}
+                className="text-ink-3 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
+              >
+                Forgot your password?
+              </Link>
+            </span>
+          )}
         </label>
 
         {error ? (

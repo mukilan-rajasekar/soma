@@ -72,12 +72,25 @@ export default function Landing() {
             bg-paper/80 + backdrop-blur, unlike the header's: BrainField animates underneath
             this one, and on bare transparency the points drift through the label and the
             hairline border reads as part of the cloud. */}
-        <Link
-          href="/demo"
-          className="pointer-events-auto rounded-xl border border-line-2 bg-paper/80 px-[15px] py-[9px] text-[14px] font-medium tracking-[-0.01em] text-ink backdrop-blur-sm transition-colors hover:border-ink hover:bg-paper"
-        >
-          Demo
-        </Link>
+        <div className="flex items-center gap-6">
+          {/* pointer-events-auto is load-bearing: the row is pointer-events-none so
+              BrainField keeps taking drags underneath it. prefetch={false} because
+              /sign-in is in src/proxy.ts's matcher — a viewport prefetch on the
+              highest-traffic page would fire an auth round-trip per visitor. */}
+          <Link
+            href="/sign-in"
+            prefetch={false}
+            className="pointer-events-auto text-[14px] tracking-[-0.01em] text-[#4a4a4a] transition-colors hover:text-[#0a0a0a]"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/demo"
+            className="pointer-events-auto rounded-xl border border-line-2 bg-paper/80 px-[15px] py-[9px] text-[14px] font-medium tracking-[-0.01em] text-ink backdrop-blur-sm transition-colors hover:border-ink hover:bg-paper"
+          >
+            Demo
+          </Link>
+        </div>
       </div>
 
       <div className="absolute right-[6vw] top-1/2 z-[2] w-[min(400px,42vw)] -translate-y-1/2">
@@ -132,6 +145,18 @@ export default function Landing() {
             Upload an MP4
           </button>{" "}
           and we&rsquo;ll analyze it.
+        </div>
+
+        <div className="mt-2 max-w-[360px] text-[13px] leading-[1.5] text-[#4a4a4a]">
+          No invite needed &mdash;{" "}
+          <Link
+            href="/sign-up"
+            prefetch={false}
+            className="cursor-pointer font-medium text-[#0a0a0a] underline underline-offset-2 hover:text-[#333]"
+          >
+            create an account
+          </Link>
+          .
         </div>
       </div>
 

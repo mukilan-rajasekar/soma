@@ -13,7 +13,7 @@
 import type { Metadata } from "next";
 
 import DashboardShell from "@/components/dashboard/DashboardShell";
-import { requireUser } from "@/lib/supabase/session";
+import { displayName, requireUser } from "@/lib/supabase/session";
 
 export const dynamic = "force-dynamic";
 
@@ -30,5 +30,9 @@ export default async function DashboardLayout({
 }) {
   const user = await requireUser("/dashboard");
 
-  return <DashboardShell email={user.email ?? ""}>{children}</DashboardShell>;
+  return (
+    <DashboardShell name={displayName(user)} email={user.email ?? ""}>
+      {children}
+    </DashboardShell>
+  );
 }

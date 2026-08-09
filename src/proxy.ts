@@ -73,10 +73,14 @@ export async function proxy(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  if (!user && path.startsWith("/dashboard")) return toSignIn(request);
+  if (!user && (path.startsWith("/dashboard") || path === "/update-password")) {
+    return toSignIn(request);
+  }
 
-  // Already signed in: /sign-in and /sign-up have nothing to offer.
-  if (user && (path === "/sign-in" || path === "/sign-up")) {
+  // Already signed in: /sign-in, /sign-up and /forgot-password have nothing to offer.
+  // /update-password is deliberately NOT in this list — a recovery session arriving from
+  // /auth/callback IS signed in, and that page is exactly where it belongs.
+  if (user && (path === "/sign-in" || path === "/sign-up" || path === "/forgot-password")) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";
@@ -87,5 +91,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/sign-in", "/sign-up"],
+  matcher: [
+    "/dashboard/:path*",
+    "/sign-in",
+    "/sign-up",
+    "/forgot-password",
+    "/update-password",
+  ],
 };

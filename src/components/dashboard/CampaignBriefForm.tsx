@@ -15,6 +15,8 @@ import { useMemo, useState } from "react";
 
 import { quote, recommendSpend, type Quote, type Reach } from "@/lib/pricing";
 
+import AcceptQuoteButton from "./AcceptQuoteButton";
+
 type Phase = "idle" | "submitting" | "done" | "error";
 
 type BrandOption = { id: string; name: string };
@@ -63,6 +65,7 @@ export default function CampaignBriefForm({ brands }: { brands: BrandOption[] })
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<Quote | null>(null);
+  const [quoteId, setQuoteId] = useState<string | null>(null);
 
   const busy = phase === "submitting";
 
@@ -140,6 +143,7 @@ export default function CampaignBriefForm({ brands }: { brands: BrandOption[] })
         throw new Error(body?.error ?? "Could not price this campaign.");
       }
       setResult(body.quote as Quote);
+      setQuoteId(typeof body.quoteId === "string" ? body.quoteId : null);
       setPhase("done");
     } catch (err) {
       setPhase("error");
@@ -182,16 +186,22 @@ export default function CampaignBriefForm({ brands }: { brands: BrandOption[] })
           {result.billing_note}
         </p>
 
-        <button
-          type="button"
-          onClick={() => {
-            setResult(null);
-            setPhase("idle");
-          }}
-          className="mt-6 cursor-pointer rounded-xl border border-line-2 bg-paper px-5 py-[13px] text-ui font-medium text-ink-2 transition-colors hover:border-ink hover:text-ink"
-        >
-          Price another campaign
-        </button>
+        {/* The acceptance is this screen's one ink button; "Price another campaign" is
+            deliberately secondary beside it. */}
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          {quoteId ? <AcceptQuoteButton quoteId={quoteId} /> : null}
+          <button
+            type="button"
+            onClick={() => {
+              setResult(null);
+              setQuoteId(null);
+              setPhase("idle");
+            }}
+            className="cursor-pointer rounded-xl border border-line-2 bg-paper px-5 py-[13px] text-ui font-medium text-ink-2 transition-colors hover:border-ink hover:text-ink"
+          >
+            Price another campaign
+          </button>
+        </div>
       </div>
     );
   }
