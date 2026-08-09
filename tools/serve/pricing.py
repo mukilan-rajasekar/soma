@@ -2,10 +2,14 @@
 """
 pricing.py - one brief in, one all-inclusive weekly price out. The canonical engine.
 
-Founder decision (Aug 2026): a campaign is priced as bundled media spend across the
-chosen networks plus a margin (default 20%) on serving costs, renewing weekly until
-paused. This supersedes the flat-fee stance in BUILD-PLAN §0.5 - the supersession and
-its trade-offs are recorded there, not re-argued here.
+Founder decision (Aug 2026): the client brings the creative, recommend_spend() quotes a
+few weekly media tiers off their goal / reach / networks, and quote() adds a margin
+(default 20%) ON THAT MEDIA - the client pays media + margin, renewing weekly until
+paused. The margin is a percentage of spend, not a fee on serving cost: doubling the
+recommended tier doubles what Soma earns, which is why §0.6 makes the funded week's media
+a hard ceiling the margin sits outside of, and why autopilot has no path that raises a
+budget. This supersedes the flat-fee stance in BUILD-PLAN §0.5 - the supersession and its
+trade-offs are recorded there, not re-argued here.
 
 Two invariants carry this module. First, integer micros everywhere: the price identity
 weekly_price = weekly_spend + margin holds exactly, the platform split conserves every

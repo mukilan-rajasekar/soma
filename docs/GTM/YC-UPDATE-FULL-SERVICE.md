@@ -109,18 +109,20 @@ that has not been built yet.
 > predicted cortical response and name the window where a named brain network's predicted response
 > falls to the bottom of that clip's own range; **Improve** — a small, surgical set of fixes
 > delivered as a finished file, not a creative agency; and **Serve** — we place the ads for the
-> client, Meta first and then TikTok and Google, pass media through at cost, and charge a flat fee
-> for the intelligence. You can buy Analyze on its own — that is a real entry point and it is what we
+> client, Meta first and then TikTok and Google, quote them a weekly media tier, and add 20% on that
+> media. You can buy Analyze on its own — that is a real entry point and it is what we
 > can sell today. But Serving is where the company goes, because it is the only mechanism that gives
 > us the outcome labels — impressions, CTR, CVR, ROAS, tied to the exact creative and the exact
 > predicted brain response — that could turn our diagnostic from an observation into a prediction. We
 > are not competing with Meta's A/B test anymore. We're running it.
 
-**The pricing decision that makes the rest of it sayable:** our fee is flat — a monthly platform
-fee per managed brand plus a per-asset fee per creative scored and per recut delivered, with media
-passed through at cost. It is not a percentage of spend. So this sentence is literally true, and it
-is the strongest sentence we have: **our fee never rises when your budget rises — we are the only
-party in your chain with no reason to want your money spent.**
+**The pricing decision, and the sentence we had to give up:** the client picks a weekly media tier
+off a published ladder and we add 20% on that media. It **is** a percentage of spend. An earlier
+draft of this packet claimed a flat fee and leaned on *"we are the only party in your chain with no
+reason to want your money spent"* — the shipped engine falsifies that, so it is gone from every
+answer below. What we say instead is smaller and checkable: **everyone here is on a percentage;
+ours is disclosed on the quote, the margin is never spendable, and our automation can pause spend
+but has no code path that raises it.** See "How do or will you make money" for the full form.
 
 **If you get one follow-up sentence, it is this:** the reason nobody has done this is that the
 people with the brain model don't hold the ad account, and the people holding the ad account don't
@@ -156,9 +158,9 @@ downstream buy to be upstream of. You are it.
 > Soma runs video ad campaigns — Meta first, then TikTok and Google. Before anything goes live we
 > predict the viewer's second-by-second cortical response, name the three-to-five-second window where
 > a named brain network's predicted response hits the bottom of that clip's range, recut it, and
-> serve the variants. Media at cost; our fee is flat.
+> serve the variants. You pick a weekly budget; we add twenty percent.
 
-*(54 words. Every noun in it is a thing that exists: the response is predicted and group-average,
+*(55 words. Every noun in it is a thing that exists: the response is predicted and group-average,
 the network is named, the window is a window rather than a timestamp, and the platform order is the
 build order. Nothing here asserts what is on screen.)*
 
@@ -223,9 +225,13 @@ build order. Nothing here asserts what is on screen.)*
 > the honesty bit, that `ops.py` may not set it, and that only the verify stage may. Heavier editing
 > we partner out.
 >
-> **3. Serve — the reason the company works.** We place the ads, find the placement that returns,
-> and pass ad spend through at cost. Meta first; TikTok and Google follow the same shape. We charge
-> a flat fee for the intelligence layer and nothing on the media.
+> **3. Serve — the reason the company works, and the one we have not yet done for a client.** Soma
+> places the ads and finds the placement that returns. Meta, TikTok and Google clients are built and
+> exercised end to end in dry run; **not one live ad has been placed and no client has been billed**,
+> because live writes require `SOMA_SERVE_LIVE=1` (unset) and fees are blocked by
+> `check_licence_gate.py` while PLAN.md gate 4 is open. Say it in that order. The commercial shape is
+> settled: the client picks a weekly media tier and we add 20% on that media — disclosed on the
+> quote, and the margin itself is never spendable.
 >
 > **Why serving is not a services bolt-on.** Every creative-analytics company on the market —
 > VidMob, Motion, AdCreative.ai, Neurons, Realeyes — sells a score and then hands you back to your
@@ -313,8 +319,8 @@ verb below is deliberately tensed: what exists is present tense, what does not i
 > is optional, partnered out, and explicitly not the wedge. We are not going to become your agency.
 >
 > **Serve — not built. Zero lines of campaign-management code today.** The intent is that you choose
-> a budget and a goal and we place and test the creative across Meta, TikTok and Google, pass media
-> through at cost, charge a flat fee, and report it back in one dashboard instead of three. What that
+> a weekly media tier and a goal, we place and test the creative across Meta, TikTok and Google for
+> that budget plus 20%, and report it back in one dashboard instead of three. What that
 > buys *us* is the outcome label attached to the exact creative — which is the only way the diagnosis
 > ever becomes a prediction rather than a description.
 >
@@ -548,18 +554,44 @@ plan, carrying that qualifier with them.)*
 
 *(Replaces `YC-APPLICATION.md:445-481` in full.)*
 
-> **One product, three lines of revenue, and the media is not one of them.**
+> **One product, one weekly price, and the media is the base of it.**
 >
-> **Media at cost, always, and the fee is flat.** We pass ad spend through without markup, and our
-> fee is not a percentage of it. A monthly platform fee per managed brand, a per-asset fee per
-> creative scored, a per-file fee per recut delivered. That is a positioning decision and it is the
-> load-bearing one in this whole document: an agency that takes a percentage of spend is paid more
-> when it spends more, and every client knows it. A percentage fee would have exactly the incentive
-> gradient our own pitch condemns, and it would falsify the strongest sentence we have. With a flat
-> fee the sentence is literally true: **our fee never rises when your budget rises — we are the
-> only party in your chain with no reason to want your money spent.** It also means our revenue line
-> is never inflated by other people's media, which is the honest way to report it, and it means our
-> revenue does not inherit the client's budget volatility.
+> **The client picks a tier; we add 20% on the media.** They bring the creative and a goal.
+> `recommend_spend()` returns a small ladder of weekly media tiers — $300/week local through
+> $2,500/week broad, scaled by goal, reach and how many networks — and `quote()` adds a 20% margin on
+> whichever they pick. They pay media + margin as one weekly number, renewing until paused, and the
+> margin is printed on the quote.
+>
+> **What that margin adds up to is deliberately not stated here, because two decisions are open and
+> a partner will find both.** The engine prices the week and emits exactly one fee line — but the
+> three-line list below still shows Analyze and Improve as separately charged, and nobody has
+> reconciled the two, so whether a served client pays anything beyond the margin is undecided. And
+> whether the media half of that weekly number is *revenue* at all turns on the agent-versus-principal
+> determination `STRATEGY-FULL-SERVICE.md` §4.8 has not made: under agent treatment revenue is the
+> fee, under principal it grosses up to include the media. **So describe the 20% as our fee and do
+> not state a revenue figure anywhere in this packet until both close** — any number written today
+> changes meaning under either decision, and a figure retracted in diligence costs more than a figure
+> withheld.
+>
+> **This is a percentage of spend, and this document used to claim otherwise.** An earlier draft
+> promised a flat platform fee and built its strongest sentence on it — *"the only party in your chain
+> with no reason to want your money spent."* The shipped engine computes `margin = 0.20 × spend`
+> (`tools/serve/pricing.py:106`), so that sentence was false; it has been removed everywhere it
+> appeared. What replaces it is weaker rhetorically and true, which is the trade we want:
+> **everyone in this chain is on a percentage, and ours is the only one you can audit.** Three
+> properties carry it, and all three are enforced in code rather than in the MSA:
+>
+> - **The margin is never spendable.** The funded week's media is a hard ceiling and the margin sits
+>   outside it; activation refuses a campaign that would breach what the client funded (§0.6).
+> - **Autopilot can pause spend and has no code path that starts or raises it.** The one action that
+>   would grow our revenue is the one action the system cannot take.
+> - **The ladder is a formula, not a negotiation.** `recommend_spend()` is deterministic, mirrored in
+>   `src/lib/pricing.ts`, and a parity gate fails the build if the two ever disagree.
+>
+> **The exposure this creates, stated before anyone asks:** we recommend the tier and then earn 20% of
+> whatever is chosen. That is a real incentive gradient and it is the same one the agency has. The
+> only mitigation we trust is measurement — the predicted-vs-actual ledger records the marginal
+> efficiency of every tier we put a client on, under their own name, where they can see it.
 >
 > **What we charge for:**
 > - **Analyze** — per creative scored, or a monthly bundle. The comparison band is creative-analytics
@@ -567,38 +599,58 @@ plan, carrying that qualifier with them.)*
 >   date — quoted from memory in an earlier draft and pulled out; get the pricing page.]**
 > - **Improve** — per finished file. Deliberately capped in scope so it does not become a
 >   headcount-linear editing shop.
-> - **Serve** — the monthly platform fee per managed brand, which is the main line. The comparison
->   set still prices on spend — **[VERIFY: Smartly.io's fee structure, source and fetch date]**,
->   **[VERIFY: the performance-agency percentage band, with a primary source rather than a survey
->   aggregator]** — and part of the sale is that we do not. **[FILL: our actual monthly fee per
->   managed brand and per-asset price — the founders have not set these numbers and we are not
->   going to invent them for an application.]**
+> - **Serve** — the 20% margin on weekly media, which is the main line and the one that compounds.
+>   The comparison set also prices on spend — **[VERIFY: Smartly.io's fee structure, source and fetch
+>   date]**, **[VERIFY: the performance-agency percentage band, with a primary source rather than a
+>   survey aggregator; `PRICING-COMPS.md` owns this]** — so the sale is not that we take a smaller
+>   cut. It is that ours is disclosed on the quote, capped by a funded ceiling, and attached to a
+>   published scorecard. **[FILL: whether Analyze and Improve stay separately priced at all once Serve
+>   bundles them, or become inclusions in the weekly price — the engine currently prices only the
+>   week.]**
 >
 > **The randomised holdout, and who pays for it.** The flywheel needs a randomly-assigned control
 > arm — creatives the model ranks low, run anyway, so the corpus has both tails. Spending a client's
 > budget on creative we predict will lose, in order to build a training asset *we* own, is an
-> undisclosed conflict of interest and the exact inverse of the paragraph above. So **the client's
-> monthly fee is reduced by the same percentage as the holdout fraction** — a 10% holdout means a 10%
-> lower fee, every month — **plus a second term that is zero today.** The second term compensates the
-> client for the measured gap between the score-selected arm and the randomly-assigned one, and it
-> only becomes non-zero once we can demonstrate that a gap exists. We have failed to demonstrate it
-> three times in public, so today it is exactly zero and the rebate is the flat fee times the holdout
-> fraction — nothing more. **Soma bears the cost of the experiment Soma benefits from.** It is
-> disclosed in the MSA and it is disclosed in the pitch, because an arrangement that only works
-> undisclosed is not an arrangement, it is a problem waiting.
+> undisclosed conflict of interest. Under a percentage fee it is a sharper one than it was under a
+> flat fee, because we would otherwise **earn our 20% on the very spend we chose to waste for our own
+> benefit.** So we waive it: **the margin on the holdout fraction is zero.** A 10% holdout means we
+> earn nothing on that tenth of the week's media, and the client pays `media + 0.20 × media × (1 − h)`
+> — **plus a second term that is zero today.** The second term compensates the client for the measured
+> gap between the score-selected arm and the randomly-assigned one, and it only becomes non-zero once
+> we can demonstrate that a gap exists. We have failed to demonstrate it three times in public, so
+> today it is exactly zero and the rebate is the margin waiver alone.
 >
-> *The awkward part, said rather than found.* That second term, on the day it is non-zero, is the
-> only spend-linked number anywhere in our contract — and it only ever **reduces** what Soma is paid.
-> Today it is zero and the flagship sentence above is literally true as written. The day we switch it
-> on, the sentence tightens to **"our fee never rises when your budget rises,"** which is the form
-> that survives forever; or we express the term as a flat credit and keep the original wording.
-> Either is fine. Leaving a spend-linked term quietly inside a contract whose whole pitch is that it
-> has none is not.
+> **Be precise about who is out of pocket, because the waiver is not the whole answer.** Soma forgoes
+> its fee on the holdout; **the client's budget still buys that media.** So the honest sentence is
+> *"Soma earns nothing on the experiment Soma benefits from,"* not *"Soma bears its cost."* What the
+> client is actually exposed to is the performance gap between the score-selected arm and the
+> randomly-assigned one — and that is exactly what the second term compensates, which is why it is a
+> term and not a rounding error. It is zero today for a reason worth stating out loud: **we have
+> three times failed to show that any such gap exists.** If there is no demonstrable gap, there is no
+> demonstrable loss to compensate; the day we can show one is the same day the term switches on, and
+> those two facts are deliberately tied together so we cannot claim the gap in a pitch while paying
+> nothing for it in a contract. **[FILL: the *g* formula — how a measured gap converts to dollars —
+> is not specified anywhere in the repo. It must exist before the first holdout runs, not after.]**
+> All of it is disclosed in the MSA and disclosed in the pitch, because an arrangement that only
+> works undisclosed is not an arrangement, it is a problem waiting.
 >
-> **Why the fee is priced on value and not on cost.** Passing media through at cost is about the
-> media, not about us — it removes the perverse incentive. The intelligence fee is priced on what
-> the creative decision is worth, which is the difference between the campaign you would have run
-> and the one we ran. Once we are serving, that difference is measurable rather than argued.
+> *The awkward part, said rather than found.* Under a flat fee we could say the holdout credit was the
+> only spend-linked number in the contract. Now every number in the contract is spend-linked, ours
+> included, and there is no version of this pricing where that is not true. What the two rebate terms
+> do is move it in the client's direction: the waiver only ever **reduces** what Soma is paid, and it
+> grows with the fraction of their budget we spent on our own experiment. `STRATEGY-FULL-SERVICE.md`
+> §4.6 stores both parameters — *h* and *g* — per billing period rather than as one blended rate,
+> because a single column cannot compute a two-term rule and the failure mode is silent: the invoice
+> is simply wrong in Soma's favour the moment *g* stops being zero.
+>
+> **Where 20% comes from, and what it has to buy.** It sits in the agency band, and that is the point
+> — a brand comparing us with the agency they already have is comparing the same percentage against a
+> different deliverable, not a cheaper percentage against the same one. **[VERIFY: the
+> performance-agency percentage band, primary source, fetch date — `PRICING-COMPS.md` owns it.]** So
+> the question we have to be able to answer is what the 20% buys that theirs doesn't, and the honest
+> list today is three items: the scoring, the recut, and a published predicted-vs-actual ledger. That
+> is a real list and a short one, and the gap inventory in `docs/strategy/COMPETITOR-GAPS.md` §2.3 is
+> the list of what an agency still does that we don't.
 >
 > **Unit economics we can already see, and the one we can't.** GPU cost per ad is bounded and small.
 > One ad is about four minutes end to end (`demo/README.md:83`); the encoder step our own plan
@@ -728,12 +780,13 @@ people" costs more here than it would in an application that had nothing to prot
 > shot four of eleven. Cut it, and here's the recut, re-scored.
 >
 > And then we run it. Soma places the ads for the client — Meta is the one we're building, the
-> others follow the same shape — passes the media through at cost, and charges a flat fee. Flat
-> matters: our fee doesn't move when your budget moves, so we're the only party in the chain with
-> no reason to want your money spent. And when we run the campaign, we get the outcome attached to
-> the creative automatically. Predicted brain response in, real ROAS out, same row. Nobody selling a
-> score has that, because they hand you back to your media buyer and never find out if they were
-> right.
+> others follow the same shape. You pick a weekly budget off a ladder we publish, and we add twenty
+> percent on it. That's a percentage of spend, same as an agency, and I'd rather say that plainly
+> than dress it up: what's different is that ours is on the quote, the margin can't be spent as
+> media, and our automation can pause a campaign but has no way to raise a budget. And when we run
+> the campaign, we get the outcome attached to the creative automatically. Predicted brain response
+> in, real ROAS out, same row. Nobody selling a score has that, because they hand you back to your
+> media buyer and never find out if they were right.
 >
 > We're honest about where we are. The scoring works and runs today, and our trained read-out head
 > does clear on a public human-interest dataset — fifteen videos, a real result and a small one. The
@@ -816,13 +869,20 @@ follow-up question every good partner asks, which is *"can I see the artifact?"*
 
 ### 1. "So you're an ad agency? Agencies don't scale."
 
-> Agencies don't scale because the unit of production is a human account manager and the unit of
-> revenue is a percentage of someone else's spend. We inverted both. Our fee is flat — a monthly
-> platform fee per brand plus per-asset pricing — and media passes through at cost, so we have no
-> incentive to spend more and our revenue does not require us to move budget. And the thing we sell
-> is a model output, not a person's judgment: the diagnosis of which network's predicted response
-> fell, and in which window, is produced by a GPU in about four minutes, and the recut is produced
-> by ffmpeg from that diagnosis using four enumerable operations.
+> Agencies don't scale for two reasons: the unit of production is a human account manager, and the
+> unit of revenue is a percentage of someone else's spend. **We inverted one of them, not both** —
+> and I want to be straight about which, because our fee is also a percentage of spend, 20% on the
+> media tier the client picks.
+>
+> The one we inverted is the one that decides whether this scales. What we sell is a model output,
+> not a person's judgment: the diagnosis of which network's predicted response fell, and in which
+> window, is produced by a GPU in about four minutes, and the recut is produced by ffmpeg from that
+> diagnosis using four enumerable operations. An agency adds an account manager per handful of
+> clients; we add GPU-seconds. That is the difference between headcount-linear and not, and the fee
+> model has nothing to do with it.
+>
+> The percentage cuts the other way too, in our favour: it is what lets us serve a brand spending
+> $300 a week, which a $2–15k monthly retainer structurally cannot.
 >
 > What is genuinely human today is the concierge layer — someone runs the batch and someone reviews
 > the recut. We know that is the number that decides whether this is software or a body shop, so we
@@ -923,12 +983,35 @@ citation in this packet as suspect, and they would be right to.
 >
 > **The proven part is structural.** We are not selling you a cheaper test — we are running the real
 > test. The thousand dollars of real signal you're describing is the money you spend on Meta to learn
-> which creative works. We spend it, we pass it through at cost, and our fee is flat: a monthly
-> platform fee per brand plus per-asset pricing, not a percentage of the thousand dollars. **That
-> makes us the only party in your chain with no reason to want your money spent** — not Meta, whose
-> revenue *is* the spend; not your agency at ten to twenty percent of it; not us. That claim is true
-> on the day we sign, it does not require you to believe anything about neuroscience, and it is a
-> contract term rather than a result.
+> which creative works, and we are the ones spending it. You bring the creative; we quote a few weekly
+> media tiers off a published ladder — $300/week local up to $2,500/week broad, by goal and networks —
+> and we add 20% on top of that media. That 20% is our fee, and it is printed on the quote.
+>
+> So I am not going to tell you we have no skin in your budget. **Everyone in this chain is on a
+> percentage** — Meta's revenue *is* the spend, your agency takes ten to twenty of it, and the
+> principal desks take a spread they don't show you. What I will tell you is that ours is the only one
+> you can audit, and that three things about it are enforced in code rather than promised:
+>
+> - **The margin is never spendable.** The funded week's media is a hard ceiling and our margin sits
+>   outside it. Activation refuses a campaign whose spend would breach what you funded — that check is
+>   at the door, not in the terms.
+> - **Our automation can stop spend and has no path that starts or raises it.** Autopilot pauses on a
+>   guard breach or a losing arm. The single action that would grow our revenue is the one action the
+>   system structurally cannot take.
+> - **A formula sets the number, not a salesperson.** The tier ladder is deterministic, mirrored in the
+>   frontend, and a parity gate fails our build if the two ever disagree.
+>
+> **The honest pressure point is that we recommend the tier and then earn 20% of it.** Our check on
+> that is the ledger we publish everything else through: if we put you on broad when national would
+> have done, the predicted-vs-actual page records the worse marginal efficiency with your name on it.
+> We would rather be caught by our own instrument than by yours.
+>
+> And the percentage is what makes us *cheaper in a way an agency cannot copy*, which is the actual
+> answer to your question. A $2–15k/month retainer cannot serve a brand spending $300 a week — the
+> retainer is bigger than the media. We bill that brand $360 all-in and the economics still work,
+> because our fee scales down with them. That is not a discount version of the agency business; it is
+> a set of advertisers the agency business structurally cannot take. All of this is true on the day we
+> sign and none of it requires you to believe anything about neuroscience.
 >
 > **The unproven part is the interesting one, and it is a hypothesis.** We think a brain-based prior
 > lets you find the winner across fewer arms, so more of the thousand goes to variants with a reason
@@ -990,17 +1073,29 @@ citation in this packet as suspect, and they would be right to.
 > guessing. Staying means the model that scores your ads has seen your outcomes. The switching cost
 > is the accumulated fit to their own account, and it grows the longer they stay.
 >
-> Where we're exposed, honestly: the client owns and funds the ad account, so they can revoke our
-> access instantly and keep everything. We chose that architecture on its own merits — we act as
-> agent rather than principal, we hold no float, we carry no chargeback exposure, and the client can
-> fire us in an afternoon, which is a thing worth being able to say to someone deciding whether to
-> hand you their budget. *(We had also cited Meta policy 10.5 as forcing this. It does not, quite:
+> Where we're exposed, honestly: this is your creative and your brand, the week renews rather than
+> locks, and you can stop at the end of any week and take everything with you. No annual, no notice
+> period, no asset of yours that we hold. That is worth being able to say to someone deciding whether
+> to hand you their budget, and it is the same sentence whether or not you believe our science.
+>
+> **[FOUNDER DECISION — settle before this answer is said out loud.]** Whether the client's own
+> Business Manager funds the media and Soma takes partner access (**agent**), or the prepaid week
+> means Soma fronts it (**principal**), is currently unresolved *in our own repo*.
+> `STRATEGY-FULL-SERVICE.md §4.8` recommends agent and warns that principal grosses up revenue under
+> an ASC 606 determination — on $200k of spend, $210,800 of reported revenue at a 5.1% gross margin
+> for economically identical work. The shipped pricing engine quotes media + margin as one number and
+> §0.6 calls it a prepaid week, which reads as principal. `COMPETITOR-GAPS.md §2.3` flags the same
+> conflict from the trust side: the principal model inverts the agency norm that the client owns the
+> account. Until this is settled we cannot say what the word "revenue" means anywhere in this packet,
+> and a partner will ask in the first ten minutes. *(We had also cited Meta policy 10.5 as forcing the
+> agent structure. It does not, quite:
 > 10.5 says don't combine multiple end advertisers in one ad account **"unless you meet the
 > requirements described here or as otherwise approved by Meta in writing,"** and "here" links to a
 > published criteria page. **[NEEDS EVIDENCE — that criteria page has not been read; whether Soma
-> could qualify is unknown.]** The architecture stands on the four reasons above without needing
-> 10.5 to be absolute.)* We are not building lock-in through hostage assets and we don't want to.
-> If the loop isn't worth more than the insight, we deserve to be left.
+> could qualify is unknown.]** So 10.5 does not decide this for us either way — the determination has
+> to be made on the accounting and the trust argument, not deferred to a policy page.)* We are not
+> building lock-in through hostage assets and we don't want to. If the loop isn't worth more than the
+> insight, we deserve to be left.
 >
 > **What does accumulate is boring and real.** After six months on an account we hold a per-brand
 > history of predicted responses, delivered cuts, frozen predictions made before the spend, and
@@ -1009,11 +1104,15 @@ citation in this packet as suspect, and they would be right to.
 > worth more to them than the same model cold. I am not calling that a moat. It is a switching cost
 > that grows monthly, and we got it without building a hostage asset.
 >
-> The other retention fact, and it is the flat fee again: because we don't charge a percentage of
-> spend, our revenue doesn't swing when their budget swings. A percentage fee inherits the client's
-> budget volatility and reads as churn that has nothing to do with whether the product worked.
-> **[FILL: our monthly fee against what the same brand pays an agency to push the buttons — fill
-> once the fee is set; today neither number is in hand.]**
+> The other retention fact cuts against us, and I'd rather say it than have you find it. Because our
+> fee is a percentage of media, **our revenue does swing with their budget** — a paused week is a
+> zero-revenue week, and budget volatility that has nothing to do with whether the product worked will
+> show up in our numbers as churn. A flat platform fee would have smoothed that. We took the
+> percentage anyway, for one reason: it is what makes the bottom of the market reachable. An agency on
+> a $2–15k monthly retainer cannot serve a brand spending $300 a week, because the retainer exceeds
+> the media. We bill that brand $360 all-in. Those advertisers are not a lesser version of the agency
+> customer — they are a segment the agency cost structure cannot serve at all, and they are also where
+> the ads that genuinely fail are, which is the data our science needs and cannot buy at any price.
 
 ### 6. "You can't use TRIBE v2 commercially."
 
@@ -1290,7 +1389,10 @@ don't contradict the application.)*
 | `docs/strategy/COMPETITORS.md:143-180` | Stale on epistemics and disclosure posture. VidCognition's `/science` page now publishes Spearman 0.43 on 218 early-retention-labelled videos **and states the score comes from a vision-language-model critique, not from the brain model, with the TRIBE curve a secondary directional panel the score is not derived from** (fetched 2026-08-06). Do not present that 0.43 against Soma's r ≈ 0.20 as a scoreboard: theirs is a cross-video scalar-vs-outcome correlation, ours is a within-video arc-vs-per-second-importance correlation. Different quantities, different units of analysis, different label — neither is evidence about the other. The buyer question (do they still target the same performance buyer?) has **not** been re-checked. The section already carries its own `[verify]` marker at `:178-180`. |
 | `docs/strategy/COMPETITORS.md:78-94` | Realeyes section is stale — **[VERIFY: realeyes.ai's current business and whether the ad product moved to a separate domain; asserted from memory, no fetch on record.]** |
 | `docs/strategy/VISION.md:69-76` | Names two YC RFS themes and already flags at `:75-76` that the exact 2026 wording is unverified. **[NEEDS EVIDENCE — the current RFS page has not been fetched. Do not assert either presence or absence until it has.]** |
-| `docs/strategy/VISION.md:78-83` | "Why cheaper" compares against per-test panel pricing. Wrong denominator now — but note the new denominator is a flat platform fee, not a percentage of ad spend. |
+| `docs/strategy/VISION.md:78-83` | "Why cheaper" compares against per-test panel pricing. Wrong denominator now — the new denominator is **20% of the weekly media tier**, a percentage of ad spend. Do not propagate the old "flat platform fee" wording; it was never true of the shipped engine. |
+| `docs/strategy/STRATEGY-FULL-SERVICE.md:1088-1093` | §4.8 recommends the **agent** structure (client owns the account and payment method, revenue = fee only) and warns principal grosses up revenue under ASC 606. §4.2 was already rewritten for bundled weekly pricing; §4.8 was not. The prepaid week reads as principal. **This is the open founder decision flagged in killer #5** — settle it before the packet states a revenue figure. |
+| `docs/strategy/STRATEGY-FULL-SERVICE.md:1080-1084` | §4.7 argues Meta Developer Policy 10.6 (effective 2027-02-03) disclosure is easier under flat pricing because "there is no per-spend markup to reconcile." There now is one. The 10.6 report must separate media from the 20% margin — that is a named deliverable with a compliance date, not a nicety. |
+| **This file, `:247`, `:317`, `:504`, `:692`** | All four say Serve is "not built" with **"zero lines of campaign-management code."** That was true when written and is now false: `tools/serve/` holds 27 modules including Meta, TikTok and Google clients, spend guard, autopilot and the trust surfaces. The accurate statement is **built and dry-run-exercised end to end, never run live** — `SOMA_SERVE_LIVE` is unset and `check_licence_gate.py` blocks fees while PLAN.md gate 4 is open. §3 of "What is your company going to make" has been corrected; **these four have not**, and a paste from any of them now understates the company in a way a reviewer can check in one `ls`. Fix in a status pass, not a pricing one. |
 | `docs/strategy/OPPORTUNITIES.md:100-181` | Ranks creator tools above ads, and forbids the absolute cross-ad score that placement decisions need. Both need an explicit resolution, not a quiet override. |
 | `src/components/site/PitchDeck.tsx:73,:214,:241-242` | "Last mile on top," "inference layer on top," "per-seat SaaS" — all three are the middleware framing the pivot abandons. |
 | `src/components/demo2/ServiceTiers.tsx` | Four tiers, no prices, by design. Serve is a fifth rung. Keep the no-prices posture. |
