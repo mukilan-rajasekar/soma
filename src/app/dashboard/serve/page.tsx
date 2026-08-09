@@ -16,6 +16,7 @@
 
 import Link from "next/link";
 
+import AcceptQuoteButton from "@/components/dashboard/AcceptQuoteButton";
 import {
   listBrandsForUser,
   listCampaignQuotesForBrand,
@@ -123,15 +124,15 @@ export default async function DashboardServePage() {
         <div className="mt-11 rounded-2xl border border-line bg-fill p-6">
           <h2 className="text-section text-ink">Nothing is serving yet.</h2>
           <p className="mt-3 max-w-[54ch] text-pretty text-body text-ink-2">
-            Serve status appears once you belong to a brand — a service-role process
-            creates the brand and adds your user to brand_members. Until then, your work
-            lives under Videos.
+            Serve status appears once you belong to a brand. Create one under Brands and
+            this page fills in as campaigns start moving. Until then, your work lives
+            under Videos.
           </p>
           <Link
             href="/dashboard/brands"
             className="mt-6 inline-block rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85"
           >
-            See brands
+            Create a brand
           </Link>
         </div>
       ) : (
@@ -173,6 +174,9 @@ export default async function DashboardServePage() {
                           <span className="rounded-full border border-line bg-paper px-2.5 py-0.5 text-[10px] uppercase tracking-[0.1em]">
                             {q.status}
                           </span>
+                          {q.status === "quoted" ? (
+                            <AcceptQuoteButton quoteId={q.id} compact />
+                          ) : null}
                         </span>
                       </li>
                     ))}

@@ -6,6 +6,7 @@
 
 import Link from "next/link";
 
+import CreateBrandForm from "@/components/dashboard/CreateBrandForm";
 import { listBrandsForUser, listServedAdsForBrand, type ServedAd } from "@/lib/serve";
 
 type BrandCard = {
@@ -102,20 +103,30 @@ export default async function DashboardBrandsPage() {
               </article>
             ))}
           </div>
+
+          <div className="mt-9 border-t border-line pt-8">
+            <h2 className="text-[11px] uppercase tracking-[0.12em] text-ink-3">
+              Add another brand
+            </h2>
+            <p className="mt-3 max-w-[54ch] text-pretty text-body text-ink-2">
+              Each brand keeps its own campaigns, spend records and training decision.
+            </p>
+            <div className="mt-5">
+              <CreateBrandForm />
+            </div>
+          </div>
         </section>
       ) : (
         <div className="mt-11 rounded-2xl border border-line bg-fill p-6">
-          <h2 className="text-section text-ink">No brands yet.</h2>
+          <h2 className="text-section text-ink">Name your first brand.</h2>
           <p className="mt-3 max-w-[54ch] text-pretty text-body text-ink-2">
-            A brand appears here after a service-role process creates it and adds your user
-            to brand_members. Analysis-only runs still live under Videos.
+            A brand is where campaigns, spend records and outcomes live. Name it, decide
+            whether Soma may learn from its ads, and the rest of the studio fills in from
+            here. Analysis-only runs still live under Videos.
           </p>
-          <Link
-            href="/dashboard"
-            className="mt-6 inline-block rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85"
-          >
-            Back to videos
-          </Link>
+          <div className="mt-6">
+            <CreateBrandForm />
+          </div>
         </div>
       )}
     </div>
