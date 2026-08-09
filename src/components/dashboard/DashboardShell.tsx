@@ -30,9 +30,11 @@ const NAV = [
 ] as const;
 
 export default function DashboardShell({
+  name,
   email,
   children,
 }: {
+  name: string;
   email: string;
   children: React.ReactNode;
 }) {
@@ -50,9 +52,17 @@ export default function DashboardShell({
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="hidden max-w-[220px] truncate text-meta text-ink-3 sm:block">
-            {email}
-          </span>
+          {/* The identity chip is the door to /dashboard/account, and it is visible on
+              phones too — hiding it left a phone with no path to the account at all.
+              displayName() falls back to the email local part, so it always says
+              something; the title carries the full address. */}
+          <Link
+            href="/dashboard/account"
+            title={email}
+            className="block max-w-[160px] truncate text-meta text-ink-3 transition-colors hover:text-ink"
+          >
+            {name}
+          </Link>
           <form action="/api/auth/sign-out" method="post">
             <button
               type="submit"
