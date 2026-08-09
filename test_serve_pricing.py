@@ -229,3 +229,19 @@ def test_holdout_rebate_rounds_toward_the_client():
     # margin on 7 micros is 2; 33% of 2 is 0.66, which must round UP to 1.
     assert q["margin_micros"] == 2
     assert r["margin_waiver_micros"] == 1
+
+
+def test_holdout_rebate_never_rounds_a_positive_holdout_to_nothing():
+    # Regression: h was quantised to basis points with round(), which is half-to-even,
+    # so h=0.00005 -> round(0.5) -> 0 bp and a positive holdout earned a zero waiver.
+    # That rounds DOWN, in Soma's favour, in the one function that promises otherwise.
+    q = quote({"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000, "goal": "low_cost_testing"})
+
+    for tiny in (0.00005, 0.000005, 0.00015, 1e-9):
+        r = pricing.holdout_rebate(q, holdout_fraction=tiny)
+        assert r["margin_waiver_micros"] >= 1, f"h={tiny} waived nothing"
+
+    # Exactness, not just non-zero: 0.00005 of a 200_000_000 margin is 10_000 exactly.
+    assert pricing.holdout_rebate(q, holdout_fraction=0.00005)["margin_waiver_micros"] == 10_000
+    # And a fraction that does not divide evenly still rounds up, never down.
+    assert pricing.holdout_rebate(q, holdout_fraction=0.000000001)["margin_waiver_micros"] == 1

@@ -123,6 +123,8 @@ alter table public.campaign_holdout_rebates
 
 -- The rebate is the capped sum of its two terms, and `capped` agrees with the
 -- arithmetic. Stated as one check so a row cannot claim a cap that did not bind.
+-- Declarative and cheap; the trigger in section 3 is what makes it authoritative, by
+-- re-deriving both terms from the quote instead of trusting the writer's own figures.
 alter table public.campaign_holdout_rebates
   drop constraint if exists campaign_holdout_rebates_sum_check;
 alter table public.campaign_holdout_rebates
@@ -133,9 +135,23 @@ alter table public.campaign_holdout_rebates
   );
 
 -- ----------------------------------------------------------------------------
--- 3) The cap is the quote's own margin: a rebate can zero the fee, never invert it.
---    §4.6: "capped at F, so in the worst case Soma works the month for nothing; it can
---    never make the month cost the client more."
+-- 3) The money is DERIVED from the quote and the parameters, not merely consistent
+--    with itself.
+--
+--    The checks above only relate the caller's own numbers to each other, which a
+--    privileged writer satisfies trivially: store h = 0.10, g = 0 and zero for every
+--    monetary field against a positive-margin quote and every constraint passes while
+--    the client is told they are owed nothing. That is the failure this table exists to
+--    prevent - campaign_holdout_rebates is the row a client reads to see what §4.6 owes
+--    them - so the trigger recomputes all four figures and rejects any disagreement.
+--
+--    Arithmetic matches tools/serve/pricing.holdout_rebate exactly: ceil() on an exact
+--    product, rounding UP toward the client. Postgres numeric is exact decimal and the
+--    Python side uses Fraction(str(x)) for the same reason, so neither can drift into
+--    float error the other does not share.
+--
+--    §4.6's cap is enforced here too: "in the worst case Soma works the month for
+--    nothing; it can never make the month cost the client more."
 -- ----------------------------------------------------------------------------
 create or replace function public.campaign_holdout_rebate_within_margin()
 returns trigger
@@ -144,9 +160,18 @@ security definer
 set search_path = public
 as $$
 declare
-  quote_margin bigint;
+  quote_margin   bigint;
+  quote_media    bigint;
+  quote_brand    uuid;
+  quote_currency text;
+  want_waiver    bigint;
+  want_gap       bigint;
+  want_uncapped  bigint;
+  want_rebate    bigint;
+  want_capped    boolean;
 begin
-  select margin_micros into quote_margin
+  select margin_micros, weekly_spend_micros, brand_id, currency
+    into quote_margin, quote_media, quote_brand, quote_currency
     from public.campaign_quotes
    where id = new.quote_id;
 
@@ -154,15 +179,46 @@ begin
     raise exception 'quote % not found; a rebate cannot precede its quote', new.quote_id;
   end if;
 
-  if new.rebate_micros > quote_margin then
+  -- A rebate filed under the wrong brand would be readable by the wrong client through
+  -- the RLS policy below. Pin it to the quote's brand rather than trusting the writer.
+  if new.brand_id <> quote_brand then
     raise exception
-      'rebate % exceeds the quote margin % - §4.6 caps the rebate at F',
-      new.rebate_micros, quote_margin;
+      'rebate brand % does not match quote brand %', new.brand_id, quote_brand;
   end if;
 
-  if new.margin_waiver_micros > quote_margin then
+  if new.currency <> quote_currency then
     raise exception
-      'margin waiver % exceeds the quote margin %', new.margin_waiver_micros, quote_margin;
+      'rebate currency % does not match quote currency % - refusing to compare',
+      new.currency, quote_currency;
+  end if;
+
+  want_waiver   := ceil(quote_margin::numeric * new.holdout_fraction_h);
+  want_gap      := ceil(quote_media::numeric * new.holdout_fraction_h * new.holdout_gap_g);
+  want_uncapped := want_waiver + want_gap;
+  want_rebate   := least(want_uncapped, quote_margin);
+  want_capped   := want_rebate < want_uncapped;
+
+  if new.margin_waiver_micros <> want_waiver then
+    raise exception
+      'margin waiver % disagrees with h=% on margin % (want %)',
+      new.margin_waiver_micros, new.holdout_fraction_h, quote_margin, want_waiver;
+  end if;
+
+  if new.gap_term_micros <> want_gap then
+    raise exception
+      'gap term % disagrees with h=% g=% on media % (want %)',
+      new.gap_term_micros, new.holdout_fraction_h, new.holdout_gap_g, quote_media, want_gap;
+  end if;
+
+  if new.rebate_micros <> want_rebate then
+    raise exception
+      'rebate % disagrees with its own terms (want %, capped at margin %)',
+      new.rebate_micros, want_rebate, quote_margin;
+  end if;
+
+  if new.capped <> want_capped then
+    raise exception 'capped flag % disagrees with the arithmetic (want %)',
+      new.capped, want_capped;
   end if;
 
   return new;

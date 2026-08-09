@@ -233,3 +233,27 @@ def test_report_requires_cycle_and_renders_refusals(tmp_path):
     # sections without artifacts are omitted, not faked
     assert "Blended MER" not in md and "Incrementality" not in md
     assert report["kind"] == "client_report" and report["period_label"] == "2026-W32"
+
+
+def test_fee_disclosure_refuses_an_incomplete_quote():
+    # Regression: absent fields defaulted to 0, so {} satisfied `0 + 0 == 0` and rendered
+    # a complete-looking disclosure of nothing with a null rate. The empty dict is the
+    # input most likely to arrive by accident (an unreadable or truncated quote file).
+    with pytest.raises(ValueError, match="missing"):
+        spend_statement.fee_disclosure({}, delivered_micros=0)
+
+    full = pricing.quote(
+        {"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000, "goal": "low_cost_testing"}
+    )
+    for field in ("weekly_spend_micros", "margin_micros", "weekly_price_micros", "margin_pct"):
+        partial = {k: v for k, v in full.items() if k != field}
+        with pytest.raises(ValueError, match="missing"):
+            spend_statement.fee_disclosure(partial, delivered_micros=0)
+
+    # A zero-margin quote is legitimate and must still disclose: margin_pct 0.0 is a
+    # value, not an absence, so presence is checked rather than truthiness.
+    free = pricing.quote(
+        {"platforms": ["meta"], "weekly_spend_micros": 1_000_000_000,
+         "goal": "low_cost_testing", "margin_pct": 0}
+    )
+    assert spend_statement.fee_disclosure(free, delivered_micros=0)["fee_micros"] == 0

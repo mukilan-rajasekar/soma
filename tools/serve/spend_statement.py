@@ -40,12 +40,33 @@ DELIVERY_SOURCES = ("platform_api", "operator_fixture")
 # associated fee structure. Dated here so the obligation is greppable, not remembered.
 POLICY_10_6_EFFECTIVE = "2027-02-03"
 
+# Checked for presence, not truthiness: margin_pct is legitimately 0.0 on a zero-margin
+# quote, and `or`-style defaulting would silently turn a missing field into a disclosed
+# figure of zero.
+REQUIRED_QUOTE_FIELDS = (
+    "weekly_spend_micros",
+    "margin_micros",
+    "weekly_price_micros",
+    "margin_pct",
+)
+
 
 def fee_disclosure(quote: dict[str, Any], *, delivered_micros: int) -> dict[str, Any]:
     """Spend and fees, separated, with the basis named. Meta Developer Policy 10.6."""
-    media = int(quote.get("weekly_spend_micros") or 0)
-    margin = int(quote.get("margin_micros") or 0)
-    price = int(quote.get("weekly_price_micros") or 0)
+    # Absence must not default to zero. `{}` would otherwise satisfy the identity below
+    # as 0 + 0 == 0 and render a complete-looking disclosure of nothing, with a null
+    # rate - which is the exact artifact this function exists to refuse, produced by the
+    # one input most likely to reach it by accident.
+    missing = [f for f in REQUIRED_QUOTE_FIELDS if quote.get(f) is None]
+    if missing:
+        raise ValueError(
+            f"quote is missing {missing}; refusing to render a fee disclosure from an "
+            "incomplete quote"
+        )
+
+    media = int(quote["weekly_spend_micros"])
+    margin = int(quote["margin_micros"])
+    price = int(quote["weekly_price_micros"])
 
     # 0016 enforces this identity on insert; a quote that reaches us violating it came
     # from somewhere else, and disclosing its numbers would launder the inconsistency.
@@ -54,8 +75,10 @@ def fee_disclosure(quote: dict[str, Any], *, delivered_micros: int) -> dict[str,
             f"quote identity broken: media {media} + margin {margin} != price {price}; "
             "refusing to render a fee disclosure from it"
         )
-    if margin and not media:
-        raise ValueError("margin on zero media has no basis to disclose")
+    # pricing.quote refuses spend <= 0, so a real quote always has positive media. A
+    # zero-media week has no basis for a percentage and nothing to disclose about.
+    if media <= 0:
+        raise ValueError(f"quote has non-positive media ({media}); no basis to disclose")
 
     return {
         "policy": "meta-developer-policy-10.6",

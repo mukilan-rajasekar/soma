@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
@@ -214,6 +215,11 @@ def funded_caps(q: dict[str, Any]) -> list[dict[str, Any]]:
     return caps
 
 
+def _ceil_micros(amount: int, factor: Fraction) -> int:
+    """ceil(amount * factor) in exact integer arithmetic - no float, no bp quantisation."""
+    return -((-amount * factor.numerator) // factor.denominator)
+
+
 def holdout_rebate(
     q: dict[str, Any],
     *,
@@ -239,6 +245,14 @@ def holdout_rebate(
 
     Rounding is UP on both terms, toward the client, because every other rounding
     decision in this module rounds toward Soma and a rebate must not inherit that.
+
+    The arithmetic is exact rational, not basis points. Quantising h to bp first meant
+    round(h * 10_000), and Python's round() is half-to-even: h = 0.00005 became 0 bp, so
+    a positive holdout earned a zero waiver - rounding DOWN, in Soma's favour, in the one
+    function whose docstring promises the opposite. Fraction(str(x)) takes the decimal
+    the caller actually wrote, so ceil() is applied once to an exact product and there is
+    no intermediate to lose. It also matches Postgres numeric, which is what 0018's
+    trigger re-derives these terms in.
     """
     margin = int(q.get("margin_micros") or 0)
     media = int(q.get("weekly_spend_micros") or 0)
@@ -254,10 +268,10 @@ def holdout_rebate(
     if margin and not media:
         raise ValueError("margin on zero media has no rebate basis")
 
-    h_bp = round(holdout_fraction * 10_000)
-    g_bp = round(gap_g * 10_000)
-    waiver = -(-margin * h_bp // 10_000)
-    gap_term = -(-media * h_bp * g_bp // 100_000_000)
+    h = Fraction(str(holdout_fraction))
+    g = Fraction(str(gap_g))
+    waiver = _ceil_micros(margin, h)
+    gap_term = _ceil_micros(media, h * g)
 
     uncapped = waiver + gap_term
     rebate = min(uncapped, margin)
