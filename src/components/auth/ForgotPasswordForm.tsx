@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { emailProblem } from "@/lib/auth-password";
 import { browserClient } from "@/lib/supabase/browser";
 
 export default function ForgotPasswordForm() {
@@ -27,6 +28,13 @@ export default function ForgotPasswordForm() {
     e.preventDefault();
     setError("");
 
+    const trimmedEmail = email.trim();
+    const emailIssue = emailProblem(trimmedEmail);
+    if (emailIssue) {
+      setError(emailIssue);
+      return;
+    }
+
     const supabase = browserClient();
     if (!supabase) {
       setError(
@@ -37,7 +45,7 @@ export default function ForgotPasswordForm() {
 
     setBusy(true);
     try {
-      await supabase.auth.resetPasswordForEmail(email, {
+      await supabase.auth.resetPasswordForEmail(trimmedEmail, {
         redirectTo: `${window.location.origin}/auth/callback?next=%2Fupdate-password`,
       });
     } catch {
