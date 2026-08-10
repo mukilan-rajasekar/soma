@@ -509,8 +509,19 @@ if (!smokeEmail || !smokePassword) {
               signOut.click(),
             ]);
           }
-          // New-device email click: no leftover studio cookies. Also guards a
-          // sign-out that redirected without clearing Set-Cookie.
+          // Assert sign-out actually cleared the session BEFORE wiping the jar
+          // for the new-device recovery click — otherwise clearCookies hides a
+          // 303 that redirected without Set-Cookie.
+          const leftover = (await ctx.cookies()).filter(
+            (c) => /sb-.*-auth-token/.test(c.name) && c.value,
+          );
+          if (leftover.length) {
+            failures.push({
+              route: '/api/auth/sign-out',
+              problems: [`session cookies survived: ${leftover.map((c) => c.name).join(',')}`],
+            });
+            console.log('FAIL /api/auth/sign-out — session cookies survived');
+          }
           await ctx.clearCookies();
 
           const callback =
@@ -544,8 +555,14 @@ if (!smokeEmail || !smokePassword) {
             console.log('ok   /update-password recovery link → new password → studio');
 
             // Put the original password back so SOMA_SMOKE_PASSWORD in .env stays valid.
-            if (userId) {
-              await fetch(`${sbUrl}/auth/v1/admin/users/${userId}`, {
+            if (!userId) {
+              failures.push({
+                route: '/update-password',
+                problems: ['rotated password but generate_link returned no user id to restore'],
+              });
+              console.log('FAIL /update-password — cannot restore original password (no user id)');
+            } else {
+              const restore = await fetch(`${sbUrl}/auth/v1/admin/users/${userId}`, {
                 method: 'PUT',
                 headers: {
                   apikey: sbSecret,
@@ -554,6 +571,13 @@ if (!smokeEmail || !smokePassword) {
                 },
                 body: JSON.stringify({ password: smokePassword }),
               });
+              if (!restore.ok) {
+                failures.push({
+                  route: '/update-password',
+                  problems: [`password restore ${restore.status}`],
+                });
+                console.log(`FAIL /update-password restore ${restore.status}`);
+              }
             }
           }
         }
