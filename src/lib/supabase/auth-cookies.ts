@@ -9,6 +9,9 @@
 
 import type { NextRequest } from "next/server";
 
+/** Matches @supabase/ssr's setAll item (cookie package SerializeOptions). */
+type SameSite = boolean | "lax" | "strict" | "none";
+
 export type CookieSet = {
   name: string;
   value: string;
@@ -17,7 +20,7 @@ export type CookieSet = {
     domain?: string;
     maxAge?: number;
     expires?: Date;
-    sameSite?: "lax" | "strict" | "none" | string;
+    sameSite?: SameSite;
     httpOnly?: boolean;
     secure?: boolean;
   };
@@ -33,9 +36,9 @@ export function cookieJar() {
   };
 }
 
-function sameSiteAttr(value: string | undefined): string {
-  if (value === "strict" || value === "Strict") return "Strict";
-  if (value === "none" || value === "None") return "None";
+function sameSiteAttr(value: SameSite | undefined): string {
+  if (value === true || value === "strict") return "Strict";
+  if (value === "none") return "None";
   return "Lax";
 }
 
