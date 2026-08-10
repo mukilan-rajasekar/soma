@@ -77,9 +77,7 @@ export default async function DashboardRunPage({
       preferPrecomputedEdits
       initialAdId={initialAdId}
       backHref="/dashboard"
-      editHrefForAd={(adId) =>
-        `/dashboard/v/${run.token}/${encodeURIComponent(adId)}/edit`
-      }
+      editHrefTemplate={`/dashboard/v/${run.token}/{ad}/edit`}
       shotDiagnosisByAd={shotDiagnosisByAd}
     />
   );

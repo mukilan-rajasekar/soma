@@ -88,9 +88,11 @@ export type ResultReportProps = {
   /** Open on this cut instead of the batch winner. Used by the Studio run page when the
    *  visitor arrived from a specific library row. */
   initialAdId?: string;
-  /** Override the edit hand-off URL. Studio points at /dashboard/v/.../edit so a signed-in
-   *  session never leaves the owned surface for the beta-gated /edit form. */
-  editHrefForAd?: (adId: string) => string;
+  /** Override the edit hand-off URL. `{ad}` is replaced with the encoded ad id.
+   *  Studio passes `/dashboard/v/<token>/{ad}/edit` so a signed-in session never
+   *  leaves the owned surface for the beta-gated /edit form. A function cannot
+   *  cross the server→client boundary here. */
+  editHrefTemplate?: string;
   /** When true, skip the live BatchEditPreview fetch (Python on the host) and render
    *  `shotDiagnosisByAd` instead. That is the Vercel-safe path: candidates were precomputed
    *  on the scorer box and live in edit_cuts. */
@@ -116,7 +118,7 @@ export default function ResultReport({
   batchToken,
   editsAvailable,
   initialAdId,
-  editHrefForAd,
+  editHrefTemplate,
   preferPrecomputedEdits = false,
   shotDiagnosisByAd,
   backHref,
@@ -128,9 +130,10 @@ export default function ResultReport({
       : report.bestId;
   const [selectedId, setSelectedId] = useState(fallbackId);
   const selected = report.ads.find((a) => a.id === selectedId) ?? report.ads[0];
-  const editHref =
-    editHrefForAd ??
-    ((adId: string) => `/edit?batch=${batchToken}&ad=${encodeURIComponent(adId)}`);
+  const editHref = (adId: string) =>
+    editHrefTemplate
+      ? editHrefTemplate.replaceAll("{ad}", encodeURIComponent(adId))
+      : `/edit?batch=${batchToken}&ad=${encodeURIComponent(adId)}`;
 
   // Section numbers are assigned in render order rather than hard-coded. Two blocks are
   // conditional — the brief (only if one was submitted) and the two edit blocks (only on a

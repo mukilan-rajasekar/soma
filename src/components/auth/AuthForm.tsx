@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { authErrorMessage } from "@/lib/auth-errors";
 import { emailProblem, MIN_PASSWORD, passwordProblem } from "@/lib/auth-password";
 import { hrefWithNext } from "@/lib/auth-redirect";
 import { browserClient } from "@/lib/supabase/browser";
@@ -129,7 +130,7 @@ export default function AuthForm({
             });
 
       if (authError) {
-        setError(authError.message);
+        setError(authErrorMessage(authError));
         return;
       }
 
@@ -197,7 +198,7 @@ export default function AuthForm({
               {/* prefetch={false}: /forgot-password is in src/proxy.ts's matcher, so a
                   prefetch costs an auth round-trip for a page most sign-ins never open. */}
               <Link
-                href="/forgot-password"
+                href={hrefWithNext("/forgot-password", next)}
                 prefetch={false}
                 className="text-ink-3 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
               >

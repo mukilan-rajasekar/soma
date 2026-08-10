@@ -4,9 +4,10 @@ create_smoke_account.py — mint a throwaway SOMA_SMOKE_* account against live A
 
 Two modes:
 
-  1. Service role (preferred). Needs SUPABASE_SECRET_KEY in .env. Creates a
-     pre-confirmed user via /auth/v1/admin/users — no inbox, no rate limit on the
-     built-in mailer. Same path scripts/seed_review_data.py already uses.
+  1. Service role (preferred). Needs SUPABASE_SECRET_KEY (or the pipeline name)
+     in .env or .env.local. Creates a pre-confirmed user via /auth/v1/admin/users
+     — no inbox, no rate limit on the built-in mailer. Same path
+     scripts/seed_review_data.py already uses.
 
   2. Public signup + disposable inbox. Uses the publishable anon key and mail.tm.
      Waits out over_email_send_rate_limit (built-in mailer is ~2/hour), then
@@ -243,7 +244,7 @@ def main() -> int:
     ap.add_argument("--skip-confirm-browse", action="store_true")
     args = ap.parse_args()
 
-    load_dotenv()
+    load_dotenv(local=True)
     url = env_any(("NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"))
     anon = env_any(("NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY"))
     secret = env_any(("SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"))

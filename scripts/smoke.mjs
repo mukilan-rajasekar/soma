@@ -222,6 +222,60 @@ try {
   /* nothing to clean up */
 }
 
+// ── Auth form copy ────────────────────────────────────────────────────────────
+//
+// noValidate means empty submit is ours to explain. These two sentences are the
+// whole reason src/lib/auth-errors.ts exists — if they regress to Supabase's
+// "missing email or phone" / "Invalid login credentials", this is the check.
+
+{
+  const ctx = await (await chromium.launch()).newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  try {
+    await page.goto(BASE + '/sign-in', { waitUntil: 'networkidle', timeout: 45000 });
+    await page.locator('button[type="submit"]').click();
+    await page.waitForTimeout(400);
+    const empty = (await page.locator('div.text-error[role="alert"]').textContent())?.trim();
+    if (empty !== 'Enter an email address.') {
+      failures.push({ route: '/sign-in', problems: [`empty submit: ${JSON.stringify(empty)}`] });
+      console.log(`FAIL /sign-in empty submit -> ${JSON.stringify(empty)}`);
+    } else {
+      console.log('ok   /sign-in        empty submit copy');
+    }
+
+    await page.locator('input[type="email"]').fill('nope@example.com');
+    await page.locator('input[type="password"]').fill('wrong-password-xx');
+    await page.locator('button[type="submit"]').click();
+    await page.waitForSelector('div.text-error[role="alert"]', { timeout: 15000 });
+    const bad = (await page.locator('div.text-error[role="alert"]').textContent())?.trim();
+    if (bad !== 'Email or password is wrong.') {
+      failures.push({ route: '/sign-in', problems: [`bad creds: ${JSON.stringify(bad)}`] });
+      console.log(`FAIL /sign-in bad creds -> ${JSON.stringify(bad)}`);
+    } else {
+      console.log('ok   /sign-in        bad-credentials copy');
+    }
+
+    const forgot = await page.locator('a[href*="forgot-password"]').getAttribute('href');
+    await page.goto(BASE + '/sign-in?next=/dashboard/upload', { waitUntil: 'networkidle' });
+    const forgotNext = await page.locator('a[href*="forgot-password"]').getAttribute('href');
+    const createNext = await page.locator('a', { hasText: 'Create one' }).getAttribute('href');
+    if (!forgotNext?.includes('next=') || !createNext?.includes('next=')) {
+      failures.push({
+        route: '/sign-in',
+        problems: [`next not preserved: forgot=${forgotNext} create=${createNext}`],
+      });
+      console.log(`FAIL /sign-in next hop forgot=${forgotNext} create=${createNext}`);
+    } else {
+      console.log('ok   /sign-in        ?next= survives Create one / Forgot');
+    }
+    void forgot;
+  } catch (e) {
+    failures.push({ route: '/sign-in', problems: [`copy checks threw: ${String(e).slice(0, 160)}`] });
+    console.log(`FAIL /sign-in copy checks — ${String(e).slice(0, 160)}`);
+  }
+  await ctx.close();
+}
+
 // ── the beta gate ─────────────────────────────────────────────────────────────
 //
 // /api/{generate,edit}/{run,create} each spawn a Python process that runs for minutes.
@@ -345,22 +399,35 @@ if (!smokeEmail || !smokePassword) {
         console.log(`ok   /dashboard${' '.repeat(9)} signed in, text=${lib.textLen}`);
       }
 
-      // Follow the first library row all the way into the read-out. Hard-coding a token
-      // would rot the moment the seed is re-run, so this navigates the way a customer
-      // does — which also proves the links the dashboard emits actually resolve.
-      const row = page.locator('a[href^="/dashboard/v/"], a[href^="/dashboard/runs/"]').first();
+      // Follow the first video row into the read-out. Prefer /dashboard/v/ (a cut)
+      // over the run header: that is the click a customer makes, and a multi-ad
+      // seed puts "Open full run" first in the DOM.
+      const row = page.locator('a[href^="/dashboard/v/"]').first();
       if ((await row.count()) === 0) {
         console.log('     (no library rows for this account — nothing further to follow)');
       } else {
         const href = await row.getAttribute('href');
-        await row.click();
+        await Promise.all([
+          page.waitForURL(
+            (u) => u.pathname.startsWith('/dashboard/v/') || u.pathname.startsWith('/dashboard/runs/'),
+            { timeout: 30000 },
+          ),
+          row.click(),
+        ]);
         await page.waitForLoadState('networkidle');
         await page.waitForTimeout(2000);
         const detail = await page.evaluate(() => ({
           h1: document.querySelector('h1')?.textContent?.trim() ?? null,
+          path: location.pathname,
           textLen: (document.body.innerText || '').length,
         }));
-        if (!detail.h1 || detail.textLen < 400) {
+        if (detail.path === '/dashboard' || detail.h1 === 'Your videos.') {
+          failures.push({
+            route: href,
+            problems: [`stayed on library: path=${detail.path} h1=${detail.h1}`],
+          });
+          console.log(`FAIL ${href} — stayed on library`);
+        } else if (!detail.h1 || detail.textLen < 400) {
           failures.push({
             route: href,
             problems: [`detail thin: h1=${detail.h1}, text=${detail.textLen}`],
@@ -389,6 +456,107 @@ if (!smokeEmail || !smokePassword) {
       } else {
         studioChecked += 1;
         console.log(`ok   /dashboard/account${' '.repeat(3)} text=${account.textLen}`);
+      }
+
+      // Recovery without SMTP: admin generateLink → hashed_token into /auth/callback.
+      // Needs the service role. Unset, skip — same posture as the beta gate.
+      const sbUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(
+        /\/$/,
+        '',
+      );
+      const sbSecret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!sbUrl || !sbSecret) {
+        console.log('     skip recovery E2E — set SUPABASE_SECRET_KEY to exercise /update-password');
+      } else {
+        const gen = await fetch(`${sbUrl}/auth/v1/admin/generate_link`, {
+          method: 'POST',
+          headers: {
+            apikey: sbSecret,
+            Authorization: `Bearer ${sbSecret}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ type: 'recovery', email: smokeEmail }),
+        });
+        const genBody = await gen.json().catch(() => ({}));
+        const props = genBody.properties && typeof genBody.properties === 'object' ? genBody.properties : genBody;
+        const hashed = props.hashed_token || genBody.hashed_token;
+        const actionToken = (() => {
+          try {
+            const link = props.action_link || genBody.action_link;
+            return link ? new URL(link).searchParams.get('token') : null;
+          } catch {
+            return null;
+          }
+        })();
+        const tokenHash = hashed || actionToken;
+        const userId = genBody.user?.id || genBody.id;
+        if (!gen.ok || !tokenHash) {
+          failures.push({
+            route: '/update-password',
+            problems: [`generate_link ${gen.status}: ${JSON.stringify(genBody).slice(0, 180)}`],
+          });
+          console.log(`FAIL /update-password generate_link ${gen.status}`);
+        } else {
+          // Real email-click: the visitor is signed out (often another device).
+          // Recovery also revokes the previous session, so staying signed in here
+          // would hide a callback that minted cookies the browser never stored.
+          const signOut = page.locator('form[action="/api/auth/sign-out"] button[type="submit"]').last();
+          if ((await signOut.count()) > 0) {
+            await Promise.all([
+              page.waitForURL((u) => u.pathname === '/' || u.pathname === '/sign-in', {
+                timeout: 20000,
+              }),
+              signOut.click(),
+            ]);
+          }
+          // New-device email click: no leftover studio cookies. Also guards a
+          // sign-out that redirected without clearing Set-Cookie.
+          await ctx.clearCookies();
+
+          const callback =
+            BASE +
+            '/auth/callback?token_hash=' +
+            encodeURIComponent(tokenHash) +
+            '&type=recovery&next=' +
+            encodeURIComponent('/update-password');
+          await page.goto(callback, { waitUntil: 'domcontentloaded', timeout: 45000 });
+          await page.waitForURL((u) => u.pathname !== '/auth/callback', { timeout: 45000 });
+          const landed = new URL(page.url());
+          if (landed.pathname !== '/update-password') {
+            failures.push({
+              route: '/update-password',
+              problems: [
+                `callback landed on ${landed.pathname}${landed.search}, want /update-password`,
+              ],
+            });
+            console.log(`FAIL /update-password landed ${landed.pathname}${landed.search}`);
+          } else {
+            const rotated = `${smokePassword}-r`;
+            await page.locator('input[autocomplete="new-password"]').nth(0).fill(rotated);
+            await page.locator('input[autocomplete="new-password"]').nth(1).fill(rotated);
+            await Promise.all([
+              page.waitForURL((u) => u.pathname === '/dashboard' || u.pathname.startsWith('/dashboard'), {
+                timeout: 45000,
+              }),
+              page.locator('button[type="submit"]').click(),
+            ]);
+            studioChecked += 1;
+            console.log('ok   /update-password recovery link → new password → studio');
+
+            // Put the original password back so SOMA_SMOKE_PASSWORD in .env stays valid.
+            if (userId) {
+              await fetch(`${sbUrl}/auth/v1/admin/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                  apikey: sbSecret,
+                  Authorization: `Bearer ${sbSecret}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ password: smokePassword }),
+              });
+            }
+          }
+        }
       }
     }
 
