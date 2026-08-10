@@ -121,7 +121,7 @@ def main():
     ap.add_argument("--clean", action="store_true", help="remove what this script created")
     args = ap.parse_args()
 
-    load_dotenv()
+    load_dotenv(local=True)
     url = env_any(("NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"))
     key = env_any(("SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"))
     if not url or not key:

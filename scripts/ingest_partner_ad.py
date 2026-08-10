@@ -90,25 +90,46 @@ REQUIRED_BRIEF = (
 # env + supabase, over stdlib (same shape as tools/concierge/run_batch.py)
 # ==============================================================================
 
-def load_dotenv():
-    """Populate os.environ from .env. Never overrides a real environment variable."""
+def _apply_env_file(path, *, override, preexisting):
+    """Load KEY=VAL lines. Skip PASTE / trailing-`...` placeholders. Never clobber a real process env var."""
+    try:
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key = key.strip().removeprefix("export ").strip()
+            val = val.strip().strip('"').strip("'")
+            if not key or "PASTE" in val or val.endswith("..."):
+                continue
+            if key in preexisting:
+                continue
+            if not override and key in os.environ:
+                continue
+            os.environ[key] = val
+    except OSError:
+        pass
+
+
+def load_dotenv(*, local=False):
+    """Populate os.environ from .env. Never overrides a real environment variable.
+
+    With local=True, also reads .env.local afterwards (Next's order: local wins
+    over .env). Site-adjacent scripts (create_smoke_account, seed_review_data)
+    pass local=True so a checkout that only filled .env.local still works. The
+    pipeline default stays .env-only.
+    """
+    preexisting = set(os.environ)
     for path in (Path.cwd() / ".env", ROOT / ".env"):
-        if not path.exists():
-            continue
-        try:
-            for line in path.read_text().splitlines():
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, val = line.split("=", 1)
-                key = key.strip().removeprefix("export ").strip()
-                val = val.strip().strip('"').strip("'")
-                if not key or key in os.environ or "PASTE" in val:
-                    continue
-                os.environ[key] = val
-        except OSError:
-            pass
-        break
+        if path.exists():
+            _apply_env_file(path, override=False, preexisting=preexisting)
+            break
+    if not local:
+        return
+    for path in (Path.cwd() / ".env.local", ROOT / ".env.local"):
+        if path.exists():
+            _apply_env_file(path, override=True, preexisting=preexisting)
+            break
 
 
 def now_iso():

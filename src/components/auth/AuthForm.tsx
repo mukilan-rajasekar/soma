@@ -22,7 +22,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { MIN_PASSWORD } from "@/lib/auth-password";
+import { authErrorMessage } from "@/lib/auth-errors";
+import { emailProblem, MIN_PASSWORD, passwordProblem } from "@/lib/auth-password";
+import { hrefWithNext } from "@/lib/auth-redirect";
 import { browserClient } from "@/lib/supabase/browser";
 
 type Mode = "sign-in" | "sign-up";
@@ -44,7 +46,7 @@ const COPY = {
     pending: "Signing in…",
     altPrompt: "No account yet?",
     altLabel: "Create one",
-    altHref: "/sign-up",
+    altPath: "/sign-up",
   },
   "sign-up": {
     heading: "Start with one",
@@ -54,7 +56,7 @@ const COPY = {
     pending: "Creating…",
     altPrompt: "Already have an account?",
     altLabel: "Sign in",
-    altHref: "/sign-in",
+    altPath: "/sign-in",
   },
 } as const;
 
@@ -84,6 +86,27 @@ export default function AuthForm({
     e.preventDefault();
     setError("");
 
+    // noValidate means these run instead of the browser's. Catching them here keeps
+    // Supabase's "missing email or phone" (a field we do not have) off the page.
+    const trimmedEmail = email.trim();
+    const emailIssue = emailProblem(trimmedEmail);
+    if (emailIssue) {
+      setError(emailIssue);
+      return;
+    }
+    // Sign-in only needs non-empty: the password already exists. Sign-up shares the
+    // minimum with /update-password via passwordProblem().
+    const passwordIssue =
+      mode === "sign-up"
+        ? passwordProblem(password)
+        : password
+          ? null
+          : "Enter a password.";
+    if (passwordIssue) {
+      setError(passwordIssue);
+      return;
+    }
+
     const supabase = browserClient();
     if (!supabase) {
       setError(
@@ -92,28 +115,25 @@ export default function AuthForm({
       return;
     }
 
-    if (mode === "sign-up" && password.length < MIN_PASSWORD) {
-      setError(`Use at least ${MIN_PASSWORD} characters.`);
-      return;
-    }
-
     setBusy(true);
     try {
       const { data, error: authError } =
         mode === "sign-in"
-          ? await supabase.auth.signInWithPassword({ email, password })
+          ? await supabase.auth.signInWithPassword({ email: trimmedEmail, password })
           : await supabase.auth.signUp({
-              email,
+              email: trimmedEmail,
               password,
               options: {
                 // With email confirmation ON, the confirmation link needs somewhere to
                 // land that can turn it into a session. /auth/callback is that place.
-                emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fdashboard`,
+                // `next` is already safeNext'd by the page — encodeURIComponent so a
+                // path with its own query string survives the round-trip.
+                emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
               },
             });
 
       if (authError) {
-        setError(authError.message);
+        setError(authErrorMessage(authError));
         return;
       }
 
@@ -202,7 +222,7 @@ export default function AuthForm({
               {/* prefetch={false}: /forgot-password is in src/proxy.ts's matcher, so a
                   prefetch costs an auth round-trip for a page most sign-ins never open. */}
               <Link
-                href="/forgot-password"
+                href={hrefWithNext("/forgot-password", next)}
                 prefetch={false}
                 className="text-ink-3 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
               >
@@ -235,9 +255,12 @@ export default function AuthForm({
             opposite page fires an auth round-trip to Supabase for a page most visitors
             never open — and the request is then cancelled when they navigate or close the
             tab, which surfaces as an aborted RSC fetch. These are two small forms; there
-            is nothing here worth pre-loading at the cost of a session lookup. */}
+            is nothing here worth pre-loading at the cost of a session lookup.
+            hrefWithNext keeps a guarded destination across the hop so someone who hit
+            /dashboard/upload, bounced here, and then creates an account still lands back
+            on upload rather than the library root. */}
         <Link
-          href={copy.altHref}
+          href={hrefWithNext(copy.altPath, next)}
           prefetch={false}
           className="text-ink-2 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
         >

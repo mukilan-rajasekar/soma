@@ -12,19 +12,33 @@
 //
 // 303, not 302. It forces the browser to follow with GET; a 302 after a POST leaves the
 // method up to the client and some will re-POST to the destination.
+//
+// COOKIES ARE WRITTEN ON THIS REDIRECT. sessionClient() uses cookies() from next/headers,
+// which attaches Set-Cookie to an implicit response. Returning NextResponse.redirect
+// replaces that response, so a sign-out that only called sessionClient().signOut() left
+// the browser holding a session the server had already revoked.
 
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
-import { sessionClient } from "@/lib/supabase/session";
+import { cookieJar, redirectWithCookies } from "@/lib/supabase/auth-cookies";
+import { publicSupabaseConfig } from "@/lib/supabase/session";
 
 export async function POST(request: NextRequest) {
-  const supabase = await sessionClient();
-  // Best effort. If auth is unconfigured there is no session to end, and the redirect
-  // below is still the right answer.
-  if (supabase) await supabase.auth.signOut();
+  const config = publicSupabaseConfig();
+  if (!config) {
+    return redirectWithCookies(request, "/", new Map());
+  }
 
-  return NextResponse.redirect(new URL("/", request.url), {
-    status: 303,
-    headers: { "Cache-Control": "no-store" },
+  const { jar, setAll } = cookieJar();
+  const supabase = createServerClient(config.url, config.key, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll,
+    },
   });
+  await supabase.auth.signOut();
+  return redirectWithCookies(request, "/", jar);
 }

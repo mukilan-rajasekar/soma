@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import UpdatePasswordForm from "@/components/auth/UpdatePasswordForm";
+import { safeNext } from "@/lib/auth-redirect";
 import { requireUser } from "@/lib/supabase/session";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +24,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function UpdatePasswordPage() {
+export default async function UpdatePasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
   await requireUser("/update-password");
+  const { next } = await searchParams;
+  const dest = safeNext(next);
 
   return (
     <main className="fixed inset-0 overflow-y-auto bg-paper text-ink">
@@ -42,7 +49,7 @@ export default async function UpdatePasswordPage() {
         </p>
 
         <div className="mt-9">
-          <UpdatePasswordForm redirectTo="/dashboard" />
+          <UpdatePasswordForm redirectTo={dest} />
         </div>
       </div>
     </main>

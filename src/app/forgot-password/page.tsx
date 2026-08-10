@@ -6,16 +6,23 @@
 import type { Metadata } from "next";
 
 import ForgotPasswordForm from "@/components/auth/ForgotPasswordForm";
+import { safeNext } from "@/lib/auth-redirect";
 
 export const metadata: Metadata = {
   title: "soma · reset password",
   robots: { index: false, follow: false },
 };
 
-export default function ForgotPasswordPage() {
+export default async function ForgotPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+
   return (
     <main className="fixed inset-0 overflow-y-auto bg-paper text-ink">
-      <ForgotPasswordForm />
+      <ForgotPasswordForm next={safeNext(next)} />
     </main>
   );
 }

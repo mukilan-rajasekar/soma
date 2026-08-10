@@ -26,3 +26,16 @@ export function safeNext(next: string | undefined | null): string {
   if (next.includes("\\")) return AFTER_AUTH;
   return next;
 }
+
+/**
+ * An auth sibling link that keeps a non-default `?next=` so a visitor who arrived from
+ * `/dashboard/upload` (or any other guarded path) does not lose that destination when they
+ * hop between /sign-in and /sign-up.
+ *
+ * `next` must already have passed through safeNext() — this only encodes, it does not
+ * re-validate.
+ */
+export function hrefWithNext(path: string, next: string): string {
+  if (!next || next === AFTER_AUTH) return path;
+  return `${path}?next=${encodeURIComponent(next)}`;
+}

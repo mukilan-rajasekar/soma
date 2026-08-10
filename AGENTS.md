@@ -29,8 +29,23 @@ checkout by design. Do not invent imports that only exist on a machine with a pr
 corpus. Older notes that pointed at `muki/oldlandingpage` are obsolete — that branch is
 gone; treat those paths as operator-local only.
 
-**Author:** Mukilan Rajasekar \<mukilan.rajasekar@gmail.com\>. Agent commits must use that
-author/committer identity — never Cursor Agent / Codex co-author lines.
+**Author / committer (mandatory):** Mukilan Rajasekar \<mukilan.rajasekar@gmail.com\>.
+
+Every agent commit — Cloud, background, local — must use that identity for **both**
+author and committer. Never `Cursor Agent` / `cursoragent@cursor.com`. Never
+`Co-authored-by:` or `Made-with: Cursor` trailers.
+
+Enforcement (do not weaken):
+
+1. Run `./scripts/agent-git-identity.sh` before the first commit in a session
+   (`.cursor/environment.json` install and `.cursor/hooks.json` also run it).
+2. That script sets `user.name` / `user.email` and replaces Cursor's
+   `commit-msg.cursor.co-author` injector with a no-op.
+3. If a commit still lands wrong, rewrite it (`git commit --amend` /
+   `filter-branch` with `core.hooksPath=/dev/null`) before pushing.
+
+Cursor has no product toggle for Cloud Agent authorship; this repo policy is
+the permanent override.
 
 ## Gotchas (learned)
 

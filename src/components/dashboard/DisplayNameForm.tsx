@@ -10,6 +10,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { authErrorMessage } from "@/lib/auth-errors";
 import { browserClient } from "@/lib/supabase/browser";
 
 export default function DisplayNameForm({ initial }: { initial: string }) {
@@ -45,7 +46,7 @@ export default function DisplayNameForm({ initial }: { initial: string }) {
         data: { full_name: trimmed },
       });
       if (authError) {
-        setError(authError.message);
+        setError(authErrorMessage(authError));
         return;
       }
       setName(trimmed);

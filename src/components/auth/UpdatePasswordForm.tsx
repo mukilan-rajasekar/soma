@@ -15,6 +15,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { authErrorMessage } from "@/lib/auth-errors";
 import { MIN_PASSWORD, passwordProblem } from "@/lib/auth-password";
 import { browserClient } from "@/lib/supabase/browser";
 
@@ -50,7 +51,7 @@ export default function UpdatePasswordForm({ redirectTo }: { redirectTo?: string
     try {
       const { error: authError } = await supabase.auth.updateUser({ password });
       if (authError) {
-        setError(authError.message);
+        setError(authErrorMessage(authError));
         return;
       }
 

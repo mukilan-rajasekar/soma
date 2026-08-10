@@ -15,9 +15,11 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { emailProblem } from "@/lib/auth-password";
+import { AFTER_AUTH, hrefWithNext } from "@/lib/auth-redirect";
 import { browserClient } from "@/lib/supabase/browser";
 
-export default function ForgotPasswordForm() {
+export default function ForgotPasswordForm({ next }: { next: string }) {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
@@ -26,6 +28,13 @@ export default function ForgotPasswordForm() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    const trimmedEmail = email.trim();
+    const emailIssue = emailProblem(trimmedEmail);
+    if (emailIssue) {
+      setError(emailIssue);
+      return;
+    }
 
     const supabase = browserClient();
     if (!supabase) {
@@ -37,8 +46,12 @@ export default function ForgotPasswordForm() {
 
     setBusy(true);
     try {
-      await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=%2Fupdate-password`,
+      const afterUpdate =
+        next && next !== AFTER_AUTH
+          ? `/update-password?next=${encodeURIComponent(next)}`
+          : "/update-password";
+      await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(afterUpdate)}`,
       });
     } catch {
       // Ignored on purpose — the notice below is the same either way. See the header.
@@ -103,7 +116,7 @@ export default function ForgotPasswordForm() {
       <p className="mt-7 text-meta text-ink-3">
         Remembered it?{" "}
         <Link
-          href="/sign-in"
+          href={hrefWithNext("/sign-in", next)}
           prefetch={false}
           className="text-ink-2 underline decoration-line-2 underline-offset-2 transition-colors hover:text-ink"
         >
