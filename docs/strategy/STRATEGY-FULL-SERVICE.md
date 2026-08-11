@@ -878,13 +878,50 @@ not track money.
 > | Soma revenue | $12,000/mo | $260–$2,170/mo |
 >
 > These are two companies with different buyers, sales motions, operator ratios and COGS structures.
-> **[FOUNDER DECISION — which one is this? Do not re-derive the numbers below until it is answered,
-> because the answer changes what they are numbers about.]** The SMB reading has a real argument
-> behind it: at $360/week all-in, Soma reaches advertisers a $2–15k/month agency retainer
-> structurally cannot serve — and those are also the advertisers whose ads genuinely fail, which is
-> the loser-bearing data the §1.2 backtests could not buy. The enterprise reading is what this
-> section, §4.6's rebate arithmetic and §4.8's ASC 606 example are all written for. Neither is
-> wrong; the document currently assumes both.
+> **DECISION 2026-08-09: the ladder is the company now. The $200k case stays as the destination,
+> not the plan.** Reasoning below; it is a document decision and reversible by editing this block.
+>
+> **1. Enterprise is not sellable today, on this repo's own evidence.** `COMPETITOR-GAPS.md` §2.3–2.4
+> lists what a $200k/month brand asks for before signing: SOC 2, MER from a revenue feed they own,
+> case studies, partner badges, a named human, tracking setup, QBRs. Every one is graded GAP. And
+> §1.2's backtests are null at n = 29. The enterprise sale requires proof Soma does not have, so
+> choosing it means 6–12 months of building credentials with no revenue and no data.
+>
+> **2. The science needs the data only small advertisers produce.** This is the decisive argument
+> and it is not about deal size. `tools/corpus/audit.py` names the defect in the existing corpus:
+> TikTok's *Top Ads* showcase is curated, so a label means "how strong among strong ads" and range
+> restriction attenuates any correlation. **A $200k/month brand's creative is another curated set** —
+> professionally produced, pre-vetted, loser tail compressed. SMB creative spans the full quality
+> range, which is exactly the variance the §1.2 nulls lacked.
+>
+> **3. And enterprise will not permit the random arm.** §4.6's holdout is 10% of spend assigned to
+> creative we predict will lose. At $200k/month that is **$20,000/month of deliberately-bad
+> placement** — a procurement conversation, an MSA negotiation, and a fair refusal. At $600/week it
+> is $60. The mechanism that makes every Soma calibration number interpretable is affordable at the
+> bottom of the market and hard to sell at the top.
+>
+> **4. It is the reversible choice.** Serving SMBs produces the loser-bearing corpus, the
+> predicted-vs-actual ledger, and the case studies that make the enterprise sale possible later.
+> Enterprise-first forecloses SMB while it runs and generates none of them.
+>
+> **The costs, because they are real.** Revenue per client is 5–8× lower: at roughly $700/month
+> average against §4.3's $10,000/month operator, break-even is ~14 accounts, so **the concierge layer
+> must be close to zero-touch or this model does not work.** §4.3 already calls that "the number that
+> decides whether this is software or a body shop," and this decision makes it the number that
+> decides the company. Churn is also higher at the bottom, and under a percentage fee a paused week
+> earns nothing.
+>
+> **What it implies to build, and it is not in any plan yet.** The ladder tops out at $2,500/week, so
+> an advertiser who wants to spend $20,000/month **cannot be quoted at all** — there is a cliff
+> between $10,800/month and the $200k case with nothing in between. Either `recommend_spend()` grows
+> a fourth reach tier and a custom band, or the answer to a mid-market inbound is "no," which is a
+> strange thing for a revenue plan to say. **[NEEDS DECISION: the ceiling, before the first inbound
+> that exceeds it.]**
+>
+> Everything below this line is still denominated in the superseded flat fee and models the
+> destination rather than the ladder. Re-derive it against the ladder when the concierge ratio is
+> measured rather than estimated — the operator cost is the input that matters and it is `[ESTIMATE]`
+> today.
 
 **Direct COGS per client-month:**
 
