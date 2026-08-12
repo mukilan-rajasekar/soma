@@ -983,10 +983,14 @@ export default function DemoScrollPage({
           </p>
           {/* One button. The closing frame used to offer "Explore the live console" beside
               it, which split the last ask on the page in two; /console is still built and
-              still reachable, it just is not where this page points anyone. */}
+              still reachable, it just is not where this page points anyone.
+              Destination is /sign-up, not "/": pointing the closing ask back at the landing
+              hero made the funnel circular — a viewer who just sat through the whole
+              walkthrough was returned to the top of the pitch. prefetch={false}: /sign-up
+              is in src/proxy.ts's matcher. */}
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/" className="rounded-xl bg-ink px-6 py-[15px] text-ui font-medium text-white transition-colors hover:bg-ink/85">
-              Request access
+            <Link href="/sign-up" prefetch={false} className="rounded-xl bg-ink px-6 py-[15px] text-ui font-medium text-white transition-colors hover:bg-ink/85">
+              Create your account
             </Link>
           </div>
           {/* A closing frame with no address is a closing frame a viewer cannot act on. This is

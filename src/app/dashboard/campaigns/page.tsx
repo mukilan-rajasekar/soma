@@ -105,9 +105,8 @@ export default async function DashboardCampaignsPage() {
         <div className="mt-11 rounded-2xl border border-line bg-fill p-6">
           <h2 className="text-section text-ink">No served campaigns yet.</h2>
           <p className="mt-3 max-w-[54ch] text-pretty text-body text-ink-2">
-            A campaign appears here after a served_ads row is linked to one of your brands
-            — usually from a CSV outcome ingest or a dry-run launch against a test account.
-            Analysis-only runs still live under Videos.
+            Campaigns appear here once your ads are running and results start coming
+            in. Scored uploads that aren&rsquo;t running anywhere live under Videos.
           </p>
           {/* Secondary on purpose: "New campaign" beside the heading is this screen's
               one solid ink button. */}

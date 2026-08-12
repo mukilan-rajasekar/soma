@@ -245,10 +245,11 @@ export default function PreflightView({ report, corpus }: Props) {
           </p>
           <div className="mt-7">
             <Link
-              href="/"
+              href="/sign-up"
+              prefetch={false}
               className="inline-block rounded-xl bg-ink px-5 py-[13px] text-ui font-medium text-white transition-colors hover:bg-ink/85"
             >
-              Request access
+              Create your account
             </Link>
           </div>
         </div>

@@ -49,13 +49,23 @@ export default function Stat({
   return (
     <div className="rounded-2xl border border-line bg-fill p-5">
       <div className="text-[12px] uppercase tracking-[0.1em] text-ink-3">{label}</div>
-      <div className="mt-2 flex items-baseline gap-1">
+      {/* The count-up is visual only. Before the first frame the DOM literally says "0",
+          and a screen reader that lands mid-animation reads whatever digit the clock is
+          on — for the hook comparison that inverted the whole argument ("0/100" for both
+          the best and worst cut). The real value lives on the container; the animating
+          text is hidden from AT. */}
+      <div
+        className="mt-2 flex items-baseline gap-1"
+        role="img"
+        aria-label={`${value.toLocaleString()}${suffix}`}
+      >
         <span
+          aria-hidden="true"
           className={`font-medium tabular-nums leading-none text-ink ${big ? "text-[44px]" : "text-[28px]"}`}
         >
           {Math.round(value * p).toLocaleString()}
         </span>
-        <span className="text-[16px] text-ink-3">{suffix}</span>
+        <span aria-hidden="true" className="text-[16px] text-ink-3">{suffix}</span>
       </div>
       <div className={`relative mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-line ${big && tone ? "" : "hidden"}`}>
         {/* grow via transform: scaleX (compositor-only) rather than animating width, which

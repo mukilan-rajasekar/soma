@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.usesoma.work"),
   title: "soma — videos that earn attention",
   description:
-    "Soma scores your footage, generates new cuts from a prompt, and edits with AI — all tuned to how your audience actually watches.",
+    "Soma reads how a brain watches your ad — real fMRI attention, second by second — so you launch the cut that wins before you spend a dollar.",
 };
 
 export default function RootLayout({

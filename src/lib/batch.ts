@@ -188,19 +188,54 @@ export function emptyBrief(): Brief {
 // so the form's inline errors and the API's 400 body can never disagree about what is
 // wrong — the single most common way a two-sided validator drifts.
 
-export function validateBrief(brief: Partial<Brief>): string[] {
-  const problems: string[] = [];
+/** Fields the brief validator can blame. Used by the form to pin errors to inputs. */
+export type BriefField = MessageField | "audience" | "platform" | "placement" | "objective";
 
+/** Per-field problems, short form — the string that belongs NEXT TO the input. The
+ *  form renders these inline; validateBrief() composes the same map into the summary
+ *  list, so the two can never disagree about what is missing. */
+export function briefFieldProblems(brief: Partial<Brief>): Partial<Record<BriefField, string>> {
+  const problems: Partial<Record<BriefField, string>> = {};
   for (const f of MESSAGE_FIELDS) {
     if (!String(brief[f] ?? "").trim()) {
-      problems.push(`${MESSAGE_FIELD_COPY[f].label} is required — clarity is 25% of the score and cannot be computed without it.`);
+      problems[f] = `${MESSAGE_FIELD_COPY[f].label} is required.`;
     }
   }
   if (!String(brief.audience ?? "").trim()) {
+    problems.audience = "Audience is required.";
+  }
+  for (const k of ["platform", "placement", "objective"] as const) {
+    if (!String(brief[k] ?? "").trim()) problems[k] = `${k} is required.`;
+  }
+  return problems;
+}
+
+/** "Brand" / "Brand and Product" / "Brand, Product and The offer". */
+function formatLabelList(labels: string[]): string {
+  if (labels.length <= 1) return labels[0] ?? "";
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
+
+export function validateBrief(brief: Partial<Brief>): string[] {
+  const field = briefFieldProblems(brief);
+  const problems: string[] = [];
+
+  // One line for the message fields, however many are missing — the old version
+  // repeated the same 25%-clause per field, which read as six copies of one sentence.
+  const missing = MESSAGE_FIELDS.filter((f) => field[f]);
+  if (missing.length) {
+    const labels = formatLabelList(missing.map((f) => MESSAGE_FIELD_COPY[f].label));
+    problems.push(
+      missing.length === 1
+        ? `${labels} is required — clarity is 25% of the score and cannot be computed without it.`
+        : `${labels} are required — clarity is 25% of the score and cannot be computed without them.`,
+    );
+  }
+  if (field.audience) {
     problems.push("Audience is required — it is one of the five keys that make a batch comparable.");
   }
   for (const k of ["platform", "placement", "objective"] as const) {
-    if (!String(brief[k] ?? "").trim()) problems.push(`${k} is required.`);
+    if (field[k]) problems.push(`${k} is required.`);
   }
   return problems;
 }
