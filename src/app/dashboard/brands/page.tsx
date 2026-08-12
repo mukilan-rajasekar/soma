@@ -69,7 +69,7 @@ export default async function DashboardBrandsPage() {
                   <div>
                     <h3 className="text-section text-ink">{brand.name}</h3>
                     <p className="mt-1 text-meta text-ink-3">
-                      training_consent: {brand.trainingConsent ? "yes" : "no"}
+                      Training: {brand.trainingConsent ? "on" : "off"}
                     </p>
                   </div>
                   <span className="rounded-full border border-line bg-fill px-3 py-1 text-[11px] uppercase tracking-[0.1em] text-ink-3">

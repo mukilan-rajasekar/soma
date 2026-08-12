@@ -23,11 +23,13 @@ export default function CreateBrandForm({ redirectTo }: { redirectTo?: string })
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (!name.trim()) {
       setError("Give the brand a name.");
@@ -41,13 +43,28 @@ export default function CreateBrandForm({ redirectTo }: { redirectTo?: string })
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), trainingConsent: consent }),
       });
-      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        created?: boolean;
+        brand?: { name?: string };
+      };
 
       if (!res.ok) {
         setError(body.error ?? "Could not create this brand.");
         return;
       }
 
+      // Say what happened — the refresh alone re-renders the list, but on the
+      // first-run card the whole checklist block swaps out with nothing telling the
+      // person their click worked. The API also dedupes by name (created: false),
+      // which used to be silently swallowed here.
+      const brandName = body.brand?.name ?? name.trim();
+      setSuccess(
+        body.created === false
+          ? `${brandName} already exists — you're set. Next: upload a cut.`
+          : `${brandName} created. Next: upload a cut.`,
+      );
+      setName("");
       router.refresh();
       if (redirectTo) router.push(redirectTo);
     } catch {
@@ -95,6 +112,11 @@ export default function CreateBrandForm({ redirectTo }: { redirectTo?: string })
       {error ? (
         <div role="alert" className="text-meta text-error">
           {error}
+        </div>
+      ) : null}
+      {success ? (
+        <div role="status" className="text-meta text-ink">
+          {success}
         </div>
       ) : null}
 

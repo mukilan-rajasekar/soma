@@ -20,7 +20,7 @@
 // the SAME module (src/lib/batch.ts), so the two can't drift — this copy exists to make
 // the failure fast and legible, never to be the enforcement.
 
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -31,6 +31,7 @@ import {
   OBJECTIVES,
   PLACEMENTS,
   PLATFORMS,
+  briefFieldProblems,
   durationBucket,
   emptyBrief,
   normaliseAliases,
@@ -57,13 +58,28 @@ type Picked = {
 
 type Phase = "idle" | "uploading" | "creating" | "error";
 
-export default function BatchUpload() {
+export default function BatchUpload({
+  initialEmail,
+  brands,
+}: {
+  /** Session email, when the dashboard renders this. Replaces the email field —
+   *  the API takes the owner from the verified session anyway, so asking a signed-in
+   *  person to retype their address was pure noise. */
+  initialEmail?: string;
+  /** The account's brand names, when the dashboard renders this. Prefills the brief. */
+  brands?: string[];
+} = {}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const [files, setFiles] = useState<Picked[]>([]);
-  const [brief, setBrief] = useState<Brief>(emptyBrief);
-  const [email, setEmail] = useState("");
+  const [brief, setBrief] = useState<Brief>(() => {
+    const b = emptyBrief();
+    // The account already named its brand — start from it rather than an empty box.
+    return brands?.length ? { ...b, brand_name: brands[0] } : b;
+  });
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [message, setMessage] = useState("");
@@ -86,6 +102,10 @@ export default function BatchUpload() {
     ],
     [files, brief, email],
   );
+
+  // The same problems, pinned to their inputs — rendered inline so nobody has to
+  // scroll from the summary at the submit button back up to find the empty field.
+  const fieldProblems = useMemo(() => briefFieldProblems(brief), [brief]);
 
   const buckets = useMemo(() => {
     const seen = new Set<string>();
@@ -142,6 +162,13 @@ export default function BatchUpload() {
     setMessage("");
     if (problems.length) {
       setMessage(problems[0]);
+      // Put focus where the fixing starts. The inline errors render on the next
+      // frame (touched just flipped), so the query waits one frame too.
+      requestAnimationFrame(() => {
+        formRef.current
+          ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+          ?.focus();
+      });
       return;
     }
 
@@ -200,7 +227,7 @@ export default function BatchUpload() {
     setBrief((b) => ({ ...b, [k]: e.target.value }));
 
   return (
-    <form onSubmit={submit} className="mx-auto max-w-[860px] px-[clamp(16px,4vw,24px)] pb-24 pt-[clamp(26px,5vw,44px)]">
+    <form ref={formRef} onSubmit={submit} className="mx-auto max-w-[860px] px-[clamp(16px,4vw,24px)] pb-24 pt-[clamp(26px,5vw,44px)]">
       <div className="mb-5 inline-flex items-center gap-[9px] text-[11px] uppercase tracking-[0.18em] text-ink-3">
         <span className="h-[6px] w-[6px] rounded-full bg-accent-2" />
         Send your ads
@@ -337,6 +364,28 @@ export default function BatchUpload() {
           message landed means knowing what the message was.
         </p>
 
+        {brands && brands.length > 1 ? (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="text-[12.5px] text-ink-3">Your brands:</span>
+            {brands.map((b) => (
+              <button
+                key={b}
+                type="button"
+                disabled={busy}
+                onClick={() => setBrief((prev) => ({ ...prev, brand_name: b }))}
+                aria-pressed={brief.brand_name === b}
+                className={`cursor-pointer rounded-full border px-3 py-1 text-[12.5px] transition-colors ${
+                  brief.brand_name === b
+                    ? "border-ink bg-ink text-paper"
+                    : "border-line-2 bg-paper text-ink-2 hover:border-ink hover:text-ink"
+                }`}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {MESSAGE_FIELDS.map((f) => (
             <Field
@@ -348,6 +397,7 @@ export default function BatchUpload() {
               onChange={set(f)}
               disabled={busy}
               required
+              error={touched ? fieldProblems[f] : undefined}
             />
           ))}
         </div>
@@ -401,6 +451,7 @@ export default function BatchUpload() {
             onChange={set("audience")}
             disabled={busy}
             required
+            error={touched ? fieldProblems.audience : undefined}
           />
         </div>
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -412,30 +463,53 @@ export default function BatchUpload() {
             onChange={set("batch_name")}
             disabled={busy}
           />
-          <Field
-            label="Your email"
-            hint="Where we reach you about this run."
-            placeholder="you@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={busy}
-            type="email"
-            required
-          />
+          {initialEmail ? (
+            /* Signed in: the address is already known and the API takes the owner from
+               the session, so there is nothing to type. Say where the run will land. */
+            <div className="flex flex-col">
+              <span className="text-[12px] uppercase tracking-[0.07em] text-ink-3">
+                Your email
+              </span>
+              <p className="mt-2 text-[15px] text-ink">{email}</p>
+              <span className="mt-1.5 text-[12.5px] leading-[1.5] text-ink-3">
+                From your account — we&rsquo;ll reach you here about this run.
+              </span>
+            </div>
+          ) : (
+            <Field
+              label="Your email"
+              hint="Where we reach you about this run."
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={busy}
+              type="email"
+              required
+              error={
+                touched && !isValidEmail(email)
+                  ? "A valid email, so we can reach you about this run."
+                  : undefined
+              }
+            />
+          )}
         </div>
       </Step>
 
       {/* ── submit ───────────────────────────────────────────────────────── */}
       <div className="mt-10 border-t border-line pt-8">
         {touched && problems.length ? (
-          <ul className="mb-5 flex flex-col gap-2">
-            {problems.map((p) => (
-              <li key={p} className="flex gap-2.5 text-[13.5px] leading-[1.55] text-neg">
-                <span aria-hidden className="mt-[8px] h-px w-2.5 shrink-0 bg-neg" />
-                <span>{p}</span>
-              </li>
-            ))}
-          </ul>
+          /* role="alert" so the summary is announced when it appears on submit; the
+             per-field copies of these live inline next to their inputs. */
+          <div role="alert">
+            <ul className="mb-5 flex flex-col gap-2">
+              {problems.map((p) => (
+                <li key={p} className="flex gap-2.5 text-[13.5px] leading-[1.55] text-neg">
+                  <span aria-hidden className="mt-[8px] h-px w-2.5 shrink-0 bg-neg" />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
 
         {message ? (
@@ -480,7 +554,7 @@ function Step({ n, title, children }: { n: string; title: string; children: Reac
 }
 
 function Field({
-  label, hint, placeholder, value, onChange, disabled, required, type = "text",
+  label, hint, placeholder, value, onChange, disabled, required, type = "text", error,
 }: {
   label: string;
   hint?: string;
@@ -490,7 +564,11 @@ function Field({
   disabled?: boolean;
   required?: boolean;
   type?: string;
+  /** Inline problem for THIS field. Replaces the hint while present — the two say
+   *  related things and stacking them doubles the row height for no information. */
+  error?: string;
 }) {
+  const errorId = useId();
   return (
     <label className="flex flex-col">
       <span className="text-[12px] uppercase tracking-[0.07em] text-ink-3">
@@ -503,9 +581,19 @@ function Field({
         onChange={onChange}
         disabled={disabled}
         placeholder={placeholder}
-        className="mt-2 w-full rounded-xl border border-line bg-paper px-[15px] py-[12px] text-[15px] text-ink outline-none transition-colors focus:border-ink-3 disabled:opacity-60"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        className={`mt-2 w-full rounded-xl border bg-paper px-[15px] py-[12px] text-[15px] text-ink outline-none transition-colors disabled:opacity-60 ${
+          error ? "border-neg focus:border-neg" : "border-line focus:border-ink-3"
+        }`}
       />
-      {hint ? <span className="mt-1.5 text-[12.5px] leading-[1.5] text-ink-3">{hint}</span> : null}
+      {error ? (
+        <span id={errorId} className="mt-1.5 text-[12.5px] leading-[1.5] text-neg">
+          {error}
+        </span>
+      ) : hint ? (
+        <span className="mt-1.5 text-[12.5px] leading-[1.5] text-ink-3">{hint}</span>
+      ) : null}
     </label>
   );
 }

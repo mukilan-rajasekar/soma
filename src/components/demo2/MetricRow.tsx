@@ -12,9 +12,11 @@ import type { Reads, Scores } from "./types";
 function CountUp({ value, active, big }: { value: number; active: boolean; big?: boolean }) {
   const p = useAnimeClock(active, big ? 1100 : 850);
   const shown = Math.round(value * p);
+  // aria-label carries the real value; the animating digits are aria-hidden so a screen
+  // reader never catches the count mid-flight (or the literal pre-animation "0").
   return (
-    <span className={`tabular-nums font-medium text-ink ${big ? "text-[54px] leading-none" : "text-[30px] leading-none"}`}>
-      {shown}
+    <span role="img" aria-label={String(value)} className={`tabular-nums font-medium text-ink ${big ? "text-[54px] leading-none" : "text-[30px] leading-none"}`}>
+      <span aria-hidden="true">{shown}</span>
     </span>
   );
 }

@@ -15,6 +15,8 @@
 import type { Metadata } from "next";
 
 import BatchUpload from "@/components/upload/BatchUpload";
+import { listBrandsForUser } from "@/lib/serve";
+import { requireUser } from "@/lib/supabase/session";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +25,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-export default function DashboardUploadPage() {
+export default async function DashboardUploadPage() {
+  // The session already knows who this is and what brands they own; the form should
+  // never ask a signed-in person to retype either. /upload (the anonymous front door)
+  // keeps rendering BatchUpload prop-less and is unchanged by this.
+  const user = await requireUser("/dashboard/upload");
+  const brands = await listBrandsForUser();
+
   return (
     <div className="mx-auto max-w-[860px] px-[clamp(18px,5vw,32px)] pb-16 pt-[clamp(28px,5vw,44px)]">
       <h1 className="text-balance text-hero text-ink">
@@ -34,7 +42,10 @@ export default function DashboardUploadPage() {
         when scoring finishes — same intake as the public form, owned by this account.
       </p>
       <div className="mt-10">
-        <BatchUpload />
+        <BatchUpload
+          initialEmail={user.email ?? undefined}
+          brands={brands.map((b) => b.name)}
+        />
       </div>
     </div>
   );
