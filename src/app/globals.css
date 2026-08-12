@@ -22,6 +22,16 @@
   --font-serif: Georgia, "Times New Roman", serif;
 }
 
+/* The landing hero's sealed composition (absolute right rail, bottom-pinned footer,
+   overflow hidden) needs BOTH width and height — `md:` alone let a landscape phone
+   (844×390: md-wide, 390 tall) seal a layout it cannot fit, clipping content with
+   no scroll (Greptile follow-up on #30). Below either threshold the hero flows. */
+@custom-variant md-tall {
+  @media (min-width: 768px) and (min-height: 640px) {
+    @slot;
+  }
+}
+
 /* Design tokens. `@theme static` so every token is ALWAYS emitted as a `:root`
    custom property — even before any utility references it — which keeps them
    readable from dynamic canvas/SVG style values (e.g. stroke: var(--color-accent))
