@@ -44,7 +44,10 @@ export default function Landing() {
   };
 
   return (
-    <main className="fixed inset-0 overflow-hidden bg-paper">
+    /* overflow-y-auto below md (Greptile P2 on #30): the hero used to be a sealed
+       viewport, which clipped the stacked form + footer on short screens with no way
+       to scroll to them. Mobile flows and scrolls; md+ keeps the sealed composition. */
+    <main className="fixed inset-0 overflow-y-auto bg-paper md:overflow-hidden">
       {/* Dimmed below md: the text column spans the full width there and sits directly
           over the point cloud — at full strength the dots fight the copy. Desktop keeps
           the cloud at full presence beside the column. */}
@@ -99,10 +102,12 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* Below md the column owns the full width (inset-x-6) — the old
-          w-[min(400px,42vw)] collapsed to ~164px on a phone and crushed the form.
-          Desktop keeps the right-rail placement. */}
-      <div className="absolute inset-x-6 top-1/2 z-[2] -translate-y-1/2 md:inset-x-auto md:right-[6vw] md:w-[min(400px,42vw)]">
+      {/* Below md the column flows in the scroll container — the old absolute
+          top-1/2 centering (and before that, a w-[min(400px,42vw)] rail that
+          collapsed to ~164px on a phone) pinned content that could exceed a short
+          viewport. pt-[18vh] reads as centered on tall phones and simply scrolls on
+          short ones. Desktop keeps the right-rail placement. */}
+      <div className="relative z-[2] max-w-[440px] px-6 pb-14 pt-[18vh] md:absolute md:right-[6vw] md:top-1/2 md:max-w-none md:w-[min(400px,42vw)] md:-translate-y-1/2 md:p-0">
         <h1 className="m-0 text-[clamp(30px,3.4vw,46px)] font-medium leading-[1.04] tracking-[-0.02em] text-balance">
           Find the ad that
           <br />
@@ -181,9 +186,12 @@ export default function Landing() {
       {/* The landing used to hide /audit, /science and /compare entirely — the
           content routes' footer links, as a slim strip. pointer-events split like the
           header row so BrainField keeps its drag between the links. */}
+      {/* In flow below md (it follows the column and scrolls with it — pinning it to
+          the viewport bottom is what overlapped the hero on short screens); pinned to
+          the frame's bottom rail on md+ where the composition is sealed. */}
       <nav
         aria-label="Site"
-        className="pointer-events-none absolute inset-x-6 bottom-6 z-[2] flex flex-wrap gap-x-5 gap-y-2 text-[13px] tracking-[-0.01em] md:inset-x-11"
+        className="relative z-[2] flex flex-wrap gap-x-5 gap-y-2 px-6 pb-8 text-[13px] tracking-[-0.01em] md:pointer-events-none md:absolute md:inset-x-11 md:bottom-6 md:p-0"
       >
         {SITE_LINKS.map((l) => (
           <Link
